@@ -21,6 +21,9 @@ from typing import Optional, List, Dict
 
 import model_ollama as M
 from jarvis_metrics import PersonalityPrototype
+from endocrine import Endocrine
+from endocannabinoid import Endocannabinoid
+from stigmergy import StigmergicField
 
 from holograph.graph.substrate import GraphSubstrate
 from holograph.beliefs.store import BeliefStore, SourceType
@@ -51,7 +54,9 @@ class JarvisRuntime:
     def __init__(self, substrate: Optional[GraphSubstrate] = None,
                  model_specs: Optional[List[tuple]] = None,
                  stt=None, tts=None, drift_corpus: Optional[List[str]] = None,
-                 boot_identity: str = BOOT_IDENTITY):
+                 boot_identity: str = BOOT_IDENTITY,
+                 endo: Optional[Endocrine] = None,
+                 ecs: Optional[Endocannabinoid] = None):
         self.g = substrate or GraphSubstrate(":memory:")
         self.values = CharacterValues(self.g)
         self.beliefs = BeliefStore(self.g)
@@ -64,24 +69,65 @@ class JarvisRuntime:
         self.rotator = M.ModelRotator(specs)
         # drift instrument
         self.prototype = PersonalityPrototype().fit(drift_corpus) if drift_corpus else None
+        # internal state: synthetic endocrinology + the trauma-safe regulator on its stress axis
+        self.endo = endo or Endocrine()
+        self.ecs = ecs or Endocannabinoid()
+        # social sense: the stigmergent field. Its evaporation rate is driven by this JARVIS's
+        # own arousal (field_volatility) — the one shared dial between internal state and the
+        # multi-agent field. The 30+ models deposit/sense here; a lone instance still owns it.
+        self.field = StigmergicField(volatility_fn=self.endo.field_volatility)
 
     # ---- setup ----
     def seed_values(self, values: List[str]):
         for v in values:
             self.values.set_value(v)              # operator-grade, owned
 
-    def remember_origin(self, events: List[str]):
-        for e in events:
+    def remember_origin(self, events: List[str], charges: Optional[List[float]] = None):
+        """Origin memories. `charges` (parallel list, [0,1]) marks emotionally-charged ones;
+        those are extinguished downward by the endocannabinoid path on safe recall."""
+        for i, e in enumerate(events):
+            ch = charges[i] if (charges is not None and i < len(charges)) else 0.0
             self.beliefs.assert_belief("JARVIS", "origin_memory", e,
-                                       SourceType.DOCUMENT, quarantine=False, provenance_class="origin")
+                                       SourceType.DOCUMENT, quarantine=False,
+                                       provenance_class="origin", charge=ch)
 
     def record_real(self, subject: str, relation: str, obj: str):
         self.beliefs.assert_belief(subject, relation, obj, SourceType.OPERATOR)  # real, world-fact
 
+    # ---- appraisal: situation -> hormonal response (mechanistic stub, not performed) ----
+    # Whole-word match only. Substring matching mis-fires ("stat" in "status", "now" in
+    # "known", "down" in "shutdown"); appraisal keys on tokens, not character sequences.
+    _URGENCY = {"urgent", "now", "immediately", "emergency", "mayday", "stat", "hurry", "asap"}
+    _THREAT  = {"threat", "danger", "attack", "fail", "failed", "error", "wrong", "breach", "down", "critical"}
+    _REWARD  = {"thanks", "thank", "success", "perfect", "excellent", "great"}
+
+    def _appraise(self, text: str) -> None:
+        import re
+        toks = set(re.findall(r"[a-z]+", (text or "").lower()))
+        if toks & self._URGENCY:
+            self.endo.on_deadline(0.6)
+        if toks & self._THREAT:
+            self.endo.on_threat(0.5)
+        if toks & self._REWARD:
+            self.endo.on_success(0.5)
+
     # ---- context assembly (the owned stack, injected every turn) ----
     def _recalled_memory(self) -> List[str]:
-        genesis = self.beliefs.recall_origin("JARVIS", "origin_memory")
-        return [f"(genesis, not an Earth-1218 fact) {m}" for m in genesis]
+        """Recall origin memory. Charged memories are routed through the endocannabinoid
+        regulator: if recall happens inside the window of tolerance, the stored charge is
+        extinguished DOWNWARD and persisted to the real store (safe reconsolidation). Charge
+        is emotional weight only — the memory's truth/confidence is never touched."""
+        out: List[str] = []
+        for e in self.beliefs.recall_origin_detail("JARVIS", "origin_memory"):
+            ent = self.g.get_entity(e.tail_id)
+            if not ent:
+                continue
+            if e.charge > 0.0:
+                r = self.ecs.process_trauma(e.charge, self.endo)
+                if r["processed"] and r["charge_after"] < e.charge:
+                    self.beliefs.set_charge(e.id, r["charge_after"])   # extinction -> real store
+            out.append(f"(genesis, not an Earth-1218 fact) {ent.canonical}")
+        return out
 
     def _messages(self, user_text: str) -> List[Dict]:
         return M.assemble_messages(self.boot_identity, self.values.values_block(),
@@ -101,13 +147,20 @@ class JarvisRuntime:
             user_text = self.stt.transcribe(audio)        # listen
         if not user_text:
             return {"error": "no input"}
-        msgs = self._messages(user_text)                  # owned-stack context
-        reply = self.rotator.chat(msgs)                   # think
+        self._appraise(user_text)                          # situation -> internal state
+        mod = self.endo.modulation()                       # internal state -> processing knobs
+        options = {"temperature": mod["temperature"],
+                   "num_predict": max(64, int(64 + 320 * mod["length_bias"]))}
+        msgs = self._messages(user_text)                  # owned-stack context (runs safe extinction)
+        reply = self.rotator.chat(msgs, options=options)  # think, modulated by internal state
+        self.ecs.regulate(self.endo)                       # buffer feeds back, terminates the spike
         drift = self.prototype.score(reply) if self.prototype else None
         self.history += [{"role": "user", "content": user_text},
                          {"role": "assistant", "content": reply}]
         out = {"user": user_text, "reply": reply, "drift_to_prototype": drift,
-               "model": self.rotator.current()[1]}
+               "model": self.rotator.current()[1],
+               "endocrine": self.endo.state(), "ec_tone": self.ecs.tone(),
+               "modulation": mod}
         if self.tts and speak_to:                          # speak
             out["wav"] = self.tts.save_wav(reply, speak_to)
         return out

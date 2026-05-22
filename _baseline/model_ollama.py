@@ -49,7 +49,8 @@ def parse_chat_response(payload: dict) -> str:
 
 # ---- backend interface (swappable organ) -------------------------------
 class ModelBackend(Protocol):
-    def chat(self, messages: Sequence[Dict], model: Optional[str] = None) -> str: ...
+    def chat(self, messages: Sequence[Dict], model: Optional[str] = None,
+             options: Optional[Dict] = None) -> str: ...
 
 class OllamaBackend:
     def __init__(self, base_url: str = LOCAL_BASE, api_key: Optional[str] = None,
@@ -59,8 +60,10 @@ class OllamaBackend:
         self.default_model = default_model
         self.timeout = timeout
 
-    def chat(self, messages: Sequence[Dict], model: Optional[str] = None) -> str:
-        body = json.dumps(chat_payload(model or self.default_model, messages, stream=False)).encode("utf-8")
+    def chat(self, messages: Sequence[Dict], model: Optional[str] = None,
+             options: Optional[Dict] = None) -> str:
+        body = json.dumps(chat_payload(model or self.default_model, messages,
+                                       stream=False, options=options)).encode("utf-8")
         req = urllib.request.Request(f"{self.base_url}/api/chat", data=body, method="POST")
         req.add_header("Content-Type", "application/json")
         if self.api_key:                                   # cloud auth; key never logged
@@ -87,12 +90,12 @@ class ModelRotator:
     def current(self) -> tuple:
         return self.specs[self.active]
 
-    def chat(self, messages: Sequence[Dict]) -> str:
+    def chat(self, messages: Sequence[Dict], options: Optional[Dict] = None) -> str:
         order = self.specs[self.active:] + self.specs[:self.active]
         errors = []
         for backend, model in order:
             try:
-                out = backend.chat(messages, model=model)
+                out = backend.chat(messages, model=model, options=options)
                 if out and out.strip():
                     return out
                 errors.append(f"{model}: empty")
@@ -134,9 +137,9 @@ if __name__ == "__main__":
 
     # 2. rotator failover (stub backends, no network)
     class _Fail:
-        def chat(self, m, model=None): raise ConnectionError("down")
+        def chat(self, m, model=None, options=None): raise ConnectionError("down")
     class _Ok:
-        def chat(self, m, model=None): return "fallback model answered"
+        def chat(self, m, model=None, options=None): return "fallback model answered"
     rot = ModelRotator([(_Fail(), "primary"), (_Ok(), "backup")])
     out = rot.chat([{"role": "user", "content": "hi"}])
     print(f"[rotator] failover -> {out!r}  {'PASS' if 'fallback' in out else 'FAIL'}"); ok &= ("fallback" in out)
