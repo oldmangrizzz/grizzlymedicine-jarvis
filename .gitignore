@@ -21,6 +21,8 @@ secrets/
 *.swp
 *~
 Thumbs.db
+.~lock.*#
+*.tmp
 
 # --- Python ---
 __pycache__/
