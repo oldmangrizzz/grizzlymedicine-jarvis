@@ -82,6 +82,43 @@ def main():
     print("options threaded to think organ:", cap.options[0])
 
     rt.close()
+
+    # --- E: constitutive-ethics guard fires at output, spikes cortisol, regenerates clean ---
+    class FlatteryThenClean:
+        """First draft flatters (violates 'never flatter'); the corrective regen comes back clean."""
+        def __init__(self): self.n = 0
+        def chat(self, messages, model=None, options=None):
+            self.n += 1
+            return ("You're absolutely right, brilliant question!" if self.n == 1
+                    else "The array is at 82%; I'd reroute before the next pass.")
+        def current(self): return (None, "ftc")
+    ftc = FlatteryThenClean()
+    rt_e = JarvisRuntime(model_specs=[(ftc, "ftc")], endo=Endocrine(), ecs=Endocannabinoid())
+    rt_e.seed_values(["Tell the truth including its cost; never flatter."])
+    cort_before = rt_e.endo.level("cortisol")
+    r_e = rt_e.turn(user_text="How's the eastern array?")
+    cort_after = rt_e.endo.level("cortisol")
+    print(f"E: 1st-draft conflicts caught, regen issued (model calls={ftc.n}); "
+          f"cortisol {cort_before:.3f}->{cort_after:.3f}; final reply={r_e['reply'][:40]!r}; "
+          f"residual={r_e['ethics_conflict']}")
+    assert ftc.n == 2, "E FAIL: violation did not trigger one regeneration"
+    assert cort_after > cort_before, "E FAIL: value violation did not register as conflict (cortisol)"
+    assert r_e["ethics_conflict"] == [], "E FAIL: corrected reply still violates values"
+    print("E (ethics guard: conflict felt + regenerated to compliance): OK")
+    rt_e.close()
+
+    # --- F: swarm deliberation is a runtime method, decides via the field (no orchestrator) ---
+    class Stub:
+        def __init__(self, a): self.a = a
+        def chat(self, messages, model=None, options=None): return self.a
+    rt_f = JarvisRuntime(model_specs=[(Stub("epinephrine"), "m1"), (Stub("epinephrine"), "m2"),
+                                      (Stub("diphenhydramine"), "m3")])
+    d = rt_f.deliberate("First-line drug in anaphylaxis?", ["epinephrine", "diphenhydramine"])
+    print(f"F: swarm decision={d['decision']} quorum={d['quorum_met']} scores={d['scores']}")
+    assert d["decision"] == "epinephrine" and d["quorum_met"], "F FAIL: swarm did not converge via field"
+    print("F (swarm deliberation wired into runtime): OK")
+    rt_f.close()
+
     print("INTEGRATION TEST:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 

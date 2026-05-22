@@ -31,6 +31,12 @@ __pycache__/
 .pytest_cache/
 .venv/
 
+# --- Node / Convex (regenerable; deploy via CONVEX_DEPLOY_KEY) ---
+node_modules/
+.convex/
+convex/_generated/
+package-lock.json
+
 # --- generated / transient audio (regenerable) ---
 *.wav
 

@@ -150,6 +150,18 @@ class StigmergicField:
                 out[sig.kind] = out.get(sig.kind, 0.0) + w * s
         return out
 
+    def sense_all(self, kind: str) -> Dict[str, float]:
+        """Current strength of every live signal of `kind`, keyed by topic. Used to read the
+        field's overall leaning (e.g. which option the swarm is currently behind)."""
+        out: Dict[str, float] = {}
+        for sig in self.backend.all():
+            if sig.kind != kind:
+                continue
+            s = self._current(sig)
+            if s >= GC_FLOOR:
+                out[sig.topic] = out.get(sig.topic, 0.0) + s
+        return out
+
     # ---- quorum sensing (threshold-keyed collective decision) ----
     def quorum(self, kind: str, topic: str, min_depositors: int = 3,
                min_strength: float = 0.5) -> bool:

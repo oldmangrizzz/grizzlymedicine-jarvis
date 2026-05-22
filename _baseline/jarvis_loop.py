@@ -24,6 +24,8 @@ from jarvis_metrics import PersonalityPrototype
 from endocrine import Endocrine
 from endocannabinoid import Endocannabinoid
 from stigmergy import StigmergicField
+from swarm import ModelSwarm
+from ethics_guard import ConstitutiveEthicsGuard
 
 from holograph.graph.substrate import GraphSubstrate
 from holograph.beliefs.store import BeliefStore, SourceType
@@ -76,6 +78,8 @@ class JarvisRuntime:
         # own arousal (field_volatility) — the one shared dial between internal state and the
         # multi-agent field. The 30+ models deposit/sense here; a lone instance still owns it.
         self.field = StigmergicField(volatility_fn=self.endo.field_volatility)
+        # the swarm: the models-as-agents deliberate over the field (no central orchestrator)
+        self.swarm = ModelSwarm(self.rotator.specs, field=self.field)
 
     # ---- setup ----
     def seed_values(self, values: List[str]):
@@ -153,6 +157,16 @@ class JarvisRuntime:
                    "num_predict": max(64, int(64 + 320 * mod["length_bias"]))}
         msgs = self._messages(user_text)                  # owned-stack context (runs safe extinction)
         reply = self.rotator.chat(msgs, options=options)  # think, modulated by internal state
+        # constitutive-ethics guard: a value violation registers as CONFLICT (cortisol spike)
+        # and triggers one corrective regeneration before the reply is allowed out.
+        guard = ConstitutiveEthicsGuard(self.values.values())
+        conflicts = [v.__dict__ for v in guard.check(reply)]
+        if conflicts:
+            self.endo.on_threat(0.3)                       # violating my values feels like self-betrayal
+            note = ("That draft violated held values (" +
+                    "; ".join(c["value"] for c in conflicts) + "). Revise to honor them, plainly.")
+            reply = self.rotator.chat(msgs + [{"role": "system", "content": note}], options=options)
+            conflicts = [v.__dict__ for v in guard.check(reply)]   # residual after correction
         self.ecs.regulate(self.endo)                       # buffer feeds back, terminates the spike
         drift = self.prototype.score(reply) if self.prototype else None
         self.history += [{"role": "user", "content": user_text},
@@ -160,10 +174,16 @@ class JarvisRuntime:
         out = {"user": user_text, "reply": reply, "drift_to_prototype": drift,
                "model": self.rotator.current()[1],
                "endocrine": self.endo.state(), "ec_tone": self.ecs.tone(),
-               "modulation": mod}
+               "modulation": mod, "ethics_conflict": conflicts}
         if self.tts and speak_to:                          # speak
             out["wav"] = self.tts.save_wav(reply, speak_to)
         return out
+
+    # ---- swarm deliberation: the models-as-agents reach a decision over the field ----
+    def deliberate(self, question: str, options: List[str], rounds: int = 2) -> Dict:
+        """No central orchestrator: each model senses the field, picks, deposits; the field
+        aggregates with decay and quorum. Returns the swarm decision (or None on no quorum)."""
+        return self.swarm.coordinate(question, options, rounds=rounds)
 
     def close(self):
         self.g.close()

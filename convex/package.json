@@ -1,0 +1,13 @@
+{
+  "name": "jarvis-stigmergent-field",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Convex backend for the JARVIS stigmergent pheromone field (Condition 4).",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.17.0"
+  }
+}
