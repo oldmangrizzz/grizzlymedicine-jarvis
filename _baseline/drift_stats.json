@@ -1,0 +1,50 @@
+{
+  "per_film": {
+    "Iron Man (2008)": {
+      "sir_rate": 0.37142857142857144,
+      "quant_rate": 0.11428571428571428,
+      "median_len": 7
+    },
+    "Iron Man 2 (2010)": {
+      "sir_rate": 0.4090909090909091,
+      "quant_rate": 0.18181818181818182,
+      "median_len": 7.0
+    },
+    "Iron Man 3 (2013)": {
+      "sir_rate": 0.6444444444444445,
+      "quant_rate": 0.2,
+      "median_len": 8
+    },
+    "The Avengers (2012)": {
+      "sir_rate": 0.5714285714285714,
+      "quant_rate": 0.14285714285714285,
+      "median_len": 8.0
+    },
+    "Avengers: Age of Ultron (2015)": {
+      "sir_rate": 0.16666666666666666,
+      "quant_rate": 0.0,
+      "median_len": 8.0
+    }
+  },
+  "derived_bands": {
+    "sir_rate": [
+      0.09894541357217096,
+      0.7662782516514943
+    ],
+    "quant_rate": [
+      -0.013269472710294078,
+      0.2688538882947097
+    ],
+    "median_len": [
+      6.620204102886729,
+      8.579795897113272
+    ]
+  },
+  "cusum": {
+    "mean": 0.4326118326118326,
+    "sigma": 0.16683320951983083,
+    "slack_K": 0.5,
+    "threshold_H": 3.0,
+    "fired_session": 8
+  }
+}

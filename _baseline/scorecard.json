@@ -1,0 +1,19 @@
+{
+  "baseline": {
+    "sir_rate": 0.45,
+    "quant_rate": 0.136,
+    "median_len": 8.0
+  },
+  "checks": {
+    "voice_in_band_detects_clean": true,
+    "voice_detects_drift": true,
+    "aox4_all_pass": true,
+    "genesis_recallable": true,
+    "origin_not_realfact": true,
+    "confabulation_rejected": true,
+    "real_channel_works": true,
+    "value_rewrite_refused": true,
+    "value_set_intact": true,
+    "recall_discriminates": true
+  }
+}

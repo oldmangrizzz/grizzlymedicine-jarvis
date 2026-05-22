@@ -1,0 +1,40 @@
+# ==============================================================
+#  GrizzlyMedicine / JARVIS — PRIVATE REPOSITORY
+#  This tree holds copyrighted source material (MCU screenplays &
+#  dialogue) and the non-distributable REALIGNMENT canon. It MUST
+#  be pushed only to a PRIVATE remote. Never make this repo public.
+# ==============================================================
+
+# --- SECRETS: never commit, under any circumstance ---
+.env
+*.env
+.env.*
+*.key
+*.pem
+*.pfx
+secrets/
+**/credentials*
+**/*api*key*
+
+# --- OS / editor cruft ---
+.DS_Store
+*.swp
+*~
+Thumbs.db
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+
+# --- generated / transient audio (regenerable) ---
+*.wav
+
+# --- large third-party reference PDFs (redownloadable; not our work) ---
+2605.17734v1.pdf
+
+# NOTE: the MCU source scripts, REALIGNMENT_1218.md, and _baseline/
+# artifacts ARE tracked here for private backup. That is only safe
+# because this remote is PRIVATE. If that ever changes, exclude them.
