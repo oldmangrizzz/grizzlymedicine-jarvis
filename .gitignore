@@ -12,6 +12,7 @@
 *.key
 *.pem
 *.pfx
+*.blob
 secrets/
 **/credentials*
 **/*api*key*
@@ -46,3 +47,7 @@ package-lock.json
 # NOTE: the MCU source scripts, REALIGNMENT_1218.md, and _baseline/
 # artifacts ARE tracked here for private backup. That is only safe
 # because this remote is PRIVATE. If that ever changes, exclude them.
+
+# cold-root identity artifacts — live with the USB, never the cloud
+identity_attestation.json
+identity_root.pub

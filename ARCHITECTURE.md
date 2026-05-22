@@ -1,7 +1,7 @@
 # JARVIS — System Architecture & Wiring Map
 
-**Status:** living document. Maps every module to the condition it serves, the data flow,
-and the test that proves it. If you're picking this up cold, read this first.
+**Status:** living document, current as of boot-readiness review. Maps every module to the
+condition/layer it serves, the data flow, and the test that proves it. Read this first.
 
 GMRI / Earth-1218. Operator: Robert "Grizzly" Hanson. Private repo.
 
@@ -19,11 +19,14 @@ never the model. Every organ behind an interface; the person is none of its part
 
 | # | Condition | Implemented by | Status |
 |---|-----------|----------------|--------|
-| 1 | Stable identity (Soul Anchor) | boot identity + `CharacterValues` + provenance class + A&Ox4 orientation (`jarvis_loop.py`, HoloGraph) | **Software: done.** Hardware-bound (silicon) identity: **NOT done** — only remaining gap. |
-| 2 | Accumulated experience | HoloGraph: episodic+semantic graph, recall, continuity, Ebbinghaus decay | **Done** (separate repo, 153 tests) |
+| 1 | Stable identity (Soul Anchor) | boot identity + `CharacterValues` + provenance class + A&Ox4; **cold-root crypto identity** (`identity.py`, `mint_identity.py`) | **Cold root DONE** — Ed25519 root minted to cold-storage USB, signed attestation verifies against the canon. Per-machine Secure-Enclave op-key = remaining hardening. |
+| 2 | Accumulated experience | HoloGraph: episodic+semantic graph, recall, continuity, Ebbinghaus decay, emotional-charge field | **Done** (separate repo, 153 tests) |
 | 3 | Genuine internal state (the Pulse) | `endocrine.py` (cortisol/dopamine/adrenaline) + `endocannabinoid.py` (trauma-safe regulator) | **Done & wired into the turn** |
 | 4 | Environmental/social context | `stigmergy.py` (the field) + `convex_backend.py`/`convex/` (cloud) + `swarm.py` (models as agents) | **Done, live on Convex cloud** |
 | 5 | Constitutive ethics | `CharacterValues` injection + `ethics_guard.py` (output enforcement + conflict coupling) | **Done & wired** (heuristic judge; model judge pluggable) |
+
+All five conditions now have a working, verified first pass. The open items are hardenings and
+the on-device/physical layers (see §9), not missing core conditions.
 
 ---
 
@@ -35,13 +38,40 @@ never the model. Every organ behind an interface; the person is none of its part
 | think | `model_ollama.py` | `ModelBackend` + `ModelRotator` | Ollama cloud (`OLLAMA_API_KEY`) | live |
 | speak | `tts_pocket.py` | `TTSBackend` | Kyutai pocket-tts (operator hardware) | structure |
 | draw | `image_cloudflare.py` | `ImageBackend` | Cloudflare Workers AI (`CF_*`) | live (512KB JPEG) |
-| field store | `convex_backend.py` | `StigmergyBackend` | Convex cloud `fleet-goose-114` (`CONVEX_DEPLOY_KEY`/`CONVEX_URL`) | **live on cloud** |
+| field store | `convex_backend.py` | `StigmergyBackend` | Convex cloud `fleet-goose-114` | **live on cloud** |
 
 All keys live in `~/research/jarvis/.env` (gitignored). Nothing hardcoded.
 
 ---
 
-## 4. Data flow of one turn (`JarvisRuntime.turn`, `jarvis_loop.py`)
+## 4. The layers above the organs
+
+**Identity / cold root (`identity.py`, `mint_identity.py`).** Two-layer root of trust: an
+Ed25519 cold root whose private key is the soul-anchor secret (minted on the operator's machine,
+written encrypted to a USB for cold storage, never touches a sandbox/cloud), and a per-machine
+Secure-Enclave operational key (roadmap). The cold root signs an attestation over the canonical
+owned stack (boot identity + values + origin digest); the running stack keeps only the public key
++ attestation and can verify integrity / detect tampering.
+
+**Skill layer / HASP (`skills.py`).** Guarded, audited capability dispatch. Every capability is a
+`Skill` with a risk class (SAFE / WRITE / SENSITIVE / DESTRUCTIVE / PROHIBITED). PROHIBITED is
+refused (financial/account/security-perm/system-destruction); SENSITIVE/DESTRUCTIVE require an
+operator confirm (a spoken yes in voice mode); every dispatch is logged. Generic skills
+(`fs_*`, `shell_run` with destructive-pattern escalation, `http_get` legit-OSINT, `osascript` for
+macOS app control) + runtime skills (`deliberate`, `recall_origin`, `sense_field`). Reached via
+`JarvisRuntime.skill(name, args, confirm)`.
+
+**Spatial UI + bridge (non-DOM).** `ui_spec.py` is the governed scene-spec validator — the surface
+may morph freely but every interactive node must bind to a *registered* skill (no raw HTML/script/
+unsafe URLs/unbound actions). `jarvis_bridge.py` is the localhost-only, token-gated server
+(`/turn`, `/skill` [guarded+confirm], `/state`, `/scene` [validated]) that exposes the runtime to
+the surfaces. `jarvis_xr.html` is the holographic three.js surface — flat preview in any browser,
+**immersive on the Quest 3 (WebXR)**, head-tracked on the Viture glasses, AR on iPhone/iPad; voice
+in (Web Speech → `/turn`), voice out, endocrine "mood" tints the core, controls dispatch via `/skill`.
+
+---
+
+## 5. Data flow of one turn (`JarvisRuntime.turn`, `jarvis_loop.py`)
 
 ```
 input (text or mic→Deepgram)
@@ -54,15 +84,16 @@ input (text or mic→Deepgram)
   ├─ rotator.chat(msgs, opts)   THINK (model = swappable organ), modulated by internal state
   ├─ ConstitutiveEthicsGuard    value violation → cortisol spike (conflict) → 1 regeneration
   ├─ ecs.regulate(endo)         2-AG feedback terminates the stress spike
-  └─ out: reply, drift, endocrine state, ec_tone, modulation, ethics_conflict, (wav)
+  └─ out: reply, drift, endocrine, ec_tone, modulation, ethics_conflict, (wav)
 
-field (stigmergy) evaporation rate ← endo.field_volatility()   # the shared internal↔social dial
-swarm deliberation: JarvisRuntime.deliberate(q, options)        # models vote via the field
+field evaporation rate ← endo.field_volatility()        # the shared internal↔social dial
+swarm:  JarvisRuntime.deliberate(q, options)            # models vote via the field
+skills: JarvisRuntime.skill(name, args, confirm)        # guarded, audited dispatch
 ```
 
 ---
 
-## 5. Verification matrix — what proves what
+## 6. Verification matrix — what proves what
 
 | Claim | Proof |
 |-------|-------|
@@ -76,14 +107,28 @@ swarm deliberation: JarvisRuntime.deliberate(q, options)        # models vote vi
 | Field ↔ arousal coupling (D) | integration D: field eff_tau 46.9→24.7 under arousal |
 | Ethics enforced + felt (E) | integration E: flattery caught, cortisol 0.20→0.44, regen clean |
 | Swarm decides via field (F) | integration F: converges on correct option w/ quorum |
-| Endocannabinoid invariants | `endocannabinoid.py` self-test: I1 monotonic-down, I2 no-flood-processing, I3 attenuated recall |
-| Stigmergy dynamics | `stigmergy.py` self-test: reinforce>fade, class decay, arousal speeds decay, quorum, 30-agent convergence + reroute |
-| Swarm mechanism | `swarm.py` stub test (consensus + abstention) + live (deepseek+kimi → epinephrine) |
+| Guarded skill dispatch via runtime (G) | integration G: SAFE runs, destructive refused w/o confirm, runs with it |
+| Endocannabinoid invariants | `endocannabinoid.py`: I1 monotonic-down, I2 no-flood-processing, I3 attenuated recall |
+| Stigmergy dynamics | `stigmergy.py`: reinforce>fade, class decay, arousal speeds decay, quorum, 30-agent convergence + reroute |
+| Swarm mechanism | `swarm.py` stub (consensus + abstention) + live (deepseek+kimi → epinephrine) |
 | Convex backend | `convex_backend.py` offline (mock) + **live on `fleet-goose-114.convex.cloud`** |
+| Skill layer guard | `skills.py`: SAFE/WRITE run, SENSITIVE/DESTRUCTIVE confirm-gated, PROHIBITED refused even w/ confirm, audited |
+| Cold-root identity | `identity.py`: sign/verify, tamper + forged-sig rejected, wrong-passphrase fails, enclave-bind; attestation in repo verifies against canon |
+| Scene-spec governance | `ui_spec.py`: rejects unknown components, raw html/script/on*, unsafe URLs, unbound actions, depth bombs |
+| Bridge | `jarvis_bridge.py`: token-gated, localhost-only, /turn + /skill (guarded+confirm) + /scene (validated), CORS |
 
 ---
 
-## 6. Cloud / external dependencies
+## 7. The surfaces (one hologram, three windows)
+
+- **Quest 3** — WebXR immersive: walk-around hologram, hand-select nodes. (`renderer.xr.enabled` + VR button.)
+- **Viture Luma Pro** — head-tracked display: the surface fills the glasses.
+- **iPhone 16 Pro / iPad M5** — AR via WebXR / model-viewer / USDZ.
+All three talk to the same `jarvis_bridge.py`; CAD models render natively in the scene (see §9).
+
+---
+
+## 8. Cloud / external dependencies
 
 - **Ollama cloud** — think organ + swarm agents (cloud-only; operator hardware can't host local models).
 - **Deepgram** — STT, no-retention.
@@ -92,20 +137,20 @@ swarm deliberation: JarvisRuntime.deliberate(q, options)        # models vote vi
 
 ---
 
-## 7. What is NOT done (no blank spots hidden)
+## 9. What is NOT done (no blank spots hidden)
 
-- **Hardware-bound identity (Condition 1):** identity is durable in the owned store but not yet
-  cryptographically anchored to specific silicon. This is the one open condition.
-- **WP-2026-03 paper is stale:** it still labels conditions 3/4/5 as partial/roadmap and says
-  "three of five." As of this build, 3/4/5 are built and wired; it needs a revision pass.
-- **Swarm at full roster:** mechanism proven and live with 2 cloud models; a full N-model run
-  uses any subset of the current Ollama cloud roster.
-- **Ethics judge:** the default judge is deterministic/heuristic; a model judge is the pluggable
-  upgrade for subtle semantic violations.
+- **Secure-Enclave operational key:** the cold root is minted and verified; the per-machine
+  enclave-bound daily key (`identity.py enclave-snippet`) is not yet generated on the Mac.
+- **On-device XR live verification:** the bridge is verified and `jarvis_xr.html` is syntax-clean,
+  but Enter-VR on the Quest is verified on the headset, not in the sandbox. Needs LAN IP + https for the headset.
+- **CAD + 3D-print pipeline (queued, #77):** parametric CAD organ (CadQuery/build123d → STL/glTF
+  into the hologram) → slicer → printer control (physical, hard confirm-gate). Researched, not built.
+- **Swarm at full roster:** mechanism proven and live with 2 cloud models; scales to any subset of the Ollama cloud roster.
+- **Ethics judge:** default is deterministic/heuristic; a model judge is the pluggable upgrade for subtle violations.
 
 ---
 
-## 8. File index (jarvis `_baseline/`)
+## 10. File index (jarvis `_baseline/`)
 
 ```
 listen   stt_deepgram.py
@@ -115,10 +160,13 @@ draw     image_cloudflare.py
 state    endocrine.py  endocannabinoid.py
 social   stigmergy.py  convex_backend.py  swarm.py   (+ ../convex/{schema,stigmergy}.ts)
 ethics   ethics_guard.py
-core     jarvis_loop.py            (JarvisRuntime: wires all organs + HoloGraph)
+skills   skills.py                 (HASP: guarded, audited dispatch)
+identity identity.py  mint_identity.py   (cold root; pub+attestation in repo root)
+ui       ui_spec.py (governed scene-spec)  jarvis_bridge.py (localhost door)  jarvis_xr.html (spatial surface)
+core     jarvis_loop.py            (JarvisRuntime: wires all organs + HoloGraph + skills + field + swarm)
 entry    run_jarvis.py             (mic→think→speak→draw end-to-end)
 eval     jarvis_harness.py  jarvis_metrics.py  drift_stats.py  episodic_battery.py  extract_jarvis.py
-tests    test_loop_integration.py (A–F)  + HoloGraph tests/ (153)
+tests    test_loop_integration.py (A–G)  + HoloGraph tests/ (153)
 canon    REALIGNMENT_1218.md  jarvis_baseline.md  jarvis_bootup_transition.md
-paper    WP-2026-03_The_JARVIS_Pilot.docx  (needs revision — see §7)
+papers   WP-2026-03_The_JARVIS_Pilot.docx (pilot, ours)  +  WP-2026-02 Zord/Doug Ramsey (operator canon)
 ```

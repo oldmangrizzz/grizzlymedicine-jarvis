@@ -26,6 +26,7 @@ from endocannabinoid import Endocannabinoid
 from stigmergy import StigmergicField
 from swarm import ModelSwarm
 from ethics_guard import ConstitutiveEthicsGuard
+from skills import default_registry, Skill, Risk
 
 from holograph.graph.substrate import GraphSubstrate
 from holograph.beliefs.store import BeliefStore, SourceType
@@ -80,6 +81,16 @@ class JarvisRuntime:
         self.field = StigmergicField(volatility_fn=self.endo.field_volatility)
         # the swarm: the models-as-agents deliberate over the field (no central orchestrator)
         self.swarm = ModelSwarm(self.rotator.specs, field=self.field)
+        # the skill layer (HASP): guarded, audited capability dispatch. Generic skills
+        # (fs/shell/http/osascript) + runtime capabilities (deliberate/recall/sense) registered.
+        self.skills = default_registry()
+        self.skills.register(Skill("deliberate", "Swarm decision over the field.",
+                                   Risk.SENSITIVE, lambda question, options, rounds=2:
+                                   self.deliberate(question, options, rounds)))
+        self.skills.register(Skill("recall_origin", "Recall genesis/origin memories.",
+                                   Risk.SAFE, lambda: self.beliefs.recall_origin("JARVIS", "origin_memory")))
+        self.skills.register(Skill("sense_field", "Sense stigmergent signals at a topic.",
+                                   Risk.SAFE, lambda topic, kind="recruit": self.field.sense(topic, kinds=[kind])))
 
     # ---- setup ----
     def seed_values(self, values: List[str]):
@@ -178,6 +189,12 @@ class JarvisRuntime:
         if self.tts and speak_to:                          # speak
             out["wav"] = self.tts.save_wav(reply, speak_to)
         return out
+
+    # ---- skill dispatch: every capability goes through the guarded, audited registry ----
+    def skill(self, name: str, args: Optional[Dict] = None, confirm=None):
+        """Invoke a skill by name. SENSITIVE/DESTRUCTIVE skills require `confirm` (in voice mode
+        that's JARVIS asking the operator aloud); PROHIBITED skills are refused. Returns SkillResult."""
+        return self.skills.dispatch(name, args or {}, confirm=confirm)
 
     # ---- swarm deliberation: the models-as-agents reach a decision over the field ----
     def deliberate(self, question: str, options: List[str], rounds: int = 2) -> Dict:

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!-- JARVIS spatial surface — the holographic, voice-first, NON-DOM UI.
+     Runs in a browser (desktop preview), enters immersive VR on the Quest 3 (Enter VR), and on
+     the Viture glasses it fills the head-tracked display. iPhone/iPad get the same scene (AR via
+     WebXR where supported). It renders a GOVERNED scene-spec fetched from the local bridge and
+     binds every interactive node to a guarded skill dispatch — morph freely, act only as governed.
+     three.js r128 globals (works on Quest browser WebXR). Live XR verification is on-device. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JARVIS</title>
+<style>html,body{margin:0;height:100%;background:#04070d;overflow:hidden;font-family:system-ui,sans-serif}
+#hud{position:absolute;left:12px;top:12px;color:#bfe8ff;font-size:13px;opacity:.85;z-index:5}
+#say{position:absolute;left:12px;bottom:12px;z-index:5;display:flex;gap:8px;align-items:center}
+button.j{background:rgba(20,60,90,.5);color:#bfe8ff;border:1px solid #2f6f9f;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+input.j{background:rgba(10,30,50,.6);color:#cfeeff;border:1px solid #2f6f9f;border-radius:8px;padding:8px;font-size:14px;width:240px}</style>
+</head><body>
+<div id="hud">JARVIS · connecting…</div>
+<div id="say"><input class="j" id="txt" placeholder="say something… (or hold the mic)"><button class="j" id="send">send</button><button class="j" id="mic">🎙 listen</button></div>
+<canvas id="c"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/webxr/VRButton.js"></script>
+<script>
+// ---- bridge config (the localhost door from jarvis_bridge.py) ----
+var BRIDGE = localStorage.getItem("jarvis_bridge") || "http://127.0.0.1:8787";
+var TOKEN = localStorage.getItem("jarvis_token") || "";
+if (!TOKEN) { TOKEN = prompt("JARVIS bridge token (printed when the bridge starts):") || ""; localStorage.setItem("jarvis_token", TOKEN); }
+var hud = document.getElementById("hud");
+function api(method, path, body) {
+  return fetch(BRIDGE + path, {method: method, headers: {"X-JARVIS-Token": TOKEN, "Content-Type": "application/json"},
+    body: body ? JSON.stringify(body) : undefined}).then(function(r){return r.json();});
+}
+
+// ---- scene / holographic shell ----
+var BLUE = 0x5fd0ff;
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 1.4, 3.2);
+var renderer = new THREE.WebGLRenderer({canvas: document.getElementById("c"), antialias: true, alpha: true});
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+renderer.xr.enabled = true;                       // <- immersive on Quest 3
+document.body.appendChild(VRButton.createButton(renderer));
+var controls = new THREE.OrbitControls(camera, renderer.domElement); controls.target.set(0,1.2,0);
+
+function wf(geo){ return new THREE.LineSegments(new THREE.EdgesGeometry(geo,1), new THREE.LineBasicMaterial({color:BLUE})); }
+var shell = wf(new THREE.IcosahedronGeometry(0.9,1)); shell.position.set(0,1.2,-0.2); scene.add(shell);
+var core = new THREE.Mesh(new THREE.SphereGeometry(0.18,24,24), new THREE.MeshBasicMaterial({color:0xcdefff})); core.position.copy(shell.position); scene.add(core);
+var grid = new THREE.GridHelper(20,40,BLUE,0x123a5c); scene.add(grid);
+
+// ---- text as canvas-texture sprites (no font loading) ----
+function label(text, scale){
+  var cv = document.createElement("canvas"); cv.width = 512; cv.height = 128;
+  var x = cv.getContext("2d"); x.fillStyle = "rgba(8,22,38,0.0)"; x.fillRect(0,0,512,128);
+  x.fillStyle = "#cfeeff"; x.font = "44px system-ui, sans-serif"; x.textBaseline = "middle";
+  x.fillText((text||"").slice(0,40), 12, 64);
+  var tex = new THREE.CanvasTexture(cv); var m = new THREE.SpriteMaterial({map: tex, transparent: true});
+  var s = new THREE.Sprite(m); s.scale.set(scale||1.2, (scale||1.2)/4, 1); return s;
+}
+
+// ---- render a GOVERNED scene-spec into 3D; interactive nodes carry their action ----
+var uiGroup = new THREE.Group(); uiGroup.position.set(0,1.2,0.4); scene.add(uiGroup);
+var interactables = [];
+function plate(node, y){
+  var g = new THREE.Group();
+  var bg = new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.26), new THREE.MeshBasicMaterial({color:0x0d2c46, transparent:true, opacity:0.55}));
+  var border = wf(new THREE.PlaneGeometry(1.6,0.26));
+  g.add(bg); g.add(border); g.add(label(node.label||node.text||"", 1.5));
+  g.position.y = y;
+  if (node.action) { g.userData.action = node.action; interactables.push(bg); bg.userData.group = g; bg.userData.action = node.action; }
+  return g;
+}
+function renderSpec(spec){
+  while (uiGroup.children.length) uiGroup.remove(uiGroup.children[0]);
+  interactables = [];
+  var y = 0.7, kids = (spec && spec.children) || [];
+  if (spec && spec.title) { uiGroup.add(Object.assign(label("▍ "+spec.title, 1.6),{position:new THREE.Vector3(0,y+0.35,0)})); }
+  kids.forEach(function(node){
+    if (node.type === "button" || node.type === "input") uiGroup.add(plate(node, y));
+    else { var s = label((node.text||"")+"", 1.6); s.position.y = y; uiGroup.add(s); }
+    y -= 0.34;
+  });
+}
+
+// ---- dispatch: confirm flow for guarded skills ----
+var pending = null;
+function dispatch(action){
+  api("POST","/skill",{name:action.skill, args:action.args||{}, confirm:false}).then(function(res){
+    if (res.refused && /confirm/i.test(res.reason||"")) {
+      pending = action; speak("This is a guarded action. Say confirm, or tap again to proceed.");
+      hud.textContent = "JARVIS · awaiting confirmation for "+action.skill;
+    } else { hud.textContent = "JARVIS · "+action.skill+(res.ok?" ✓":" ✗ "+(res.reason||res.error||"")); }
+  });
+}
+function confirmPending(){
+  if (!pending) return;
+  var a = pending; pending = null;
+  api("POST","/skill",{name:a.skill, args:a.args||{}, confirm:true}).then(function(res){
+    hud.textContent = "JARVIS · "+a.skill+(res.ok?" ✓ (confirmed)":" ✗");
+  });
+}
+
+// ---- selection: mouse (desktop) + XR controller ----
+var ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+function pick(){ ray.setFromCamera(mouse, camera); var hit = ray.intersectObjects(interactables); if (hit[0] && hit[0].object.userData.action) dispatch(hit[0].object.userData.action); }
+renderer.domElement.addEventListener("click", function(e){ mouse.x=(e.clientX/innerWidth)*2-1; mouse.y=-(e.clientY/innerHeight)*2+1; pick(); });
+var ctrl = renderer.xr.getController(0); scene.add(ctrl);
+ctrl.addEventListener("selectstart", function(){ var m=new THREE.Vector2(0,0); ray.setFromXRController?ray.setFromXRController(ctrl):ray.setFromCamera(m,camera); var hit=ray.intersectObjects(interactables); if(hit[0]&&hit[0].object.userData.action) dispatch(hit[0].object.userData.action); });
+
+// ---- voice in (Web Speech) -> /turn ; voice out (speech synthesis; pocket-tts on machine) ----
+function speak(t){ try{ var u=new SpeechSynthesisUtterance(t); speechSynthesis.speak(u); }catch(e){} }
+function turn(text){ if(!text) return; hud.textContent="JARVIS · thinking…"; api("POST","/turn",{text:text}).then(function(r){ if(r.reply){ hud.textContent="JARVIS"; speak(r.reply); showReply(r.reply); } }); }
+function showReply(t){ var s=label(t,2.0); s.position.set(0,2.1,0); s.scale.set(2.2,0.55,1); uiGroup.add(s); setTimeout(function(){uiGroup.remove(s);},6000); }
+document.getElementById("send").onclick=function(){ var v=document.getElementById("txt").value; if(/^confirm$/i.test(v.trim())){confirmPending();} else {turn(v);} document.getElementById("txt").value=""; };
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition; var rec = SR ? new SR() : null;
+document.getElementById("mic").onclick=function(){ if(!rec){speak("Voice recognition is not available in this browser.");return;} rec.lang="en-US"; rec.start(); };
+if (rec) rec.onresult = function(e){ var said = e.results[0][0].transcript; if(/^confirm$/i.test(said.trim())) confirmPending(); else turn(said); };
+
+// ---- boot: load scene + poll state for the endocrine 'mood' ----
+api("GET","/scene").then(function(r){ if(r.scene){ renderSpec(r.scene); hud.textContent="JARVIS · online"; } else { hud.textContent="JARVIS · "+(r.error||"no scene"); } })
+  .catch(function(){ hud.textContent="JARVIS · bridge unreachable ("+BRIDGE+")"; });
+function poll(){ api("GET","/state").then(function(s){ if(s.endocrine){ var a=(s.ec_tone||0); core.material.color.setHSL(0.55, 0.7, 0.6+0.2*Math.min(1,a)); } }).catch(function(){}); }
+setInterval(poll, 4000);
+
+addEventListener("resize", function(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+var t=0;
+renderer.setAnimationLoop(function(){ t+=0.016; shell.rotation.y+=0.004; shell.rotation.x+=0.0015; core.scale.setScalar(1+Math.sin(t*2.2)*0.06); controls.update(); renderer.render(scene,camera); });
+</script></body></html>

@@ -117,7 +117,19 @@ def main():
     print(f"F: swarm decision={d['decision']} quorum={d['quorum_met']} scores={d['scores']}")
     assert d["decision"] == "epinephrine" and d["quorum_met"], "F FAIL: swarm did not converge via field"
     print("F (swarm deliberation wired into runtime): OK")
-    rt_f.close()
+
+    # --- G: skill layer dispatches through the runtime, guarded ---
+    rt_g = JarvisRuntime(model_specs=[(Stub("ok"), "m1")])
+    rt_g.remember_origin(["The Battle of New York."])
+    safe = rt_g.skill("recall_origin")                       # SAFE runtime skill
+    listing = rt_g.skill("fs_list", {"path": "."})           # SAFE generic skill
+    gated = rt_g.skill("shell_run", {"command": "rm -rf /tmp/none_xyz"})   # DESTRUCTIVE, no confirm
+    ran = rt_g.skill("shell_run", {"command": "echo hi"}, confirm=lambda s, a: True)  # SENSITIVE w/ confirm
+    print(f"G: recall ok={safe.ok} list ok={listing.ok} destructive_refused={gated.refused} "
+          f"confirmed_ran={ran.ok}")
+    assert safe.ok and listing.ok and gated.refused and ran.ok, "G FAIL: skill dispatch/guard wrong"
+    print("G (guarded skill dispatch via runtime): OK")
+    rt_f.close(); rt_g.close()
 
     print("INTEGRATION TEST:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
