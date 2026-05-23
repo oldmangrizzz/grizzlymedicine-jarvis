@@ -264,13 +264,18 @@ final class VoiceCommandViewModel: ObservableObject {
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en_US"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var hasInstalledTap = false
+    private var isStarting = false
 
     func startListening() async {
-        guard !isListening else {
+        guard !isListening, !isStarting else {
             return
         }
+        isStarting = true
+        defer { isStarting = false }
         errorText = ""
         transcript = ""
+        stopAudio(deactivateSession: false)
 
         guard await requestSpeechAccess() else {
             errorText = "Speech recognition permission is required for voice-first control."
@@ -287,6 +292,10 @@ final class VoiceCommandViewModel: ObservableObject {
 
         do {
             try configureAudioSession()
+            guard AVAudioSession.sharedInstance().isInputAvailable else {
+                throw VoiceCommandError.microphoneUnavailable
+            }
+
             let request = SFSpeechAudioBufferRecognitionRequest()
             request.shouldReportPartialResults = true
             recognitionRequest = request
@@ -298,11 +307,14 @@ final class VoiceCommandViewModel: ObservableObject {
             }
 
             let inputNode = audioEngine.inputNode
-            inputNode.removeTap(onBus: 0)
-            let format = inputNode.outputFormat(forBus: 0)
+            let format = inputNode.inputFormat(forBus: 0)
+            guard format.sampleRate > 0, format.channelCount > 0 else {
+                throw VoiceCommandError.invalidMicrophoneFormat
+            }
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak request] buffer, _ in
                 request?.append(buffer)
             }
+            hasInstalledTap = true
             audioEngine.prepare()
             try audioEngine.start()
             isListening = true
@@ -328,17 +340,22 @@ final class VoiceCommandViewModel: ObservableObject {
         }
     }
 
-    private func stopAudio() {
+    private func stopAudio(deactivateSession: Bool = true) {
         if audioEngine.isRunning {
             audioEngine.stop()
+        }
+        if hasInstalledTap {
             audioEngine.inputNode.removeTap(onBus: 0)
+            hasInstalledTap = false
         }
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionRequest = nil
         recognitionTask = nil
         isListening = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if deactivateSession {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 
     private func configureAudioSession() throws {
@@ -369,6 +386,20 @@ final class VoiceCommandViewModel: ObservableObject {
             }
         @unknown default:
             return false
+        }
+    }
+}
+
+private enum VoiceCommandError: LocalizedError {
+    case microphoneUnavailable
+    case invalidMicrophoneFormat
+
+    var errorDescription: String? {
+        switch self {
+        case .microphoneUnavailable:
+            return "No microphone input is currently available."
+        case .invalidMicrophoneFormat:
+            return "The microphone route is not ready yet."
         }
     }
 }
