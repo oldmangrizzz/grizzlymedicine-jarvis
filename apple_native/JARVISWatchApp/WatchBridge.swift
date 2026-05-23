@@ -5,6 +5,7 @@ import WatchKit
 @MainActor
 final class WatchBridge: NSObject, ObservableObject {
     @Published private(set) var status: String = "Starting"
+    @Published private(set) var accentHue: String = UserDefaults.standard.string(forKey: "jarvis.watch.accentHue") ?? "white"
 
     func activate() {
         guard WCSession.isSupported() else {
@@ -57,6 +58,14 @@ final class WatchBridge: NSObject, ObservableObject {
             status = "Handed to phone"
         }
     }
+
+    private func applyAccent(_ rawValue: String?) {
+        guard let rawValue, !rawValue.isEmpty else {
+            return
+        }
+        accentHue = rawValue
+        UserDefaults.standard.set(rawValue, forKey: "jarvis.watch.accentHue")
+    }
 }
 
 extension WatchBridge: WCSessionDelegate {
@@ -66,7 +75,15 @@ extension WatchBridge: WCSessionDelegate {
                 status = "Activation failed: \(error.localizedDescription)"
             } else {
                 status = activationState == .activated ? "Ready" : "Activation \(activationState.rawValue)"
+                applyAccent(session.receivedApplicationContext["accent_hue"] as? String)
             }
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        let accent = applicationContext["accent_hue"] as? String
+        Task { @MainActor in
+            applyAccent(accent)
         }
     }
 }

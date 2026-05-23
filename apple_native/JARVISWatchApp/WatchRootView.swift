@@ -5,9 +5,10 @@ struct WatchRootView: View {
     @StateObject private var bridge = WatchBridge()
 
     var body: some View {
+        let accent = WatchAccent.color(for: bridge.accentHue)
         ZStack {
             LinearGradient(
-                colors: [.black, Color(red: 0.00, green: 0.10, blue: 0.14), Color(red: 0.00, green: 0.18, blue: 0.22)],
+                colors: [.black, accent.opacity(0.16), accent.opacity(0.08)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -16,16 +17,20 @@ struct WatchRootView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     VStack(spacing: 2) {
+                        Image("GMRISeal")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 54, height: 54)
                         Text("GMRI")
                             .font(.caption2.weight(.bold))
                             .tracking(1.2)
-                            .foregroundStyle(.cyan)
+                            .foregroundStyle(accent)
                         Text("JARVIS")
                             .font(.title2.weight(.bold))
                             .foregroundStyle(.white)
                     }
 
-                    WatchOrb()
+                    WatchOrb(accent: accent)
 
                     Text(bridge.status)
                         .font(.caption2.weight(.semibold))
@@ -95,19 +100,21 @@ struct WatchRootView: View {
 }
 
 private struct WatchOrb: View {
+    let accent: Color
+
     var body: some View {
         ZStack {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [.cyan.opacity(0.95), .blue.opacity(0.62), .black.opacity(0.10)],
+                        colors: [accent.opacity(0.95), accent.opacity(0.58), .black.opacity(0.10)],
                         center: .center,
                         startRadius: 2,
                         endRadius: 76
                     )
                 )
                 .frame(width: 86, height: 86)
-                .shadow(color: .cyan.opacity(0.45), radius: 12)
+                .shadow(color: accent.opacity(0.45), radius: 12)
 
             Circle()
                 .stroke(.white.opacity(0.22), lineWidth: 1)
@@ -118,5 +125,30 @@ private struct WatchOrb: View {
                 .foregroundStyle(.white)
         }
         .padding(.vertical, 4)
+    }
+}
+
+private enum WatchAccent {
+    static func color(for rawValue: String) -> Color {
+        switch rawValue {
+        case "green":
+            return .green
+        case "gold":
+            return .yellow
+        case "orange":
+            return .orange
+        case "red":
+            return .red
+        case "pink":
+            return .pink
+        case "purple":
+            return .purple
+        case "teal":
+            return .teal
+        case "blue":
+            return .blue
+        default:
+            return .white
+        }
     }
 }

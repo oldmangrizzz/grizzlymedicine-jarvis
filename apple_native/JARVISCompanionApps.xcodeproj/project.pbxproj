@@ -10,7 +10,9 @@
 		0995DEA248B83F1BC6629A98 /* PhoneWatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3330D1E6C4190E3521A4D113 /* PhoneWatchBridge.swift */; };
 		0D59A8E5992E431F411309EA /* VoiceRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C36B395DD3146292A46C5DE /* VoiceRegistrationView.swift */; };
 		0F338BC7A3A4F79A706A5C1D /* SpatialHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590695601EFDC11022C82C8B /* SpatialHostView.swift */; };
+		116527AD9A20DAEDD55928BD /* BrandSealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6902439382DE5A86798188AA /* BrandSealView.swift */; };
 		149D43FEEE9FBA11F7F1C4C4 /* CompanionRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62AB471DB02B21AF6F4411D0 /* CompanionRootView.swift */; };
+		5018CC5E82F9F84C1A4FE672 /* CompanionAccentTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D92DDC288CBF62A2C3D449 /* CompanionAccentTheme.swift */; };
 		57FE32C4D7A157ADE18CE4A0 /* JARVISWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 6561BC9F73F10D6AB49CE849 /* JARVISWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		62002A8226C65BB39E9B6DB6 /* JARVISCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5F3936EBAC01E391BC326D /* JARVISCompanionApp.swift */; };
 		6CC486918148F3AAD89876F7 /* JARVISCompanionUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8F4C7212DF460FFEA8455FFB /* JARVISCompanionUI */; };
@@ -25,6 +27,7 @@
 		C8BA3FF7F62D05103B6EA1EF /* CloudCompanionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */; };
 		CEA298F117969FEB176FC06E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EA11FE7B30E6A1B2720B3CD /* Assets.xcassets */; };
 		EF71D574857672859DF77740 /* WatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFD39C44E992A354ED9EDB4 /* WatchBridge.swift */; };
+		F017EA5DAE8F55BBEDB21746 /* PeopleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D93DC6EBC7E56EC1281F047 /* PeopleView.swift */; };
 		FC901D0C595667138D95517B /* DeviceActionRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8451679A246C30E50F83BE9 /* DeviceActionRouter.swift */; };
 /* End PBXBuildFile section */
 
@@ -54,8 +57,10 @@
 
 /* Begin PBXFileReference section */
 		01B45E30EE45ABBD7B140C49 /* JARVISCompanionApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JARVISCompanionApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		06D92DDC288CBF62A2C3D449 /* CompanionAccentTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionAccentTheme.swift; sourceTree = "<group>"; };
 		0FCBFCFC4D09B3E76BF3B24C /* HealthContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthContext.swift; sourceTree = "<group>"; };
 		2BFD39C44E992A354ED9EDB4 /* WatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridge.swift; sourceTree = "<group>"; };
+		2D93DC6EBC7E56EC1281F047 /* PeopleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeopleView.swift; sourceTree = "<group>"; };
 		32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudCompanionClient.swift; sourceTree = "<group>"; };
 		3330D1E6C4190E3521A4D113 /* PhoneWatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchBridge.swift; sourceTree = "<group>"; };
 		33D773ADCB50896F2C022E09 /* JARVISWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISWatchApp.swift; sourceTree = "<group>"; };
@@ -65,6 +70,7 @@
 		590695601EFDC11022C82C8B /* SpatialHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpatialHostView.swift; sourceTree = "<group>"; };
 		62AB471DB02B21AF6F4411D0 /* CompanionRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionRootView.swift; sourceTree = "<group>"; };
 		6561BC9F73F10D6AB49CE849 /* JARVISWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JARVISWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6902439382DE5A86798188AA /* BrandSealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandSealView.swift; sourceTree = "<group>"; };
 		8D5F3936EBAC01E391BC326D /* JARVISCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISCompanionApp.swift; sourceTree = "<group>"; };
 		A039AA9F5DAA6D179282525B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B569709A356F7EB51EED3017 /* JARVISWatchApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JARVISWatchApp.entitlements; sourceTree = "<group>"; };
@@ -119,7 +125,9 @@
 			isa = PBXGroup;
 			children = (
 				C6983055642F180CBF5CE38A /* Assets.xcassets */,
+				6902439382DE5A86798188AA /* BrandSealView.swift */,
 				32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */,
+				06D92DDC288CBF62A2C3D449 /* CompanionAccentTheme.swift */,
 				E43B0D90BB4BDA30D7692295 /* CompanionAppState.swift */,
 				62AB471DB02B21AF6F4411D0 /* CompanionRootView.swift */,
 				C3018469DEACAD2F828B561E /* ControlView.swift */,
@@ -128,6 +136,7 @@
 				DA31437CD86D8F429F9E7331 /* Info.plist */,
 				D801D262D5AED3C7AB150D78 /* JARVISCompanionApp.entitlements */,
 				8D5F3936EBAC01E391BC326D /* JARVISCompanionApp.swift */,
+				2D93DC6EBC7E56EC1281F047 /* PeopleView.swift */,
 				3330D1E6C4190E3521A4D113 /* PhoneWatchBridge.swift */,
 				590695601EFDC11022C82C8B /* SpatialHostView.swift */,
 				4C36B395DD3146292A46C5DE /* VoiceRegistrationView.swift */,
@@ -268,13 +277,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				116527AD9A20DAEDD55928BD /* BrandSealView.swift in Sources */,
 				C8BA3FF7F62D05103B6EA1EF /* CloudCompanionClient.swift in Sources */,
+				5018CC5E82F9F84C1A4FE672 /* CompanionAccentTheme.swift in Sources */,
 				A0E527C91997A33A5A205C52 /* CompanionAppState.swift in Sources */,
 				149D43FEEE9FBA11F7F1C4C4 /* CompanionRootView.swift in Sources */,
 				903FABBC2777D4BA57D01EC4 /* ControlView.swift in Sources */,
 				FC901D0C595667138D95517B /* DeviceActionRouter.swift in Sources */,
 				C52796410731E4C9F7F8E788 /* HealthContext.swift in Sources */,
 				62002A8226C65BB39E9B6DB6 /* JARVISCompanionApp.swift in Sources */,
+				F017EA5DAE8F55BBEDB21746 /* PeopleView.swift in Sources */,
 				0995DEA248B83F1BC6629A98 /* PhoneWatchBridge.swift in Sources */,
 				0F338BC7A3A4F79A706A5C1D /* SpatialHostView.swift in Sources */,
 				0D59A8E5992E431F411309EA /* VoiceRegistrationView.swift in Sources */,
@@ -373,7 +385,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = T5AFHQ4L9C;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -459,7 +471,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = T5AFHQ4L9C;
 				ENABLE_NS_ASSERTIONS = NO;

@@ -113,6 +113,7 @@ final class CompanionAppState: ObservableObject {
             lastError = "I did not catch a command. Speak again or use the touch fallback."
             return
         }
+
         lastCommand = clean
 
         if let action = await DeviceActionRouter.route(clean) {
@@ -143,6 +144,14 @@ final class CompanionAppState: ObservableObject {
             lastError = "Live JARVIS is not reachable: \(error.localizedDescription)"
             speak("Live JARVIS is not reachable.")
         }
+    }
+
+    func acknowledgeLocalCommand(_ command: String, reply: String) {
+        lastCommand = command
+        lastReply = reply
+        connectionStatus = "Updated"
+        lastError = ""
+        speak(reply)
     }
 
     func speakHealthBriefing(_ snapshot: HealthSnapshot) async {

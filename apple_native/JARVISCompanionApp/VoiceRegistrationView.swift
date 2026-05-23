@@ -9,13 +9,13 @@ struct VoiceRegistrationView: View {
         NavigationStack {
             Form {
                 Section("Person") {
-                    Picker("Register voice for", selection: $model.selectedPersonID) {
+                    Picker("Save voice for", selection: $model.selectedPersonID) {
                         Text("Choose person").tag(Optional<UUID>.none)
                         ForEach(model.people) { person in
                             Text(person.displayName).tag(Optional(person.id))
                         }
                     }
-                    Button("Refresh people") {
+                    Button("Refresh list") {
                         Task { await model.refresh() }
                     }
                 }
@@ -52,7 +52,7 @@ struct VoiceRegistrationView: View {
                     }
                 }
             }
-            .navigationTitle("Voice Registration")
+            .navigationTitle("My Voice")
             .task { await model.refresh() }
         }
     }
@@ -108,7 +108,7 @@ final class VoiceRegistrationViewModel: ObservableObject {
 
     func startRecording() async {
         guard let personID = selectedPersonID else {
-            errorText = "Authorize a person before recording voice samples."
+            errorText = "Add a trusted person before recording voice samples."
             return
         }
         guard !isRecording else {

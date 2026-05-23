@@ -17,6 +17,17 @@ final class PhoneWatchBridge: NSObject, ObservableObject {
         WCSession.default.activate()
     }
 
+    func sendAccent(_ hue: CompanionAccentHue) {
+        guard WCSession.isSupported() else {
+            return
+        }
+        do {
+            try WCSession.default.updateApplicationContext(["accent_hue": hue.rawValue])
+        } catch {
+            watchStatus = "Watch accent sync failed: \(error.localizedDescription)"
+        }
+    }
+
     private func handleWatchMessage(_ message: [String: Any]) async {
         let deviceID = message["device_id"] as? String ?? "apple-watch"
         if let turnText = (message["turn_text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),

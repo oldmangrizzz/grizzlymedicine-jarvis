@@ -6,7 +6,7 @@ struct JARVISCompanionApp: App {
         WindowGroup {
             CompanionRootView()
                 .preferredColorScheme(.dark)
-                .tint(.cyan)
+                .tint(.green)
         }
     }
 }

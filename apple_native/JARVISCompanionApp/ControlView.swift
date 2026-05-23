@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ControlView: View {
     @EnvironmentObject private var appState: CompanionAppState
+    @EnvironmentObject private var accent: CompanionAccentTheme
     @StateObject private var voice = VoiceCommandViewModel()
     @StateObject private var health = HealthContextViewModel()
     @State private var typedFallback: String = ""
@@ -14,7 +15,7 @@ struct ControlView: View {
         NavigationStack {
             ZStack {
                 LinearGradient(
-                    colors: [Color.black, Color(red: 0.02, green: 0.06, blue: 0.10), Color(red: 0.00, green: 0.15, blue: 0.22)],
+                    colors: [Color.black, accent.color.opacity(0.14), accent.color.opacity(0.07)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -24,6 +25,9 @@ struct ControlView: View {
                     VStack(alignment: .leading, spacing: 22) {
                         header
                         voiceSurface
+                        if !accent.hasChosenAccent {
+                            accentOnboarding
+                        }
                         visionSurface
                         healthSurface
                         touchFallback
@@ -43,17 +47,18 @@ struct ControlView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
+                BrandSealView(size: 72)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("GMRI COMPANION OS")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .tracking(1.4)
-                        .foregroundStyle(.cyan.opacity(0.90))
+                        .foregroundStyle(accent.color.opacity(0.90))
                     Text("JARVIS")
                         .font(.system(size: 52, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.white, .cyan.opacity(0.82)],
+                                colors: [.white, accent.color.opacity(0.82)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -67,7 +72,7 @@ struct ControlView: View {
                 )
             }
 
-            Text("Tap the blue circle. Speak normally. Tap it again when you are done.")
+            Text("Tap the highlight circle. Speak normally. Tap it again when you are done.")
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.74))
         }
@@ -80,7 +85,7 @@ struct ControlView: View {
                 Button {
                     Task { await toggleVoice() }
                 } label: {
-                    VoiceOrb(isListening: voice.isListening, isThinking: appState.isCommandInFlight || voice.isTranscribing)
+                    VoiceOrb(accent: accent.color, isListening: voice.isListening, isThinking: appState.isCommandInFlight || voice.isTranscribing)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(voice.isListening ? "Stop recording and execute command" : "Start recording JARVIS command")
@@ -96,7 +101,7 @@ struct ControlView: View {
                     .foregroundStyle(.white.opacity(0.58))
 
                 if !voice.transcript.isEmpty {
-                    TranscriptBlock(title: "You", text: voice.transcript, tint: .cyan)
+                    TranscriptBlock(title: "You", text: voice.transcript, tint: accent.color)
                 }
 
                 if !voice.errorText.isEmpty {
@@ -113,20 +118,40 @@ struct ControlView: View {
         }
     }
 
+    private var accentOnboarding: some View {
+        GlassPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Choose your highlight color")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Text("Say \"JARVIS, my color is green\" or tap a color. This becomes your personal visual cue here and later in glasses mode.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.72))
+                AccentChoiceGrid { hue in
+                    accent.choose(hue)
+                    appState.acknowledgeLocalCommand(
+                        "Highlight color",
+                        reply: "Done. Your highlight color is \(hue.label)."
+                    )
+                }
+            }
+        }
+    }
+
     private var visionSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("What JARVIS is doing")
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(.cyan)
+                .foregroundStyle(accent.color)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 SignalCard(title: "Connection", value: appState.connectionStatus, systemImage: "cloud.fill", tint: appState.isPaired ? .green : .orange)
-                SignalCard(title: "JARVIS", value: appState.isCommandInFlight ? "Answering now" : "Ready", systemImage: "sparkles", tint: .cyan)
+                SignalCard(title: "JARVIS", value: appState.isCommandInFlight ? "Answering now" : "Ready", systemImage: "sparkles", tint: accent.color)
             }
 
             if !appState.lastCommand.isEmpty {
-                TranscriptBlock(title: "Last command", text: appState.lastCommand, tint: .blue)
+                TranscriptBlock(title: "Last command", text: appState.lastCommand, tint: accent.color)
             }
 
             if !appState.lastDeviceAction.isEmpty {
@@ -142,7 +167,7 @@ struct ControlView: View {
             }
 
             if !appState.isPaired {
-                inlinePairing
+                connectionRecovery
             }
         }
     }
@@ -173,7 +198,7 @@ struct ControlView: View {
         }
         .padding(16)
         .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .tint(.cyan)
+        .tint(accent.color)
     }
 
     private var healthSurface: some View {
@@ -214,7 +239,7 @@ struct ControlView: View {
         }
     }
 
-    private var inlinePairing: some View {
+    private var connectionRecovery: some View {
         GlassPanel {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Connecting to JARVIS", systemImage: "wifi.exclamationmark")
@@ -251,7 +276,7 @@ struct ControlView: View {
         if !appState.isPaired {
             return "Getting ready. You should not need setup."
         }
-        return "Tap the blue circle and talk."
+        return "Tap the highlight circle and talk."
     }
 
     private func toggleVoice() async {
@@ -264,6 +289,13 @@ struct ControlView: View {
     }
 
     private func executeSpokenCommand(_ text: String) async {
+        if let hue = accent.choose(fromSpeech: text) {
+            appState.acknowledgeLocalCommand(
+                text,
+                reply: "Done. Your highlight color is \(hue.label)."
+            )
+            return
+        }
         if HealthContextViewModel.isEMSCommand(text) {
             await health.refresh()
             await appState.speakHealthBriefing(health.snapshot)
@@ -440,6 +472,7 @@ private enum VoiceCommandError: LocalizedError {
 }
 
 private struct VoiceOrb: View {
+    let accent: Color
     let isListening: Bool
     let isThinking: Bool
 
@@ -471,19 +504,19 @@ private struct VoiceOrb: View {
 
     private var orbTint: Color {
         if isThinking {
-            return .purple
+            return accent
         }
-        return isListening ? .cyan : .blue
+        return accent
     }
 
     private var orbColors: [Color] {
         if isThinking {
-            return [.purple.opacity(0.95), .cyan.opacity(0.50), .black.opacity(0.15)]
+            return [accent.opacity(0.95), .white.opacity(0.22), .black.opacity(0.15)]
         }
         if isListening {
-            return [.cyan.opacity(0.95), .blue.opacity(0.70), .black.opacity(0.20)]
+            return [accent.opacity(0.95), accent.opacity(0.58), .black.opacity(0.20)]
         }
-        return [.blue.opacity(0.95), .cyan.opacity(0.42), .black.opacity(0.24)]
+        return [accent.opacity(0.92), accent.opacity(0.38), .black.opacity(0.24)]
     }
 }
 
@@ -567,6 +600,7 @@ private struct StatePill: View {
 }
 
 private struct CapabilityChip: View {
+    @EnvironmentObject private var accent: CompanionAccentTheme
     let title: String
     let systemImage: String
 
@@ -582,8 +616,43 @@ private struct CapabilityChip: View {
             .background(.white.opacity(0.08), in: Capsule())
             .overlay(
                 Capsule()
-                    .stroke(.cyan.opacity(0.16), lineWidth: 1)
+                    .stroke(accent.color.opacity(0.16), lineWidth: 1)
             )
+    }
+}
+
+private struct AccentChoiceGrid: View {
+    let choose: (CompanionAccentHue) -> Void
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 78), spacing: 8),
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 8) {
+            ForEach(CompanionAccentHue.allCases) { hue in
+                Button {
+                    choose(hue)
+                } label: {
+                    VStack(spacing: 6) {
+                        Circle()
+                            .fill(hue.color)
+                            .frame(width: 22, height: 22)
+                        Text(hue.label)
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(hue.color.opacity(0.35), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 

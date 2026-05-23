@@ -3,6 +3,7 @@ import JARVISCompanionCore
 #if canImport(SwiftUI)
 import SwiftUI
 
+@available(*, deprecated, message: "Developer-only legacy ingress surface. TestFlight app uses automatic registration and PeopleView.")
 public struct CompanionOnboardingView: View {
     @StateObject private var model: CompanionOnboardingViewModel
 
