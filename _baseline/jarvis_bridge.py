@@ -992,6 +992,13 @@ def make_handler(rt, token, companion_mode: bool = False, companion_token: str =
                     _publish_realtime_state(realtime, "latest_turn", out, source="companion_bridge")
                     _publish_realtime_state(realtime, "runtime", _runtime_state_payload(rt), source="companion_bridge")
                     return self._json(200, out)
+                if path == "/companion/speech":
+                    text = (b.get("text") or "").strip()
+                    if not text:
+                        return self._json(400, {"error": "no text"})
+                    payload = tts_pocket.wav_payload(text)
+                    _publish_realtime_state(realtime, "tts", tts_pocket.status(), source="companion_bridge")
+                    return self._json(200, payload)
                 if path == "/companion/skill":
                     name = b.get("name")
                     args = b.get("args") or {}

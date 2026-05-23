@@ -7,6 +7,7 @@ confirmed, JARVIS does not speak. There is no system voice, generic TTS, cached
 substitute, or legacy fallback path.
 """
 from __future__ import annotations
+import base64
 import importlib.util
 import os
 import pathlib
@@ -425,6 +426,27 @@ def speak_text(text: str, keep_wav: bool = False) -> dict:
                 pathlib.Path(path).unlink(missing_ok=True)
             except Exception:
                 pass
+
+
+def wav_payload(text: str) -> dict:
+    started = time.time()
+    path = save_wav(text)
+    try:
+        generated = time.time()
+        data = pathlib.Path(path).read_bytes()
+        return {
+            "ok": True,
+            "backend": _backend_name(),
+            "content_type": "audio/wav",
+            "audio_base64": base64.b64encode(data).decode("ascii"),
+            "synthesis_seconds": round(generated - started, 3),
+            "timings": dict(getattr(_BACKEND, "last_timings", {})) if _BACKEND is not None else {},
+        }
+    finally:
+        try:
+            pathlib.Path(path).unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

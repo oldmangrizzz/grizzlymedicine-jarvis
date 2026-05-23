@@ -151,4 +151,41 @@ route("/app/realtime-turn", async (ctx, body) => {
   throw new Error("runtime timed out before JARVIS answered");
 });
 
+route("/app/speech", async (ctx, body) => {
+  const deviceToken = String(body.deviceToken ?? "");
+  await ctx.runQuery(api.companion.status, { deviceToken });
+  const text = String(body.text ?? "").trim();
+  if (!text) {
+    throw new Error("no text");
+  }
+
+  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
+  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
+  if (!runtimeURL || !companionToken) {
+    throw new Error("JARVIS voice runtime unavailable");
+  }
+
+  const response = await fetch(`${runtimeURL}/companion/speech`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "accept": "application/json",
+      "x-jarvis-companion-token": companionToken,
+    },
+    body: JSON.stringify({ text }),
+  });
+  const responseText = await response.text();
+  let payload: unknown = {};
+  if (responseText.trim()) {
+    payload = JSON.parse(responseText);
+  }
+  if (!response.ok) {
+    const message = typeof payload === "object" && payload !== null && "error" in payload
+      ? String((payload as { error?: unknown }).error)
+      : `runtime HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return payload;
+});
+
 export default http;

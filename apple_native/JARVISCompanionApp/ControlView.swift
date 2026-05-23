@@ -129,10 +129,12 @@ struct ControlView: View {
                     .foregroundStyle(.white.opacity(0.72))
                 AccentChoiceGrid { hue in
                     accent.choose(hue)
-                    appState.acknowledgeLocalCommand(
-                        "Highlight color",
-                        reply: "Done. Your highlight color is \(hue.label)."
-                    )
+                    Task {
+                        await appState.acknowledgeLocalCommand(
+                            "Highlight color",
+                            reply: "Done. Your highlight color is \(hue.label)."
+                        )
+                    }
                 }
             }
         }
@@ -290,7 +292,7 @@ struct ControlView: View {
 
     private func executeSpokenCommand(_ text: String) async {
         if let hue = accent.choose(fromSpeech: text) {
-            appState.acknowledgeLocalCommand(
+            await appState.acknowledgeLocalCommand(
                 text,
                 reply: "Done. Your highlight color is \(hue.label)."
             )

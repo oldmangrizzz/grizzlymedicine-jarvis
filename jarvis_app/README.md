@@ -64,11 +64,13 @@ cargo tauri build                            # outputs target/release/bundle/mac
   authorization codes are never stored in Convex.
 - TestFlight companions self-register to Convex through `https://fleet-goose-114.convex.site`;
   testers do not enter a pairing code, laptop IP, or Mac bridge token.
-- TestFlight build `1.0 (15)` makes JARVIS the first surface: orb-driven voice capture,
+- TestFlight build `1.0 (16)` makes JARVIS the first surface: orb-driven voice capture,
   immediate device actions for web/video/music/maps/Shortcuts where iOS allows them, a
   blocking realtime JARVIS reply path through Convex, watch-to-phone command relay, and
   HealthKit-backed observable context/EMS briefing. It adds GMRI crest branding, personal
-  highlight color selection, and a plain trusted-people surface. It does not present a queued chat UX.
+  highlight color selection, a plain trusted-people surface, and JARVIS-voice WAV playback
+  for spoken confirmations. It does not present a queued chat UX and does not fall back to
+  the native iOS system voice.
   It self-registers with Convex on launch; a tester should not need a pairing code or setup screen.
 - Voice input/output uses macOS's selected microphone and output device. In clamshell mode, pair the
   hearing aids with the Mac and select them under macOS Sound/Input; the cockpit will use that device
@@ -110,7 +112,7 @@ cargo tauri build                            # outputs target/release/bundle/mac
   It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
   people onboarding, real microphone sample capture for voice registration, native ARKit
   spatial status, watch quick check-ins, voice-first device control, HealthKit/EMS context,
-  and realtime JARVIS replies. App Store Connect build `1.0 (15)` is signed, uploaded,
+  and realtime JARVIS replies. App Store Connect build `1.0 (16)` is signed, uploaded,
   marked valid, includes the embedded watchOS app, and is assigned to the Internal Testers
   TestFlight group. Its setup path is cloud self-registration, not a pairing code or Mac bridge URL/token.
 - Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,

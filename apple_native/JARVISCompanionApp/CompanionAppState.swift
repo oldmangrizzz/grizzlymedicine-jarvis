@@ -17,7 +17,7 @@ final class CompanionAppState: ObservableObject {
 
     private let tokenStore: KeychainCompanionTokenStore
     private let defaults: UserDefaults
-    private let speaker = AVSpeechSynthesizer()
+    private var voicePlayer: AVAudioPlayer?
     private let cloudURLKey = "jarvis.companion.cloudURL"
     private let deviceIDKey = "jarvis.companion.deviceID"
     private let defaultCloudURL = "https://fleet-goose-114.convex.site"
@@ -123,7 +123,7 @@ final class CompanionAppState: ObservableObject {
 
         await ensureRegistered()
         guard isPaired else {
-            speak("JARVIS Cloud is not reachable.")
+            lastReply = "JARVIS Cloud is not reachable."
             return
         }
 
@@ -134,24 +134,23 @@ final class CompanionAppState: ObservableObject {
             lastReply = "I heard you. Asking JARVIS now."
             connectionStatus = "JARVIS is thinking"
             lastError = ""
-            speak("Asking JARVIS.")
             let response = try await client.realtimeTurn(text: clean, deviceID: deviceID())
             lastReply = response.reply ?? "JARVIS responded without text."
             connectionStatus = "JARVIS answered"
-            speak(lastReply)
+            await speak(lastReply)
         } catch {
             connectionStatus = "Runtime unavailable"
             lastError = "Live JARVIS is not reachable: \(error.localizedDescription)"
-            speak("Live JARVIS is not reachable.")
+            lastReply = "Live JARVIS is not reachable."
         }
     }
 
-    func acknowledgeLocalCommand(_ command: String, reply: String) {
+    func acknowledgeLocalCommand(_ command: String, reply: String) async {
         lastCommand = command
         lastReply = reply
         connectionStatus = "Updated"
         lastError = ""
-        speak(reply)
+        await speak(reply)
     }
 
     func speakHealthBriefing(_ snapshot: HealthSnapshot) async {
@@ -160,7 +159,7 @@ final class CompanionAppState: ObservableObject {
         lastReply = snapshot.emsBriefing
         connectionStatus = "EMS briefing ready"
         lastError = ""
-        speak(snapshot.emsBriefing)
+        await speak(snapshot.emsBriefing)
         await publishHealthSnapshot(snapshot, reason: "ems_briefing")
     }
 
@@ -170,13 +169,13 @@ final class CompanionAppState: ObservableObject {
             lastReply = "\(action.title)."
             connectionStatus = "Device action complete"
             lastError = ""
-            speak(lastReply)
+            await speak(lastReply)
             await publishDeviceAction(command: command, action: action)
         } else {
             lastDeviceAction = "\(action.title) failed: \(action.detail)"
             lastError = "iOS would not open \(action.url.absoluteString)."
             connectionStatus = "Device action blocked"
-            speak("Device action blocked.")
+            await speak("Device action blocked.")
         }
     }
 
@@ -252,17 +251,34 @@ final class CompanionAppState: ObservableObject {
         return !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func speak(_ text: String) {
+    private func speak(_ text: String) async {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else {
             return
         }
 
-        speaker.stopSpeaking(at: .immediate)
-        let utterance = AVSpeechUtterance(string: clean)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        utterance.prefersAssistiveTechnologySettings = true
-        speaker.speak(utterance)
+        await ensureRegistered()
+        guard isPaired else {
+            return
+        }
+
+        do {
+            let response = try await makeCloudClient().speech(text: clean, deviceID: deviceID())
+            guard let data = Data(base64Encoded: response.audioBase64) else {
+                lastError = "JARVIS voice returned invalid audio."
+                return
+            }
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+            try session.setActive(true)
+            voicePlayer?.stop()
+            let player = try AVAudioPlayer(data: data)
+            voicePlayer = player
+            player.prepareToPlay()
+            player.play()
+        } catch {
+            lastError = "JARVIS voice unavailable: \(error.localizedDescription)"
+        }
     }
 }
 
