@@ -1,6 +1,5 @@
 import AVFoundation
 import JARVISCompanionCore
-import Speech
 import SwiftUI
 
 struct ControlView: View {
@@ -283,8 +282,16 @@ struct ControlView: View {
 
     private func toggleVoice() async {
         if voice.isListening {
-            let text = await voice.stopAndTranscribe()
-            await executeSpokenCommand(text)
+            guard let recording = await voice.stopAndCapture() else {
+                return
+            }
+            do {
+                let text = try await appState.transcribeAudio(data: recording.data, contentType: recording.contentType)
+                voice.acceptTranscript(text)
+                await executeSpokenCommand(text)
+            } catch {
+                voice.fail("JARVIS could not understand that audio: \(error.localizedDescription)")
+            }
         } else {
             await voice.startListening()
         }
@@ -314,10 +321,9 @@ final class VoiceCommandViewModel: ObservableObject {
     @Published private(set) var isTranscribing = false
     @Published private(set) var errorText = ""
 
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en_US"))
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
-    private var recognitionTask: SFSpeechRecognitionTask?
+    private let maxRecordingBytes = 6_000_000
 
     func startListening() async {
         guard !isListening, !isTranscribing else {
@@ -326,19 +332,8 @@ final class VoiceCommandViewModel: ObservableObject {
 
         errorText = ""
         transcript = ""
-        recognitionTask?.cancel()
-        recognitionTask = nil
-
-        guard await requestSpeechAccess() else {
-            errorText = "Speech recognition permission is required for voice control."
-            return
-        }
         guard await requestMicrophoneAccess() else {
             errorText = "Microphone permission is required for voice control."
-            return
-        }
-        guard recognizer != nil else {
-            errorText = "Speech recognition is not available on this device."
             return
         }
 
@@ -353,7 +348,7 @@ final class VoiceCommandViewModel: ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
-            guard recorder.record() else {
+            guard recorder.record(forDuration: 30) else {
                 throw VoiceCommandError.recordingDidNotStart
             }
             self.recorder = recorder
@@ -365,9 +360,9 @@ final class VoiceCommandViewModel: ObservableObject {
         }
     }
 
-    func stopAndTranscribe() async -> String {
+    func stopAndCapture() async -> VoiceRecording? {
         guard isListening else {
-            return transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            return nil
         }
         recorder?.stop()
         recorder = nil
@@ -376,7 +371,7 @@ final class VoiceCommandViewModel: ObservableObject {
 
         guard let url = recordingURL else {
             errorText = "No voice recording was captured."
-            return ""
+            return nil
         }
         isTranscribing = true
         defer {
@@ -385,37 +380,28 @@ final class VoiceCommandViewModel: ObservableObject {
         }
 
         do {
-            let text = try await transcribe(url: url)
-            transcript = text
-            return text
+            let values = try url.resourceValues(forKeys: [.fileSizeKey])
+            let size = values.fileSize ?? 0
+            guard size > 128 else {
+                throw VoiceCommandError.recordingTooShort
+            }
+            guard size <= maxRecordingBytes else {
+                throw VoiceCommandError.recordingTooLarge
+            }
+            return VoiceRecording(data: try Data(contentsOf: url), contentType: "audio/mp4")
         } catch {
-            errorText = "Voice transcription failed: \(error.localizedDescription)"
-            return ""
+            errorText = "Voice capture failed: \(error.localizedDescription)"
+            return nil
         }
     }
 
-    private func transcribe(url: URL) async throws -> String {
-        guard let recognizer else {
-            throw VoiceCommandError.speechUnavailable
-        }
-        let request = SFSpeechURLRecognitionRequest(url: url)
-        request.shouldReportPartialResults = false
-        request.taskHint = .dictation
+    func acceptTranscript(_ text: String) {
+        transcript = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        errorText = ""
+    }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            var resumed = false
-            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
-                if let result, result.isFinal, !resumed {
-                    resumed = true
-                    continuation.resume(returning: result.bestTranscription.formattedString)
-                    return
-                }
-                if let error, !resumed {
-                    resumed = true
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
+    func fail(_ message: String) {
+        errorText = message
     }
 
     private func cleanupRecording() {
@@ -429,16 +415,8 @@ final class VoiceCommandViewModel: ObservableObject {
 
     private func configureAudioSession() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
+        try session.setCategory(.record, mode: .measurement, options: [.allowBluetoothHFP])
         try session.setActive(true, options: .notifyOthersOnDeactivation)
-    }
-
-    private func requestSpeechAccess() async -> Bool {
-        await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status == .authorized)
-            }
-        }
     }
 
     private func requestMicrophoneAccess() async -> Bool {
@@ -461,16 +439,24 @@ final class VoiceCommandViewModel: ObservableObject {
 
 private enum VoiceCommandError: LocalizedError {
     case recordingDidNotStart
-    case speechUnavailable
+    case recordingTooLarge
+    case recordingTooShort
 
     var errorDescription: String? {
         switch self {
         case .recordingDidNotStart:
             return "The microphone did not start recording."
-        case .speechUnavailable:
-            return "Speech recognition is not available on this device."
+        case .recordingTooLarge:
+            return "The recording is too large. Try a shorter command."
+        case .recordingTooShort:
+            return "The recording was too short. Tap, speak, then tap again."
         }
     }
+}
+
+struct VoiceRecording {
+    let data: Data
+    let contentType: String
 }
 
 private struct VoiceOrb: View {

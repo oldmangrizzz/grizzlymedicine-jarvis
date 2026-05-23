@@ -74,6 +74,15 @@ struct CloudCompanionClient: Sendable {
         ))
     }
 
+    func transcribeAudio(audioBase64: String, contentType: String, deviceID: String) async throws -> CloudTranscriptionResponse {
+        try await perform(path: "/app/transcribe", body: TranscriptionRequest(
+            deviceToken: deviceToken,
+            deviceId: deviceID,
+            audioBase64: audioBase64,
+            contentType: contentType
+        ))
+    }
+
     func controlStatus(requestID: String) async throws -> CloudControlRequest? {
         try await perform(path: "/app/control-status", body: ControlStatusRequest(
             deviceToken: deviceToken,
@@ -220,6 +229,11 @@ struct CloudSpeechResponse: Codable, Equatable, Sendable {
     }
 }
 
+struct CloudTranscriptionResponse: Codable, Equatable, Sendable {
+    let ok: Bool
+    let transcript: String
+}
+
 private struct TokenRequest: Encodable {
     let deviceToken: String
 }
@@ -268,6 +282,20 @@ private struct SpeechRequest: Encodable {
     let deviceToken: String
     let deviceId: String
     let text: String
+}
+
+private struct TranscriptionRequest: Encodable {
+    let deviceToken: String
+    let deviceId: String
+    let audioBase64: String
+    let contentType: String
+
+    enum CodingKeys: String, CodingKey {
+        case deviceToken
+        case deviceId
+        case audioBase64 = "audio_base64"
+        case contentType = "content_type"
+    }
 }
 
 private struct ControlStatusRequest: Encodable {

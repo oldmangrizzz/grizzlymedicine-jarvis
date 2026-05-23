@@ -24,6 +24,29 @@ const parseJson = async (request: Request) => {
 };
 
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const allowedAudioContentTypes = new Set(["audio/mp4", "audio/m4a", "audio/wav", "audio/x-m4a", "audio/aac"]);
+
+const assertAudioPayload = (audioBase64: string, contentType: string) => {
+  if (!audioBase64) {
+    throw new Error("missing audio");
+  }
+  if (!allowedAudioContentTypes.has(contentType.toLowerCase())) {
+    throw new Error("unsupported audio content type");
+  }
+  if (audioBase64.length > 8_000_000) {
+    throw new Error("audio too large");
+  }
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(audioBase64) || audioBase64.length % 4 !== 0) {
+    throw new Error("invalid audio encoding");
+  }
+  const decodedBytes = Math.floor((audioBase64.length * 3) / 4) - (audioBase64.endsWith("==") ? 2 : audioBase64.endsWith("=") ? 1 : 0);
+  if (decodedBytes < 128) {
+    throw new Error("audio too short");
+  }
+  if (decodedBytes > 6_000_000) {
+    throw new Error("audio too large");
+  }
+};
 
 const route = (
   path: string,
@@ -41,7 +64,7 @@ const route = (
         const message = error instanceof Error ? error.message : String(error);
         const status = /timed out/i.test(message) ? 504 :
           /runtime unavailable/i.test(message) ? 503 :
-          /token|pairing|expired|missing/i.test(message) ? 401 : 400;
+          /bad device token|missing device token|pairing|expired/i.test(message) ? 401 : 400;
         return jsonResponse(status, { ok: false, error: message });
       }
     }),
@@ -173,6 +196,45 @@ route("/app/speech", async (ctx, body) => {
       "x-jarvis-companion-token": companionToken,
     },
     body: JSON.stringify({ text }),
+  });
+  const responseText = await response.text();
+  let payload: unknown = {};
+  if (responseText.trim()) {
+    payload = JSON.parse(responseText);
+  }
+  if (!response.ok) {
+    const message = typeof payload === "object" && payload !== null && "error" in payload
+      ? String((payload as { error?: unknown }).error)
+      : `runtime HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return payload;
+});
+
+route("/app/transcribe", async (ctx, body) => {
+  const deviceToken = String(body.deviceToken ?? "");
+  await ctx.runQuery(api.companion.status, { deviceToken });
+  const audioBase64 = String(body.audio_base64 ?? body.audioBase64 ?? "").trim();
+  const contentType = String(body.content_type ?? body.contentType ?? "audio/mp4").trim().toLowerCase();
+  assertAudioPayload(audioBase64, contentType);
+
+  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
+  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
+  if (!runtimeURL || !companionToken) {
+    throw new Error("JARVIS voice runtime unavailable");
+  }
+
+  const response = await fetch(`${runtimeURL}/companion/transcribe`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "accept": "application/json",
+      "x-jarvis-companion-token": companionToken,
+    },
+    body: JSON.stringify({
+      audio_base64: audioBase64,
+      content_type: contentType,
+    }),
   });
   const responseText = await response.text();
   let payload: unknown = {};

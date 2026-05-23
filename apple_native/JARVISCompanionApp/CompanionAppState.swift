@@ -145,6 +145,36 @@ final class CompanionAppState: ObservableObject {
         }
     }
 
+    func transcribeAudio(data: Data, contentType: String) async throws -> String {
+        await ensureRegistered()
+        guard isPaired else {
+            throw CompanionVoiceError.cloudUnavailable
+        }
+        let maxBytes = 6_000_000
+        guard !data.isEmpty else {
+            throw CompanionVoiceError.emptyAudio
+        }
+        guard data.count <= maxBytes else {
+            throw CompanionVoiceError.audioTooLarge
+        }
+        do {
+            let response = try await makeCloudClient().transcribeAudio(
+                audioBase64: data.base64EncodedString(),
+                contentType: contentType,
+                deviceID: deviceID()
+            )
+            let transcript = response.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !transcript.isEmpty else {
+                throw CompanionVoiceError.emptyTranscript
+            }
+            lastError = ""
+            return transcript
+        } catch {
+            lastError = "JARVIS could not transcribe that audio: \(error.localizedDescription)"
+            throw error
+        }
+    }
+
     func acknowledgeLocalCommand(_ command: String, reply: String) async {
         lastCommand = command
         lastReply = reply
@@ -290,6 +320,26 @@ private extension Error {
         }
         return message.localizedCaseInsensitiveContains("bad device token") ||
             message.localizedCaseInsensitiveContains("missing device token")
+    }
+}
+
+private enum CompanionVoiceError: LocalizedError {
+    case audioTooLarge
+    case cloudUnavailable
+    case emptyAudio
+    case emptyTranscript
+
+    var errorDescription: String? {
+        switch self {
+        case .audioTooLarge:
+            return "The voice recording is too large. Try a shorter command."
+        case .cloudUnavailable:
+            return "JARVIS Cloud is not reachable."
+        case .emptyAudio:
+            return "No voice recording was captured."
+        case .emptyTranscript:
+            return "JARVIS did not hear words in that recording."
+        }
     }
 }
 

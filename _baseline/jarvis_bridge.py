@@ -32,13 +32,14 @@ Xcode model-provider endpoints:
   POST /v1/completions
 """
 from __future__ import annotations
-import os, json, pathlib, re, secrets, shlex, threading, time
+import base64, binascii, os, json, pathlib, re, secrets, shlex, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import gtp_sdk
 import tts_pocket
 import ui_spec
 import convex_realtime
+import stt_deepgram
 from auth_gate import authorize as authorize_code
 
 
@@ -641,6 +642,26 @@ def _safe_json(obj) -> str:
     return text
 
 
+def _decode_companion_audio(body: dict) -> tuple[bytes, str]:
+    content_type = str(body.get("content_type") or body.get("contentType") or "audio/mp4").strip().lower()
+    if content_type not in {"audio/mp4", "audio/m4a", "audio/wav", "audio/x-m4a", "audio/aac"}:
+        raise BadRequest("unsupported audio content type")
+    encoded = str(body.get("audio_base64") or body.get("audioBase64") or "").strip()
+    if not encoded:
+        raise BadRequest("missing audio")
+    if len(encoded) > 8_000_000:
+        raise BadRequest("audio too large")
+    try:
+        audio = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise BadRequest("invalid audio encoding") from exc
+    if len(audio) < 128:
+        raise BadRequest("audio too short")
+    if len(audio) > 6_000_000:
+        raise BadRequest("audio too large")
+    return audio, content_type
+
+
 def _xcode_command_reply(rt, command: dict) -> str:
     kind = command.get("kind")
     if kind == "error":
@@ -999,6 +1020,13 @@ def make_handler(rt, token, companion_mode: bool = False, companion_token: str =
                     payload = tts_pocket.wav_payload(text)
                     _publish_realtime_state(realtime, "tts", tts_pocket.status(), source="companion_bridge")
                     return self._json(200, payload)
+                if path == "/companion/transcribe":
+                    try:
+                        audio, content_type = _decode_companion_audio(b)
+                        transcript = stt_deepgram.DeepgramSTT().transcribe(audio, content_type=content_type).strip()
+                        return self._json(200, {"ok": True, "transcript": transcript})
+                    except BadRequest as e:
+                        return self._bad_request(str(e))
                 if path == "/companion/skill":
                     name = b.get("name")
                     args = b.get("args") or {}
