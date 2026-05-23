@@ -62,6 +62,8 @@ cargo tauri build                            # outputs target/release/bundle/mac
   are configured. The bridge publishes runtime, TTS, ambient, turn, and skill-result
   state to Convex and consumes queued `controlRequests` through HASP. Private
   authorization codes are never stored in Convex.
+- TestFlight companions pair to Convex through `https://fleet-goose-114.convex.site`;
+  testers do not enter a laptop IP or connect directly to a Mac bridge.
 - Voice input/output uses macOS's selected microphone and output device. In clamshell mode, pair the
   hearing aids with the Mac and select them under macOS Sound/Input; the cockpit will use that device
   until iOS/watchOS clients exist.
@@ -101,9 +103,10 @@ cargo tauri build                            # outputs target/release/bundle/mac
 - The generated Xcode project lives in `~/research/jarvis/apple_native/JARVISCompanionApps.xcodeproj`.
   It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
   people onboarding, real microphone sample capture for voice registration, native ARKit
-  spatial status, watch quick check-ins, and app-to-Mac control. App Store Connect build
-  `1.0 (6)` is signed, uploaded, marked valid, includes the embedded watchOS app, and is
-  assigned to the Internal Testers TestFlight group.
+  spatial status, watch quick check-ins, and Convex-queued control. App Store Connect build
+  `1.0 (8)` is signed, uploaded, marked valid, includes the embedded watchOS app, and is
+  assigned to the Internal Testers TestFlight group. Its setup path is cloud pairing, not a
+  Mac bridge URL/token.
 - Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,
   `hold up`, `/paper discuss <question>`, `/paper mark <note>`, and `/paper summary`.
 - GTP-SDK drafting is available from Xcode chat as an explicit operator-voice translation layer,

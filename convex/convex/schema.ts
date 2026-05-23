@@ -40,6 +40,29 @@ export default defineSchema({
     .index("by_person_time", ["personId", "timestamp"])
     .index("by_time", ["timestamp"]),
 
+  companionDevices: defineTable({
+    deviceId: v.string(),
+    deviceToken: v.string(),
+    label: v.optional(v.string()),
+    platform: v.optional(v.string()),
+    authorized: v.boolean(),
+    createdAt: v.number(),
+    lastSeenAt: v.number(),
+  })
+    .index("by_device_id", ["deviceId"])
+    .index("by_device_token", ["deviceToken"]),
+
+  pairingSessions: defineTable({
+    code: v.string(),
+    label: v.optional(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    claimedAt: v.optional(v.number()),
+    claimedByDeviceId: v.optional(v.string()),
+  })
+    .index("by_code", ["code"])
+    .index("by_expires", ["expiresAt"]),
+
   controlRequests: defineTable({
     requestId: v.string(),
     status: v.string(), // pending | running | done | refused | error

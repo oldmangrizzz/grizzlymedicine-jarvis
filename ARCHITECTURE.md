@@ -150,18 +150,23 @@ devices, check-ins, motion/focus/rest/driving summaries, and evidence provenance
 clinical events. This is the first responderOS/CMS evidence primitive: multiple authorized testers
 can be onboarded with separated memory and auditable device provenance.
 
-The companion app is also the computer-control edge. Companion-token requests on `8788` expose
-`/companion/turn`, `/companion/skills`, and `/companion/skill`; those routes hand off to the same
-`JarvisRuntime.turn` and HASP `SkillRegistry` used by the cockpit. SAFE controls can run from the
-app, while SENSITIVE/DESTRUCTIVE Mac control still requires the private authorization code and stays
-audit-logged. There is no separate app-only execution bypass.
+The companion app is also the computer-control edge. TestFlight builds pair through Convex HTTP
+actions at `fleet-goose-114.convex.site` and receive a device token from a short-lived pairing code;
+testers do not enter a laptop IP address or Mac bridge token. Cloud app turns queue as
+`controlRequests` named `jarvis_turn`, and `_baseline/convex_realtime.py` completes them through
+the same `JarvisRuntime.turn` used by the cockpit. Local companion-token requests on `8788` remain a
+developer bridge for `/companion/turn`, `/companion/skills`, and `/companion/skill`. SAFE controls
+can run from the app queue, while SENSITIVE/DESTRUCTIVE Mac control still requires the private
+authorization code and stays audit-logged. There is no separate app-only execution bypass.
 
 **Convex realtime spine.** Convex now carries realtime app-facing state beyond the stigmergent field:
-`runtimeState`, `ambientEvents`, `controlRequests`, `skillCatalog`, and `onboardingEvidence`.
+`runtimeState`, `ambientEvents`, `controlRequests`, `skillCatalog`, `onboardingEvidence`,
+`companionDevices`, and `pairingSessions`.
 All realtime functions in `convex/convex/realtime.ts` require `JARVIS_CONVEX_REALTIME_TOKEN`; the
 token is stored in local `.env` and in Convex env, not in source. `_baseline/convex_realtime.py`
 publishes bridge state, TTS status, ambient events, latest turns, skill results, and consumes queued
-`controlRequests` through `JarvisRuntime.skill`. Convex never stores the private HASP authorization
+`controlRequests` through `JarvisRuntime.turn` for app turns or `JarvisRuntime.skill` for skill
+requests. Convex never stores the private HASP authorization
 code: SENSITIVE/DESTRUCTIVE queued controls complete as `authorization_required` and must be retried
 through the local token-gated bridge with the private code.
 

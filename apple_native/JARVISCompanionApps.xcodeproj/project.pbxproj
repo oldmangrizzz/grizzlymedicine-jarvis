@@ -21,6 +21,7 @@
 		9462163410DC99E2B8A0A0BF /* JARVISCompanionCore in Frameworks */ = {isa = PBXBuildFile; productRef = C6B0A2CC2C78A9F3CB404F36 /* JARVISCompanionCore */; };
 		94B14B035ED3046EF5F22B06 /* JARVISCompanionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D34D5A17984BD77399C2DEC /* JARVISCompanionCore */; };
 		A0E527C91997A33A5A205C52 /* CompanionAppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43B0D90BB4BDA30D7692295 /* CompanionAppState.swift */; };
+		C8BA3FF7F62D05103B6EA1EF /* CloudCompanionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */; };
 		CEA298F117969FEB176FC06E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EA11FE7B30E6A1B2720B3CD /* Assets.xcassets */; };
 		EF71D574857672859DF77740 /* WatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFD39C44E992A354ED9EDB4 /* WatchBridge.swift */; };
 /* End PBXBuildFile section */
@@ -52,6 +53,7 @@
 /* Begin PBXFileReference section */
 		01B45E30EE45ABBD7B140C49 /* JARVISCompanionApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JARVISCompanionApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2BFD39C44E992A354ED9EDB4 /* WatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridge.swift; sourceTree = "<group>"; };
+		32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudCompanionClient.swift; sourceTree = "<group>"; };
 		3330D1E6C4190E3521A4D113 /* PhoneWatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchBridge.swift; sourceTree = "<group>"; };
 		33D773ADCB50896F2C022E09 /* JARVISWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISWatchApp.swift; sourceTree = "<group>"; };
 		3EA11FE7B30E6A1B2720B3CD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				C6983055642F180CBF5CE38A /* Assets.xcassets */,
+				32AE14EA731067728AF09C96 /* CloudCompanionClient.swift */,
 				E43B0D90BB4BDA30D7692295 /* CompanionAppState.swift */,
 				62AB471DB02B21AF6F4411D0 /* CompanionRootView.swift */,
 				C3018469DEACAD2F828B561E /* ControlView.swift */,
@@ -259,6 +262,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8BA3FF7F62D05103B6EA1EF /* CloudCompanionClient.swift in Sources */,
 				A0E527C91997A33A5A205C52 /* CompanionAppState.swift in Sources */,
 				149D43FEEE9FBA11F7F1C4C4 /* CompanionRootView.swift in Sources */,
 				903FABBC2777D4BA57D01EC4 /* ControlView.swift in Sources */,
@@ -361,7 +365,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = T5AFHQ4L9C;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -447,7 +451,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = T5AFHQ4L9C;
 				ENABLE_NS_ASSERTIONS = NO;

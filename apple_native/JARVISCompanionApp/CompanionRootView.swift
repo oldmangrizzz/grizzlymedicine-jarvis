@@ -35,12 +35,17 @@ private struct SetupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Mac bridge") {
-                    TextField("Base URL", text: $appState.baseURLText)
+                Section("JARVIS Cloud") {
+                    TextField("Cloud endpoint", text: $appState.cloudURLText)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Companion token", text: $appState.companionToken)
-                    Button("Save and test connection") {
+                    TextField("Pairing code", text: $appState.pairingCode)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    Button("Pair this device") {
+                        Task { await appState.pairDevice() }
+                    }
+                    Button("Check cloud connection") {
                         Task { await appState.checkConnection() }
                     }
                 }
@@ -55,7 +60,7 @@ private struct SetupView: View {
                 }
 
                 Section("Beta expectation") {
-                    Text("Once the Mac bridge URL and token are saved, testers should use the People, Voice, Spatial, and Control tabs without touching Terminal.")
+                    Text("This build uses Convex as the companion spine. Testers pair once, then People, Voice, Spatial, Watch, and Control signals route through JARVIS Cloud without a laptop IP address.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

@@ -137,18 +137,31 @@ class ConvexRealtime:
                 continue
             name = request.get("name")
             args = request.get("args") if isinstance(request.get("args"), dict) else {}
-            res = runtime.skill(name, args, confirm=lambda _skill, _args: False)
-            result = {
-                "ok": res.ok,
-                "skill": res.skill,
-                "output": res.output,
-                "refused": res.refused,
-                "reason": res.reason,
-                "error": res.error,
-                "authorization_required": bool(res.refused and "requires authorization" in (res.reason or "").lower()),
-            }
+            if name == "jarvis_turn":
+                text = str(args.get("text") or "").strip()
+                out = runtime.turn(user_text=text) if text else {"error": "no text"}
+                result = {
+                    "ok": not bool(out.get("error")),
+                    "skill": "jarvis_turn",
+                    "output": out,
+                    "refused": False,
+                    "reason": "",
+                    "error": out.get("error"),
+                    "authorization_required": False,
+                }
+            else:
+                res = runtime.skill(name, args, confirm=lambda _skill, _args: False)
+                result = {
+                    "ok": res.ok,
+                    "skill": res.skill,
+                    "output": res.output,
+                    "refused": res.refused,
+                    "reason": res.reason,
+                    "error": res.error,
+                    "authorization_required": bool(res.refused and "requires authorization" in (res.reason or "").lower()),
+                }
             completion = self.complete_control_request(request_id, result)
-            processed.append({"request_id": request_id, "skill": res.skill, "completion": completion})
+            processed.append({"request_id": request_id, "skill": result["skill"], "completion": completion})
         return {"ok": True, "processed": processed, "last_error": self.last_error}
 
     def status(self) -> Dict[str, Any]:
