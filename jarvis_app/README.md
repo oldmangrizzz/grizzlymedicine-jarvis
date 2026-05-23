@@ -101,8 +101,8 @@ cargo tauri build                            # outputs target/release/bundle/mac
 - The generated Xcode project lives in `~/research/jarvis/apple_native/JARVISCompanionApps.xcodeproj`.
   It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
   people onboarding, real microphone sample capture for voice registration, native ARKit
-  spatial status, watch quick check-ins, and app-to-Mac control. Device/TestFlight signing
-  still requires selecting the Apple developer team in Xcode.
+  spatial status, watch quick check-ins, and app-to-Mac control. App Store Connect build
+  `1.0 (5)` is signed, uploaded, marked valid, and includes the embedded watchOS app.
 - Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,
   `hold up`, `/paper discuss <question>`, `/paper mark <note>`, and `/paper summary`.
 - GTP-SDK drafting is available from Xcode chat as an explicit operator-voice translation layer,
