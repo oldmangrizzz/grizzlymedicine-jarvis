@@ -102,7 +102,8 @@ cargo tauri build                            # outputs target/release/bundle/mac
   It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
   people onboarding, real microphone sample capture for voice registration, native ARKit
   spatial status, watch quick check-ins, and app-to-Mac control. App Store Connect build
-  `1.0 (5)` is signed, uploaded, marked valid, and includes the embedded watchOS app.
+  `1.0 (6)` is signed, uploaded, marked valid, includes the embedded watchOS app, and is
+  assigned to the Internal Testers TestFlight group.
 - Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,
   `hold up`, `/paper discuss <question>`, `/paper mark <note>`, and `/paper summary`.
 - GTP-SDK drafting is available from Xcode chat as an explicit operator-voice translation layer,
