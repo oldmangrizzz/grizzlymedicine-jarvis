@@ -1,0 +1,12 @@
+{
+  "description": "Report the frontmost app as a taught recipe.",
+  "name": "show_front_app",
+  "parameters": [],
+  "risk": "SAFE",
+  "steps": [
+    {
+      "args": {},
+      "skill": "macos_frontmost_app"
+    }
+  ]
+}

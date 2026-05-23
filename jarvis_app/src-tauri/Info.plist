@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>JARVIS needs Apple Events access to coordinate local desktop automation when the operator authorizes it.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>JARVIS needs camera access only when the operator explicitly enables local video-aware cockpit or recording workflows.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>JARVIS needs Desktop folder access when the operator asks it to inspect or manage local research files.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>JARVIS needs Documents folder access when the operator asks it to inspect or manage local research files.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>JARVIS needs Downloads folder access when the operator asks it to inspect or manage local research files.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>JARVIS needs microphone access for hands-free voice commands and live cockpit listening.</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>JARVIS needs screen recording access when the operator enables visual cockpit or screen-aware workflows.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>JARVIS needs speech recognition access to transcribe operator voice commands inside the cockpit.</string>
+</dict>
+</plist>

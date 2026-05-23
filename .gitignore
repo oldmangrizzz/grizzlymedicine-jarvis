@@ -36,10 +36,30 @@ __pycache__/
 node_modules/
 .convex/
 convex/_generated/
+**/convex/_generated/
 package-lock.json
+
+# --- Rust / Tauri build outputs ---
+target/
+**/target/
+.build/
+**/.build/
+jarvis_app/src-tauri/gen/
+jarvis_app/src-tauri/icons/android/
+jarvis_app/src-tauri/icons/ios/
 
 # --- generated / transient audio (regenerable) ---
 *.wav
+_local_voice/
+*.safetensors
+
+# --- local runtime context / generated tokens ---
+_local_companion/
+_baseline/ambient_context.json
+_baseline/audio_context.json
+_baseline/people.json
+_baseline/skill_gates.json
+_baseline/*_audit.jsonl
 
 # --- large third-party reference PDFs (redownloadable; not our work) ---
 2605.17734v1.pdf

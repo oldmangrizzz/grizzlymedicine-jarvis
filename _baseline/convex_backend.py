@@ -9,7 +9,8 @@ the field lives does. Decay/quorum/gradient stay in StigmergicField — Convex i
   get/all      -> Convex queries (reactive: an agent's sense() re-fires when the field changes)
   delete/gc    -> mutations (cron-friendly gcKeys for floor sweep)
 
-Reads CONVEX_URL from env (npx convex dev writes it to .env.local). For tests, inject a client.
+Reads CONVEX_URL from env (prod: https://fleet-goose-114.convex.cloud; dev writes .env.local).
+For tests, inject a client.
 """
 from __future__ import annotations
 import os
@@ -26,7 +27,7 @@ class ConvexBackend:
             self.client = client                      # injected (tests / custom transport)
         else:
             if not self.url:
-                raise RuntimeError("CONVEX_URL not set — run `npx convex dev` (writes it to .env.local)")
+                raise RuntimeError("CONVEX_URL not set — set the deployment URL or run `npx convex dev`")
             from convex import ConvexClient            # lazy: only needed for a live deployment
             self.client = ConvexClient(self.url)
 

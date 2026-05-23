@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JARVIS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="bar">
+      <div class="brand">J.A.R.V.I.S</div>
+      <div id="model" class="model">—</div>
+    </header>
+
+    <!-- POWER -->
+    <section class="power-wrap">
+      <button id="power" class="power off" title="Power">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="ring" cx="50" cy="50" r="42" />
+          <line class="stem" x1="50" y1="18" x2="50" y2="46" />
+        </svg>
+      </button>
+      <div id="statusline" class="statusline">OFFLINE</div>
+    </section>
+
+    <!-- TELEMETRY -->
+    <section class="card" id="telemetry">
+      <h2>Internal state</h2>
+      <div class="gauge"><label>Cortisol</label><div class="track"><div id="g-cortisol" class="fill c-stress"></div></div><span id="v-cortisol">—</span></div>
+      <div class="gauge"><label>Dopamine</label><div class="track"><div id="g-dopamine" class="fill c-reward"></div></div><span id="v-dopamine">—</span></div>
+      <div class="gauge"><label>Adrenaline</label><div class="track"><div id="g-adrenaline" class="fill c-alarm"></div></div><span id="v-adrenaline">—</span></div>
+      <div class="gauge"><label>eCB tone</label><div class="track"><div id="g-ectone" class="fill c-calm"></div></div><span id="v-ectone">—</span></div>
+      <div class="fieldline"><label>Field signals</label><span id="v-field">—</span></div>
+    </section>
+
+    <!-- TALK -->
+    <section class="card" id="talk">
+      <h2>Speak to JARVIS</h2>
+      <div class="talkrow">
+        <input id="say" type="text" placeholder="Type, or use the mic…" autocomplete="off" />
+        <button id="mic" title="Push to talk">🎙</button>
+        <button id="voice-out" class="toggle active" title="Speak replies aloud">Voice</button>
+        <button id="voice-mode" class="toggle active" title="Sentry mode requires the JARVIS wakeword">Sentry</button>
+        <button id="voice-loop" class="toggle" title="Hands-free listen/reply loop">Loop</button>
+        <button id="send" class="primary">Send</button>
+      </div>
+      <div id="voice-status" class="voice-status">Voice replies on · sentry mode · loop off</div>
+      <div id="reply" class="reply hidden"></div>
+      <div id="turnmeta" class="turnmeta"></div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="card" id="skills">
+      <h2>Actions</h2>
+      <p class="authnote">Sensitive actions trigger spoken authorization; JARVIS listens for the private code from <code>.env</code>.</p>
+      <div class="chips">
+        <button class="chip" data-skill="deliberate">Deliberate</button>
+        <button class="chip" data-skill="recall_origin">Recall origin</button>
+        <button class="chip" data-skill="sense_field">Sense field</button>
+        <button id="openxr" class="chip xr">Open XR surface</button>
+      </div>
+    </section>
+
+    <section class="card" id="permissions">
+      <h2>macOS Access</h2>
+      <p class="authnote">Grant these to this JARVIS app entry in System Settings so voice, screen, local-file, and optional local-video workflows do not fail mid-run. Lab visuals can still come through Blink/HomeKit.</p>
+      <div class="chips privacy-chips">
+        <button class="chip privacy" data-pane="full_disk">Full Disk</button>
+        <button class="chip privacy" data-pane="accessibility">Accessibility</button>
+        <button class="chip privacy" data-pane="screen_recording">Screen Recording</button>
+        <button class="chip privacy" data-request="microphone">Request Audio Recording</button>
+        <button class="chip privacy optional" data-request="camera">Request Video Recording</button>
+        <button class="chip privacy" data-request="speech_recognition">Request Speech Recognition</button>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section class="card" id="logcard">
+      <h2>Activity</h2>
+      <div id="log" class="log"></div>
+    </section>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

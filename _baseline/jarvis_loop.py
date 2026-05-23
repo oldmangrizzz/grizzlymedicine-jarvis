@@ -16,17 +16,21 @@ Run (text-mode core, live think via Ollama cloud):
   PYTHONPATH=<holograph>/src python3 jarvis_loop.py
 """
 from __future__ import annotations
-import os, json, pathlib
+import os, json, pathlib, time
 from typing import Optional, List, Dict
 
 import model_ollama as M
+import gtp_sdk
 from jarvis_metrics import PersonalityPrototype
 from endocrine import Endocrine
 from endocannabinoid import Endocannabinoid
-from stigmergy import StigmergicField
+from stigmergy import StigmergicField, StigmergyBackend
 from swarm import ModelSwarm
 from ethics_guard import ConstitutiveEthicsGuard
 from skills import default_registry, Skill, Risk
+from paper_session import PaperSession
+from audio_context import AudioContext
+from ambient_context import AmbientContext
 
 from holograph.graph.substrate import GraphSubstrate
 from holograph.beliefs.store import BeliefStore, SourceType
@@ -53,13 +57,23 @@ def aox4_ok(boot_text: str) -> Dict[str, bool]:
     }
 
 
+def field_backend_from_env() -> Optional[StigmergyBackend]:
+    """Use the live Convex field when configured; otherwise keep tests/offline runs in-memory."""
+    if not os.environ.get("CONVEX_URL"):
+        return None
+    from convex_backend import ConvexBackend
+
+    return ConvexBackend()
+
+
 class JarvisRuntime:
     def __init__(self, substrate: Optional[GraphSubstrate] = None,
                  model_specs: Optional[List[tuple]] = None,
                  stt=None, tts=None, drift_corpus: Optional[List[str]] = None,
                  boot_identity: str = BOOT_IDENTITY,
                  endo: Optional[Endocrine] = None,
-                 ecs: Optional[Endocannabinoid] = None):
+                 ecs: Optional[Endocannabinoid] = None,
+                 field_backend: Optional[StigmergyBackend] = None):
         self.g = substrate or GraphSubstrate(":memory:")
         self.values = CharacterValues(self.g)
         self.beliefs = BeliefStore(self.g)
@@ -78,12 +92,21 @@ class JarvisRuntime:
         # social sense: the stigmergent field. Its evaporation rate is driven by this JARVIS's
         # own arousal (field_volatility) — the one shared dial between internal state and the
         # multi-agent field. The 30+ models deposit/sense here; a lone instance still owns it.
-        self.field = StigmergicField(volatility_fn=self.endo.field_volatility)
+        self.field = StigmergicField(
+            backend=field_backend if field_backend is not None else field_backend_from_env(),
+            volatility_fn=self.endo.field_volatility,
+        )
         # the swarm: the models-as-agents deliberate over the field (no central orchestrator)
         self.swarm = ModelSwarm(self.rotator.specs, field=self.field)
         # the skill layer (HASP): guarded, audited capability dispatch. Generic skills
         # (fs/shell/http/osascript) + runtime capabilities (deliberate/recall/sense) registered.
         self.skills = default_registry()
+        self.paper = PaperSession()
+        self.audio = AudioContext()
+        self.ambient = AmbientContext()
+        self.people_path = pathlib.Path(os.environ.get("JARVIS_PEOPLE_PATH") or pathlib.Path(__file__).with_name("people.json"))
+        self.people = self._load_people()
+        self._sync_people_to_beliefs()
         self.skills.register(Skill("deliberate", "Swarm decision over the field.",
                                    Risk.SENSITIVE, lambda question, options, rounds=2:
                                    self.deliberate(question, options, rounds)))
@@ -91,8 +114,161 @@ class JarvisRuntime:
                                    Risk.SAFE, lambda: self.beliefs.recall_origin("JARVIS", "origin_memory")))
         self.skills.register(Skill("sense_field", "Sense stigmergent signals at a topic.",
                                    Risk.SAFE, lambda topic, kind="recruit": self.field.sense(topic, kinds=[kind])))
+        self.skills.register(Skill("paper_load", "Load a PDF/text paper into an interruptible reading session.",
+                                   Risk.SAFE, lambda path, title=None, start=0: self.paper.load(path, title, start)))
+        self.skills.register(Skill("paper_status", "Report paper reading cursor/session state.",
+                                   Risk.SAFE, lambda: self.paper.status()))
+        self.skills.register(Skill("paper_current", "Return current paper sentence(s) without moving the cursor.",
+                                   Risk.SAFE, lambda count=1: self.paper.current(count)))
+        self.skills.register(Skill("paper_next", "Move the paper cursor forward by sentence count.",
+                                   Risk.SAFE, lambda count=1: self.paper.next(count)))
+        self.skills.register(Skill("paper_back", "Move the paper cursor backward by sentence count.",
+                                   Risk.SAFE, lambda count=1: self.paper.back(count)))
+        self.skills.register(Skill("paper_pause", "Pause paper read-aloud and keep the cursor on the current sentence.",
+                                   Risk.SAFE, lambda: self.paper.pause()))
+        self.skills.register(Skill("paper_resume", "Resume paper read-aloud from the current sentence.",
+                                   Risk.SAFE, lambda count=12, voice=None, rate=None: self.paper.resume(count, voice, rate)))
+        self.skills.register(Skill("paper_read_aloud", "Read paper aloud from the current sentence.",
+                                   Risk.SAFE, lambda count=12, voice=None, rate=None: self.paper.read_aloud(count, voice, rate)))
+        self.skills.register(Skill("paper_mark", "Mark the current paper sentence with an optional note.",
+                                   Risk.WRITE, lambda note="": self.paper.mark(note)))
+        self.skills.register(Skill("paper_discuss", "Discuss the current paper location without losing cursor state.",
+                                   Risk.SAFE, lambda question, window=5: self.paper_discuss(question, window)))
+        self.skills.register(Skill("paper_summary", "Summarize the current paper location and nearby context.",
+                                   Risk.SAFE, lambda window=8: self.paper_summary(window)))
+        self.skills.register(Skill("gtp_status", "Report GTP-SDK activation rules and status.",
+                                   Risk.SAFE, lambda: gtp_sdk.status()))
+        self.skills.register(Skill("gtp_review", "Review a draft against GTP-SDK boundaries.",
+                                   Risk.SAFE, lambda text: gtp_sdk.review(text)))
+        self.skills.register(Skill("gtp_draft", "Draft or translate material in the operator's voice when explicitly requested.",
+                                   Risk.SAFE, lambda task, content, audience="", context="":
+                                   self.gtp_draft(task, content, audience, context)))
+        self.skills.register(Skill("person_introduce", "Add or update a known person from a spoken introduction.",
+                                   Risk.WRITE, lambda name, relationship="", notes="", spoken_intro="", voice_sample_ref="":
+                                   self.person_introduce(name, relationship, notes, spoken_intro, voice_sample_ref)))
+        self.skills.register(Skill("people_list", "List people JARVIS has been introduced to.",
+                                   Risk.SAFE, lambda: self.people_list()))
+        self.skills.register(Skill("person_profile", "Show a known person's profile.",
+                                   Risk.SAFE, lambda name: self.person_profile(name)))
+        self.skills.register(Skill("audio_context_status", "Show current audio scene and music-regulation context.",
+                                   Risk.SAFE, lambda: self.audio.status()))
+        self.skills.register(Skill("audio_realtime_plan", "Show the real-time audio/music processing plan.",
+                                   Risk.SAFE, lambda: self.audio.realtime_plan()))
+        self.skills.register(Skill("audio_scene_update", "Update current audio scene from manual input or a classifier.",
+                                   Risk.WRITE, lambda speech="unknown", music="unknown", noise="unknown", confidence=0.0,
+                                   source="manual", notes="", track="", artist="", volume="":
+                                   self.audio.scene_update(speech, music, noise, confidence, source, notes, track, artist, volume)))
+        self.skills.register(Skill("music_profile_set", "Store a person's music regulation profile.",
+                                   Risk.WRITE, lambda person="operator", purpose="", always_on=True, notes="",
+                                   genres=None, sensitivities=None, preferred_volume="", discussion_style="":
+                                   self.audio.music_profile_set(person, purpose, always_on, notes, genres, sensitivities,
+                                                                preferred_volume, discussion_style)))
+        self.skills.register(Skill("music_profile_show", "Show a person's music regulation profile.",
+                                   Risk.SAFE, lambda person="operator": self.audio.music_profile_show(person)))
+        self.skills.register(Skill("ambient_context_status", "Show iPhone/watch/HomeKit/Blink ambient context.",
+                                   Risk.SAFE, lambda: self.ambient.status()))
+        self.skills.register(Skill("companion_event", "Ingest an iPhone/watch companion context event.",
+                                   Risk.WRITE, lambda **kwargs: self.companion_event(**kwargs)))
+        self.skills.register(Skill("dream_status", "Report dream-cycle readiness from ambient context.",
+                                   Risk.SAFE, lambda: self.dream_status()))
+        self.skills.register(Skill("dream_mark", "Mark a dream-cycle maintenance pass as completed.",
+                                   Risk.WRITE, lambda kind="micro", summary="", source="jarvis":
+                                   self.dream_mark(kind, summary, source)))
 
     # ---- setup ----
+    def _load_people(self) -> Dict:
+        if not self.people_path.exists():
+            return {"people": []}
+        data = json.loads(self.people_path.read_text())
+        if isinstance(data, list):
+            data = {"people": data}
+        if not isinstance(data, dict) or not isinstance(data.get("people"), list):
+            raise ValueError(f"{self.people_path} must contain a people list")
+        return data
+
+    def _save_people(self) -> None:
+        self.people_path.parent.mkdir(parents=True, exist_ok=True)
+        self.people_path.write_text(json.dumps(self.people, indent=2, sort_keys=True) + "\n")
+
+    def _person_index(self, name: str) -> Optional[int]:
+        target = str(name or "").strip().lower()
+        for idx, person in enumerate(self.people.get("people", [])):
+            if str(person.get("name", "")).strip().lower() == target:
+                return idx
+        return None
+
+    def _sync_person_to_beliefs(self, person: Dict) -> None:
+        name = str(person.get("name") or "").strip()
+        if not name:
+            return
+        self.beliefs.assert_belief("JARVIS", "known_person", name, SourceType.OPERATOR,
+                                   source_ref="person_introduction", confidence=0.98)
+        self.beliefs.assert_belief(name, "introduced_to", "JARVIS", SourceType.OPERATOR,
+                                   source_ref="person_introduction", confidence=0.98)
+        relationship = str(person.get("relationship") or "").strip()
+        if relationship:
+            self.beliefs.assert_belief(name, "relationship_to_operator", relationship, SourceType.OPERATOR,
+                                       source_ref="person_introduction", confidence=0.95)
+        notes = str(person.get("notes") or "").strip()
+        if notes:
+            self.beliefs.assert_belief(name, "operator_note", notes, SourceType.OPERATOR,
+                                       source_ref="person_introduction", confidence=0.90)
+        voice_status = str((person.get("voice") or {}).get("status") or "pending_raw_audio_enrollment")
+        self.beliefs.assert_belief(name, "voice_profile_status", voice_status, SourceType.OPERATOR,
+                                   source_ref="person_introduction", confidence=0.90)
+
+    def _sync_people_to_beliefs(self) -> None:
+        for person in self.people.get("people", []):
+            self._sync_person_to_beliefs(person)
+
+    def person_introduce(self, name: str, relationship: str = "", notes: str = "",
+                         spoken_intro: str = "", voice_sample_ref: str = "") -> Dict:
+        clean_name = str(name or "").strip()
+        if not clean_name:
+            raise ValueError("name is required")
+        now = time.time()
+        idx = self._person_index(clean_name)
+        voice = {
+            "status": "sample_recorded_pending_model" if str(voice_sample_ref or "").strip() else "pending_raw_audio_enrollment",
+            "sample_ref": str(voice_sample_ref or "").strip(),
+        }
+        profile = {
+            "name": clean_name,
+            "relationship": str(relationship or "").strip(),
+            "notes": str(notes or "").strip(),
+            "spoken_intro": str(spoken_intro or "").strip(),
+            "introduced_at": now,
+            "updated_at": now,
+            "voice": voice,
+        }
+        if idx is None:
+            self.people.setdefault("people", []).append(profile)
+        else:
+            existing = dict(self.people["people"][idx])
+            existing.update({k: v for k, v in profile.items() if v not in ("", None)})
+            existing["voice"] = voice if voice["sample_ref"] else existing.get("voice", voice)
+            existing["updated_at"] = now
+            self.people["people"][idx] = existing
+            profile = existing
+        self._save_people()
+        self._sync_person_to_beliefs(profile)
+        greeting = (
+            f"Hello, {clean_name}. I'm JARVIS. Grizzly has asked me to remember who you are "
+            "and treat you as a known person in this household and research environment."
+        )
+        return {"ok": True, "person": profile, "greeting": greeting,
+                "voice_recognition": profile.get("voice"),
+                "memory_path": str(self.people_path)}
+
+    def people_list(self) -> Dict:
+        return {"people": list(self.people.get("people", [])), "memory_path": str(self.people_path)}
+
+    def person_profile(self, name: str) -> Dict:
+        idx = self._person_index(name)
+        if idx is None:
+            raise KeyError(f"unknown person {name!r}")
+        return {"person": self.people["people"][idx], "memory_path": str(self.people_path)}
+
     def seed_values(self, values: List[str]):
         for v in values:
             self.values.set_value(v)              # operator-grade, owned
@@ -108,6 +284,15 @@ class JarvisRuntime:
 
     def record_real(self, subject: str, relation: str, obj: str):
         self.beliefs.assert_belief(subject, relation, obj, SourceType.OPERATOR)  # real, world-fact
+
+    def companion_event(self, **kwargs) -> Dict:
+        return self.ambient.ingest_event(**kwargs)
+
+    def dream_status(self) -> Dict:
+        return self.ambient.status()["dream"]
+
+    def dream_mark(self, kind: str = "micro", summary: str = "", source: str = "jarvis") -> Dict:
+        return self.ambient.mark_dream(kind, summary, source)
 
     # ---- appraisal: situation -> hormonal response (mechanistic stub, not performed) ----
     # Whole-word match only. Substring matching mis-fires ("stat" in "status", "now" in
@@ -146,7 +331,8 @@ class JarvisRuntime:
 
     def _messages(self, user_text: str) -> List[Dict]:
         return M.assemble_messages(self.boot_identity, self.values.values_block(),
-                                   self._recalled_memory(), user_text, history=self.history)
+                                   self._recalled_memory() + self.audio.context_lines() + self.ambient.context_lines(),
+                                   user_text, history=self.history)
 
     # ---- boot ----
     def boot(self) -> Dict:
@@ -162,6 +348,7 @@ class JarvisRuntime:
             user_text = self.stt.transcribe(audio)        # listen
         if not user_text:
             return {"error": "no input"}
+        self.ambient.record_runtime_activity("operator_turn")
         self._appraise(user_text)                          # situation -> internal state
         mod = self.endo.modulation()                       # internal state -> processing knobs
         options = {"temperature": mod["temperature"],
@@ -201,6 +388,56 @@ class JarvisRuntime:
         """No central orchestrator: each model senses the field, picks, deposits; the field
         aggregates with decay and quorum. Returns the swarm decision (or None on no quorum)."""
         return self.swarm.coordinate(question, options, rounds=rounds)
+
+    def paper_discuss(self, question: str, window: int = 5) -> Dict:
+        ctx = self.paper.context(window=window)
+        prompt = (
+            "We are in an interruptible paper-reading session. The operator paused or branched "
+            "from reading and wants analysis without losing the cursor.\n\n"
+            f"Paper: {ctx['title']}\n"
+            f"Current cursor: {ctx['current']['ref']}\n\n"
+            "Nearby text:\n" +
+            "\n".join(f"[{u['ref']}] {u['text']}" for u in ctx["nearby"]) +
+            f"\n\nOperator question: {question}\n\n"
+            "Answer directly. If the paper text does not support a claim, say so."
+        )
+        out = self.turn(user_text=prompt)
+        self.paper.remember_discussion(question, out.get("reply") or "")
+        return {"cursor": ctx["current"], "reply": out.get("reply"), "model": out.get("model"),
+                "ethics_conflict": out.get("ethics_conflict")}
+
+    def paper_summary(self, window: int = 8) -> Dict:
+        ctx = self.paper.context(window=window)
+        prompt = (
+            "Summarize this paper-reading context for dyslexia-friendly audio review.\n\n"
+            f"Paper: {ctx['title']}\n"
+            f"Current cursor: {ctx['current']['ref']}\n\n" +
+            "\n".join(f"[{u['ref']}] {u['text']}" for u in ctx["nearby"]) +
+            "\n\nReturn: 1) plain-language summary, 2) key terms, 3) questions worth pausing on."
+        )
+        out = self.turn(user_text=prompt)
+        return {"cursor": ctx["current"], "reply": out.get("reply"), "model": out.get("model")}
+
+    def gtp_draft(self, task: str, content: str, audience: str = "", context: str = "") -> Dict:
+        prompt = gtp_sdk.build_prompt(task=task, content=content, audience=audience, context=context)
+        messages = M.assemble_messages(
+            self.boot_identity,
+            self.values.values_block(),
+            self._recalled_memory(),
+            prompt,
+            history=None,
+        )
+        reply = self.rotator.chat(messages, options={"temperature": 0.25, "num_predict": 900})
+        guard = ConstitutiveEthicsGuard(self.values.values())
+        conflicts = [v.__dict__ for v in guard.check(reply)]
+        review = gtp_sdk.review(reply)
+        return {
+            "draft": reply,
+            "review": review,
+            "ethics_conflict": conflicts,
+            "model": self.rotator.current()[1],
+            "gtp": gtp_sdk.status(),
+        }
 
     def close(self):
         self.g.close()

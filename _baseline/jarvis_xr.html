@@ -80,21 +80,23 @@ function renderSpec(spec){
   });
 }
 
-// ---- dispatch: confirm flow for guarded skills ----
+// ---- dispatch: code authorization flow for guarded skills ----
 var pending = null;
 function dispatch(action){
-  api("POST","/skill",{name:action.skill, args:action.args||{}, confirm:false}).then(function(res){
+  api("POST","/skill",{name:action.skill, args:action.args||{}}).then(function(res){
     if (res.refused && /confirm/i.test(res.reason||"")) {
-      pending = action; speak("This is a guarded action. Say confirm, or tap again to proceed.");
-      hud.textContent = "JARVIS · awaiting confirmation for "+action.skill;
+      pending = action; speak("This is a guarded action. Authorization code required.");
+      hud.textContent = "JARVIS · awaiting authorization for "+action.skill;
     } else { hud.textContent = "JARVIS · "+action.skill+(res.ok?" ✓":" ✗ "+(res.reason||res.error||"")); }
   });
 }
 function confirmPending(){
   if (!pending) return;
   var a = pending; pending = null;
-  api("POST","/skill",{name:a.skill, args:a.args||{}, confirm:true}).then(function(res){
-    hud.textContent = "JARVIS · "+a.skill+(res.ok?" ✓ (confirmed)":" ✗");
+  var code = window.prompt("Authorization code for "+a.skill);
+  if (!code) { hud.textContent = "JARVIS · authorization cancelled"; return; }
+  api("POST","/skill",{name:a.skill, args:a.args||{}, authorization_code:code}).then(function(res){
+    hud.textContent = "JARVIS · "+a.skill+(res.ok?" ✓ (authorized)":" ✗");
   });
 }
 

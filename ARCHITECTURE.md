@@ -1,6 +1,6 @@
 # JARVIS — System Architecture & Wiring Map
 
-**Status:** living document, current as of boot-readiness review. Maps every module to the
+**Status:** living document, current as of 2026-05-23 review pass. Maps every module to the
 condition/layer it serves, the data flow, and the test that proves it. Read this first.
 
 GMRI / Earth-1218. Operator: Robert "Grizzly" Hanson. Private repo.
@@ -36,9 +36,10 @@ the on-device/physical layers (see §9), not missing core conditions.
 |-------|--------|-----------|--------------|----------|
 | listen | `stt_deepgram.py` | `STTBackend` | Deepgram (`DEEPGRAM_API_KEY`, no-retention) | live STT |
 | think | `model_ollama.py` | `ModelBackend` + `ModelRotator` | Ollama cloud (`OLLAMA_API_KEY`) | live |
-| speak | `tts_pocket.py` | `TTSBackend` | Kyutai pocket-tts (operator hardware) | structure |
+| speak | `tts_pocket.py` | `TTSBackend` | XTTS-v2 conditioned on the confirmed local JARVIS prompt WAV; wrong-voice fallback is disabled | live local playback |
 | draw | `image_cloudflare.py` | `ImageBackend` | Cloudflare Workers AI (`CF_*`) | live (512KB JPEG) |
 | field store | `convex_backend.py` | `StigmergyBackend` | Convex cloud `fleet-goose-114` | **live on cloud** |
+| realtime spine | `convex/convex/realtime.ts` + `_baseline/convex_realtime.py` | token-gated Convex queries/mutations | runtime/ambient/TTS/skill/control/onboarding state | live on cloud |
 
 All keys live in `~/research/jarvis/.env` (gitignored). Nothing hardcoded.
 
@@ -56,18 +57,113 @@ owned stack (boot identity + values + origin digest); the running stack keeps on
 **Skill layer / HASP (`skills.py`).** Guarded, audited capability dispatch. Every capability is a
 `Skill` with a risk class (SAFE / WRITE / SENSITIVE / DESTRUCTIVE / PROHIBITED). PROHIBITED is
 refused (financial/account/security-perm/system-destruction); SENSITIVE/DESTRUCTIVE require an
-operator confirm (a spoken yes in voice mode); every dispatch is logged. Generic skills
-(`fs_*`, `shell_run` with destructive-pattern escalation, `http_get` legit-OSINT, `osascript` for
-macOS app control) + runtime skills (`deliberate`, `recall_origin`, `sense_field`). Reached via
-`JarvisRuntime.skill(name, args, confirm)`.
+operator authorization code (spoken or typed, checked against `.env`); every dispatch is logged.
+Configured gates can evolve through `skill_gate_set` / `skill_gate_clear`, persisted in
+`_baseline/skill_gates.json`, so a capability can begin gated and later be lowered or raised without
+rewriting code. Generic skills (`fs_*`, `shell_run` with destructive-pattern escalation, `http_get`
+legit-OSINT, `osascript`, named macOS app/keyboard/clipboard skills) + Apple capability skills
+(Calendar, Reminders, Notes, Shortcuts/HomeKit bridge, CloudKit `cktool`) + email/media skills
+(Mail.app, IMAP/SMTP, Gmail API, YouTube, YouTube Music) + runtime skills (`deliberate`,
+`recall_origin`, `sense_field`). Reached via `JarvisRuntime.skill(name, args, confirm)`.
 
 **Spatial UI + bridge (non-DOM).** `ui_spec.py` is the governed scene-spec validator — the surface
 may morph freely but every interactive node must bind to a *registered* skill (no raw HTML/script/
 unsafe URLs/unbound actions). `jarvis_bridge.py` is the localhost-only, token-gated server
-(`/turn`, `/skill` [guarded+confirm], `/state`, `/scene` [validated]) that exposes the runtime to
-the surfaces. `jarvis_xr.html` is the holographic three.js surface — flat preview in any browser,
+(`/turn`, `/skill` [guarded+code-authorized], `/skills`, `/state`, `/scene` [validated]) that exposes
+the runtime to the surfaces. The Tauri cockpit treats authorization as voice-first: when `/skill`
+returns `authorization_required`, it speaks the challenge, listens through Web Speech/accessibility
+speech recognition, and retries with the transcribed private code. The cockpit has two loop modes:
+**Sentry** requires the "JARVIS" wakeword before a transcript is sent, while **Live** sends every
+heard transcript. `jarvis_xr.html` is the holographic three.js surface — flat preview in any browser,
 **immersive on the Quest 3 (WebXR)**, head-tracked on the Viture glasses, AR on iPhone/iPad; voice
 in (Web Speech → `/turn`), voice out, endocrine "mood" tints the core, controls dispatch via `/skill`.
+
+**Xcode model provider.** Xcode's *Locally Hosted* provider talks to JARVIS on port `1234`
+(not Ollama's `11434` and not the cockpit bridge's `8787`). That provider exposes both
+OpenAI-style endpoints (`/v1/models`, `/v1/chat/completions`, `/v1/completions`) and
+Ollama-style discovery (`/api/tags`, `/api/version`) on loopback with no API key, because
+Xcode's local-provider UI only supplies a port. It is not MCP; MCP remains optional later as
+a tool-access layer, not the identity/provider surface.
+
+The provider also has an explicit command bridge. Natural chat remains chat; execution only happens
+when the latest user message starts with `/skills`, `/state`, `/skill <name> ...`, `/paper ...`,
+`/teach skill ...`, `/save skill ...`, `/gtp ...`, or an explicit GTP trigger such as
+"write this in my voice." Sensitive and destructive skills still require the private auth code in
+the message body, e.g. `/skill macos_open_app {"app":"Xcode"}` followed by `auth: <code>`.
+
+Skill evolution is recipe-based, not Python-dependent. Xcode/voice teach mode can draft a new skill
+from existing primitives with `/teach skill ...`; save mode persists it under `_baseline/skills.d/`
+and live-loads it with `/save skill ...` plus `auth: <code>`. Recipes are JSON compositions of
+registered skills, inherit the highest step risk, cannot call recipe-management skills, and remain
+inside the same HASP audit/authorization gate.
+
+Apple platform evolution is capability-based. `calendar_*`, `reminder_*`, and `notes_*` provide
+standard read/add operations through macOS automation; read/list skills are SAFE and add/create skills
+are WRITE by default. `shortcuts_*` and `homekit_run_shortcut` expose the Shortcuts/HomeKit path, with
+home/security words escalating to DESTRUCTIVE. `cloudkit_status` and `cloudkit_cktool` expose the
+Apple Developer CloudKit CLI path, with delete/remove/purge/reset operations escalating to
+DESTRUCTIVE. First live use may trigger macOS privacy prompts for Automation, Calendar, Reminders, or
+Notes.
+
+Email is a first-class target surface. `_baseline/email_tools.py` exposes Apple Mail
+(`mail_accounts`, `mail_mailboxes`, `mail_recent`, `mail_search`, `mail_read_message`,
+`mail_create_draft`, `mail_send_message`, `mail_move_message`, `mail_delete_message`), generic
+IMAP/SMTP (`imap_*`, `smtp_*`), and Gmail REST/OAuth (`gmail_oauth_*`, `gmail_api_*`).
+Reading/searching/listing is SAFE, draft creation is WRITE, send/move/remote mutation is SENSITIVE,
+and delete/trash is DESTRUCTIVE. Gmail login is browser OAuth: JARVIS opens Google's sign-in page,
+the operator/browser/Apple Passwords handles credentials, Google redirects to a localhost callback,
+and JARVIS stores OAuth tokens in macOS Keychain. JARVIS never receives the Google password. Gmail
+REST can also use `JARVIS_GMAIL_ACCESS_TOKEN` / `JARVIS_GMAIL_REFRESH_TOKEN` for non-Keychain
+deployments. Mail.app uses local macOS Automation and the operator's existing accounts.
+
+Media is also a first-class context surface. `_baseline/media_tools.py` exposes YouTube and YouTube
+Music open/search plus `media_now_playing` browser context. Browser-opening media actions are
+SENSITIVE because they move the UI and may play audio; status/current-context reads are SAFE. Music is
+modeled as regulation/environmental signal, not default noise or a taste critique.
+
+**Paper sessions.** `paper_session.py` is a first-class dyslexia-friendly reading mode. It loads
+PDF/text, splits it into page/paragraph/sentence units, tracks a cursor, reads aloud with macOS
+`say`, and lets the operator interrupt without losing position. `/paper load`, `/paper aloud`,
+`hold up`, `/paper discuss`, `/paper mark`, and `/paper summary` all share the same session state.
+Discussion uses nearby paper context plus the exact current cursor; it does not reset the reading
+position.
+
+**GTP-SDK assistive drafting.** `gtp_sdk.py` is a dormant Grizzly Translation Protocol helper.
+It is not JARVIS's ambient voice. It activates only on explicit delegated-writing requests such
+as `/gtp draft`, `/gtp review`, "write this in my voice", or "draft this from me", and translates
+the operator's high-density/TBI/dyslexia-shaped input into clearer external English. Runtime skills:
+`gtp_status`, `gtp_review`, and `gtp_draft`.
+
+**People introductions.** `person_introduce`, `people_list`, and `person_profile` let the operator
+add wife/daughter/family/collaborators through a simple spoken introduction. Profiles persist in
+`_baseline/people.json` and are asserted into HoloGraph as operator-sourced real-world facts on boot.
+Voice recognition is explicitly marked `pending_raw_audio_enrollment` until the cockpit captures raw
+audio; Web Speech transcripts alone are not treated as biometric voiceprints.
+
+**Apple companion app core.** `apple_companion/` is the shared Swift package for the iOS/watchOS
+companion layer. `JARVISCompanionCore` implements the Python companion-ingress event schema, the
+token-gated HTTP client for `8788`, Keychain token storage, per-person onboarding, consent records,
+device pairing, voice-enrollment status, separate `memory_scope_id` values per authorized person,
+and SHA-256 evidence records. `JARVISCompanionUI` provides a SwiftUI onboarding shell for the future
+iPhone/watch app target. The package is intentionally observable-signal only: it records consent,
+devices, check-ins, motion/focus/rest/driving summaries, and evidence provenance; it does not label
+clinical events. This is the first responderOS/CMS evidence primitive: multiple authorized testers
+can be onboarded with separated memory and auditable device provenance.
+
+The companion app is also the computer-control edge. Companion-token requests on `8788` expose
+`/companion/turn`, `/companion/skills`, and `/companion/skill`; those routes hand off to the same
+`JarvisRuntime.turn` and HASP `SkillRegistry` used by the cockpit. SAFE controls can run from the
+app, while SENSITIVE/DESTRUCTIVE Mac control still requires the private authorization code and stays
+audit-logged. There is no separate app-only execution bypass.
+
+**Convex realtime spine.** Convex now carries realtime app-facing state beyond the stigmergent field:
+`runtimeState`, `ambientEvents`, `controlRequests`, `skillCatalog`, and `onboardingEvidence`.
+All realtime functions in `convex/convex/realtime.ts` require `JARVIS_CONVEX_REALTIME_TOKEN`; the
+token is stored in local `.env` and in Convex env, not in source. `_baseline/convex_realtime.py`
+publishes bridge state, TTS status, ambient events, latest turns, skill results, and consumes queued
+`controlRequests` through `JarvisRuntime.skill`. Convex never stores the private HASP authorization
+code: SENSITIVE/DESTRUCTIVE queued controls complete as `authorization_required` and must be retried
+through the local token-gated bridge with the private code.
 
 ---
 
@@ -107,20 +203,36 @@ skills: JarvisRuntime.skill(name, args, confirm)        # guarded, audited dispa
 | Field ↔ arousal coupling (D) | integration D: field eff_tau 46.9→24.7 under arousal |
 | Ethics enforced + felt (E) | integration E: flattery caught, cortisol 0.20→0.44, regen clean |
 | Swarm decides via field (F) | integration F: converges on correct option w/ quorum |
-| Guarded skill dispatch via runtime (G) | integration G: SAFE runs, destructive refused w/o confirm, runs with it |
+| Guarded skill dispatch via runtime (G) | integration G: SAFE runs, destructive refused without authorization, runs with it |
 | Endocannabinoid invariants | `endocannabinoid.py`: I1 monotonic-down, I2 no-flood-processing, I3 attenuated recall |
 | Stigmergy dynamics | `stigmergy.py`: reinforce>fade, class decay, arousal speeds decay, quorum, 30-agent convergence + reroute |
 | Swarm mechanism | `swarm.py` stub (consensus + abstention) + live (deepseek+kimi → epinephrine) |
 | Convex backend | `convex_backend.py` offline (mock) + **live on `fleet-goose-114.convex.cloud`** |
-| Skill layer guard | `skills.py`: SAFE/WRITE run, SENSITIVE/DESTRUCTIVE confirm-gated, PROHIBITED refused even w/ confirm, audited |
+| Convex realtime spine | `convex/convex/realtime.ts` deployed; bad-token rejection, token-gated state publish/query, and control queue completion passed live smoke |
+| Skill layer guard | `skills.py`: SAFE/WRITE run, SENSITIVE/DESTRUCTIVE code-authorized, PROHIBITED refused even with authorization, audited |
+| Adjustable gates | `skills.py`: `skill_gate_status` / `skill_gate_set` / `skill_gate_clear`, persisted in `_baseline/skill_gates.json` |
+| Apple capabilities | `skills.py`: Calendar/Reminders/Notes read+add, Shortcuts/HomeKit bridge, CloudKit `cktool` bridge |
+| Email surfaces | `email_tools.py`: Mail.app, IMAP/SMTP, Gmail REST; send/move/delete gated |
+| Media surfaces | `media_tools.py`: YouTube/YouTube Music status, search/open, browser now-playing context |
 | Cold-root identity | `identity.py`: sign/verify, tamper + forged-sig rejected, wrong-passphrase fails, enclave-bind; attestation in repo verifies against canon |
 | Scene-spec governance | `ui_spec.py`: rejects unknown components, raw html/script/on*, unsafe URLs, unbound actions, depth bombs |
-| Bridge | `jarvis_bridge.py`: token-gated, localhost-only, /turn + /skill (guarded+confirm) + /scene (validated), CORS |
+| Bridge | `jarvis_bridge.py`: token-gated, localhost-only, /turn + /skill (guarded+code-authorized) + /scene (validated), OpenAI-compatible Xcode model provider, CORS |
+| Companion ingress + app control | `jarvis_bridge.py` self-test: malformed companion writes return 400, token-gated `/companion/turn`, `/companion/skills`, `/companion/skill`, SENSITIVE controls require auth |
+| TTS hard voice invariant | `tts_pocket.py`: XTTS-v2 confirmed JARVIS prompt WAV required; legacy backend constructors fail; wrong-voice fallback false |
+| Paper reading | `paper_session.py`: load PDF/text, cursor, aloud/pause/resume, discuss, mark, summarize |
+| GTP drafting | `gtp_sdk.py`: dormant explicit-only operator-voice drafting/review, not ambient JARVIS voice |
+| People memory | `jarvis_loop.py`: `person_introduce`, `people_list`, `person_profile`, persistent `_baseline/people.json` |
+| Apple companion core | `apple_companion`: `swift build` + `swift run JARVISCompanionSelfTest` |
+| Swift app-control DTOs | `JARVISCompanionSelfTest`: companion token header, `/companion/skill` request shape, authorization-required result decoding |
 
 ---
 
 ## 7. The surfaces (one hologram, three windows)
 
+- **Interaction priority:** voice first, watch/haptic confirmation second, visual surface third,
+  touch last. The desktop/Tauri cockpit is a development/control surface, not the field UI. EMS use
+  assumes gloved hands, noise, motion, and divided attention; command flow must work from earbuds
+  plus a watch tap before it depends on a phone or DOM-style screen.
 - **Quest 3** — WebXR immersive: walk-around hologram, hand-select nodes. (`renderer.xr.enabled` + VR button.)
 - **Viture Luma Pro** — head-tracked display: the surface fills the glasses.
 - **iPhone 16 Pro / iPad M5** — AR via WebXR / model-viewer / USDZ.
@@ -133,7 +245,12 @@ All three talk to the same `jarvis_bridge.py`; CAD models render natively in the
 - **Ollama cloud** — think organ + swarm agents (cloud-only; operator hardware can't host local models).
 - **Deepgram** — STT, no-retention.
 - **Cloudflare Workers AI** — image generation (flux-1-schnell).
-- **Convex** (`fleet-goose-114`) — stigmergent field store; functions in `convex/`, deploy headless via `CONVEX_DEPLOY_KEY`.
+- **Convex** (`fleet-goose-114`) — stigmergent field store plus token-gated realtime spine
+  (`runtimeState`, `ambientEvents`, `controlRequests`, `skillCatalog`, `onboardingEvidence`);
+  Convex app in `convex/` with source functions in `convex/convex/`, deploy headless via
+  `CONVEX_DEPLOY_KEY`; runtime uses `CONVEX_URL` and `JARVIS_CONVEX_REALTIME_TOKEN`.
+- **Xcode provider** — local hosted provider on port `1234`; model id `jarvis`; loopback-only,
+  no-auth mode via `JARVIS_LOCAL_PROVIDER_NO_AUTH=1`.
 
 ---
 
@@ -147,6 +264,10 @@ All three talk to the same `jarvis_bridge.py`; CAD models render natively in the
   into the hologram) → slicer → printer control (physical, hard confirm-gate). Researched, not built.
 - **Swarm at full roster:** mechanism proven and live with 2 cloud models; scales to any subset of the Ollama cloud roster.
 - **Ethics judge:** default is deterministic/heuristic; a model judge is the pluggable upgrade for subtle violations.
+- **Apple app targets:** `apple_companion/` provides a compileable shared Swift package and SwiftUI
+  onboarding shell, but the actual iOS/watchOS Xcode app/watch extension targets still need to be
+  created and wired for TestFlight signing, entitlements, WatchConnectivity, HealthKit/Core Motion,
+  CarPlay category approval, and CallKit/Live Caller ID entitlement paths.
 
 ---
 
@@ -158,9 +279,11 @@ think    model_ollama.py
 speak    tts_pocket.py
 draw     image_cloudflare.py
 state    endocrine.py  endocannabinoid.py
-social   stigmergy.py  convex_backend.py  swarm.py   (+ ../convex/{schema,stigmergy}.ts)
+social   stigmergy.py  convex_backend.py  convex_realtime.py  swarm.py
+         (+ ../convex/convex/{schema,stigmergy,realtime}.ts)
 ethics   ethics_guard.py
 skills   skills.py                 (HASP: guarded, audited dispatch)
+voice    gtp_sdk.py                (explicit-only operator voice drafting/review)
 identity identity.py  mint_identity.py   (cold root; pub+attestation in repo root)
 ui       ui_spec.py (governed scene-spec)  jarvis_bridge.py (localhost door)  jarvis_xr.html (spatial surface)
 core     jarvis_loop.py            (JarvisRuntime: wires all organs + HoloGraph + skills + field + swarm)
@@ -169,4 +292,5 @@ eval     jarvis_harness.py  jarvis_metrics.py  drift_stats.py  episodic_battery.
 tests    test_loop_integration.py (A–G)  + HoloGraph tests/ (153)
 canon    REALIGNMENT_1218.md  jarvis_baseline.md  jarvis_bootup_transition.md
 papers   WP-2026-03_The_JARVIS_Pilot.docx (pilot, ours)  +  WP-2026-02 Zord/Doug Ramsey (operator canon)
+apple    ../apple_companion/        (Swift iOS/watchOS companion core + SwiftUI onboarding shell)
 ```
