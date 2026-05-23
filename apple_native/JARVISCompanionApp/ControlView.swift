@@ -1,13 +1,14 @@
+import AVFoundation
 import JARVISCompanionCore
+import Speech
 import SwiftUI
 
 struct ControlView: View {
     @EnvironmentObject private var appState: CompanionAppState
+    @StateObject private var voice = VoiceCommandViewModel()
     @StateObject private var health = HealthContextViewModel()
     @State private var typedFallback: String = ""
     @State private var showTouchFallback = false
-    @State private var commandDraft: String = ""
-    @State private var showingCommandSheet = false
 
     var body: some View {
         NavigationStack {
@@ -32,18 +33,10 @@ struct ControlView: View {
             }
             .navigationTitle("JARVIS")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .task {
                 if appState.isPaired {
                     await appState.checkConnection()
-                }
-            }
-            .sheet(isPresented: $showingCommandSheet) {
-                NativeCommandSheet(commandText: $commandDraft) { command in
-                    Task {
-                        await executeSpokenCommand(command)
-                        commandDraft = ""
-                        showingCommandSheet = false
-                    }
                 }
             }
         }
@@ -51,15 +44,22 @@ struct ControlView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("GMRI Companion OS")
+                    Text("GMRI COMPANION OS")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.cyan)
+                        .tracking(1.4)
+                        .foregroundStyle(.cyan.opacity(0.90))
                     Text("JARVIS")
-                        .font(.system(size: 44, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 52, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, .cyan.opacity(0.82)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 }
                 Spacer()
                 StatePill(
@@ -71,31 +71,40 @@ struct ControlView: View {
 
             Text("Hands, eyes, and ears for the digital world. Speak naturally; JARVIS acts through the device and answers live.")
                 .font(.callout)
-                .foregroundStyle(.white.opacity(0.68))
-            Text("Try: open PubMed on fatigue, play music Miles Davis, search YouTube airway training, navigate home, run shortcut clinic mode.")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.50))
+                .foregroundStyle(.white.opacity(0.74))
         }
+        .padding(.top, 8)
     }
 
     private var voiceSurface: some View {
         GlassPanel {
             VStack(spacing: 18) {
                 Button {
-                    showingCommandSheet = true
+                    Task { await toggleVoice() }
                 } label: {
-                    VoiceOrb(isListening: showingCommandSheet, isThinking: appState.isCommandInFlight)
+                    VoiceOrb(isListening: voice.isListening, isThinking: appState.isCommandInFlight || voice.isTranscribing)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Open JARVIS command dictation")
+                .accessibilityLabel(voice.isListening ? "Stop recording and execute command" : "Start recording JARVIS command")
 
                 Text(voicePrompt)
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white)
 
-                if !commandDraft.isEmpty {
-                    TranscriptBlock(title: "Draft command", text: commandDraft, tint: .cyan)
+                if !voice.transcript.isEmpty {
+                    TranscriptBlock(title: "You", text: voice.transcript, tint: .cyan)
+                }
+
+                if !voice.errorText.isEmpty {
+                    RecoveryBlock(text: voice.errorText)
+                }
+
+                HStack(spacing: 8) {
+                    CapabilityChip(title: "Web", systemImage: "safari")
+                    CapabilityChip(title: "Video", systemImage: "play.rectangle")
+                    CapabilityChip(title: "Music", systemImage: "music.note")
+                    CapabilityChip(title: "Maps", systemImage: "map")
                 }
             }
         }
@@ -230,13 +239,25 @@ struct ControlView: View {
         if appState.isCommandInFlight {
             return "Live command in progress."
         }
-        if showingCommandSheet {
-            return "Dictate or type, then execute."
+        if voice.isTranscribing {
+            return "Transcribing command."
+        }
+        if voice.isListening {
+            return "Recording. Tap again to execute."
         }
         if !appState.isPaired {
             return "Pair once, then speak."
         }
         return "Tap the orb and speak."
+    }
+
+    private func toggleVoice() async {
+        if voice.isListening {
+            let text = await voice.stopAndTranscribe()
+            await executeSpokenCommand(text)
+        } else {
+            await voice.startListening()
+        }
     }
 
     private func executeSpokenCommand(_ text: String) async {
@@ -246,6 +267,172 @@ struct ControlView: View {
             return
         }
         await appState.sendTurn(text)
+    }
+}
+
+@MainActor
+final class VoiceCommandViewModel: ObservableObject {
+    @Published private(set) var transcript = ""
+    @Published private(set) var isListening = false
+    @Published private(set) var isTranscribing = false
+    @Published private(set) var errorText = ""
+
+    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en_US"))
+    private var recorder: AVAudioRecorder?
+    private var recordingURL: URL?
+    private var recognitionTask: SFSpeechRecognitionTask?
+
+    func startListening() async {
+        guard !isListening, !isTranscribing else {
+            return
+        }
+
+        errorText = ""
+        transcript = ""
+        recognitionTask?.cancel()
+        recognitionTask = nil
+
+        guard await requestSpeechAccess() else {
+            errorText = "Speech recognition permission is required for voice control."
+            return
+        }
+        guard await requestMicrophoneAccess() else {
+            errorText = "Microphone permission is required for voice control."
+            return
+        }
+        guard recognizer != nil else {
+            errorText = "Speech recognition is not available on this device."
+            return
+        }
+
+        do {
+            try configureAudioSession()
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("jarvis-command-\(UUID().uuidString).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 44_100,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+            ]
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            guard recorder.record() else {
+                throw VoiceCommandError.recordingDidNotStart
+            }
+            self.recorder = recorder
+            recordingURL = url
+            isListening = true
+        } catch {
+            cleanupRecording()
+            errorText = "Voice recording failed: \(error.localizedDescription)"
+        }
+    }
+
+    func stopAndTranscribe() async -> String {
+        guard isListening else {
+            return transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        recorder?.stop()
+        recorder = nil
+        isListening = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+
+        guard let url = recordingURL else {
+            errorText = "No voice recording was captured."
+            return ""
+        }
+        isTranscribing = true
+        defer {
+            isTranscribing = false
+            cleanupRecording()
+        }
+
+        do {
+            let text = try await transcribe(url: url)
+            transcript = text
+            return text
+        } catch {
+            errorText = "Voice transcription failed: \(error.localizedDescription)"
+            return ""
+        }
+    }
+
+    private func transcribe(url: URL) async throws -> String {
+        guard let recognizer else {
+            throw VoiceCommandError.speechUnavailable
+        }
+        let request = SFSpeechURLRecognitionRequest(url: url)
+        request.shouldReportPartialResults = false
+        request.taskHint = .dictation
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
+            recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+                if let result, result.isFinal, !resumed {
+                    resumed = true
+                    continuation.resume(returning: result.bestTranscription.formattedString)
+                    return
+                }
+                if let error, !resumed {
+                    resumed = true
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    private func cleanupRecording() {
+        recorder?.stop()
+        recorder = nil
+        if let recordingURL {
+            try? FileManager.default.removeItem(at: recordingURL)
+        }
+        recordingURL = nil
+    }
+
+    private func configureAudioSession() throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+    }
+
+    private func requestSpeechAccess() async -> Bool {
+        await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status == .authorized)
+            }
+        }
+    }
+
+    private func requestMicrophoneAccess() async -> Bool {
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted:
+            return true
+        case .denied:
+            return false
+        case .undetermined:
+            return await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+        @unknown default:
+            return false
+        }
+    }
+}
+
+private enum VoiceCommandError: LocalizedError {
+    case recordingDidNotStart
+    case speechUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .recordingDidNotStart:
+            return "The microphone did not start recording."
+        case .speechUnavailable:
+            return "Speech recognition is not available on this device."
+        }
     }
 }
 
@@ -294,55 +481,6 @@ private struct VoiceOrb: View {
             return [.cyan.opacity(0.95), .blue.opacity(0.70), .black.opacity(0.20)]
         }
         return [.blue.opacity(0.95), .cyan.opacity(0.42), .black.opacity(0.24)]
-    }
-}
-
-private struct NativeCommandSheet: View {
-    @Binding var commandText: String
-    let onExecute: (String) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Use iOS dictation or type. Press Execute when the command is right.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-
-                TextEditor(text: $commandText)
-                    .focused($focused)
-                    .frame(minHeight: 180)
-                    .padding(10)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(.cyan.opacity(0.25), lineWidth: 1)
-                    )
-
-                Button {
-                    let clean = commandText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    onExecute(clean)
-                } label: {
-                    Label("Execute through JARVIS", systemImage: "waveform.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(commandText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Button("Cancel", role: .cancel) {
-                    dismiss()
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .padding(20)
-            .navigationTitle("Command")
-            .navigationBarTitleDisplayMode(.inline)
-            .task {
-                try? await Task.sleep(nanoseconds: 300_000_000)
-                focused = true
-            }
-        }
     }
 }
 
@@ -422,6 +560,27 @@ private struct StatePill: View {
             .padding(.vertical, 8)
             .background(tint.opacity(0.18), in: Capsule())
             .foregroundStyle(tint)
+    }
+}
+
+private struct CapabilityChip: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white.opacity(0.82))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(.white.opacity(0.08), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(.cyan.opacity(0.16), lineWidth: 1)
+            )
     }
 }
 
