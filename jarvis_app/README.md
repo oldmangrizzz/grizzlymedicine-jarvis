@@ -93,10 +93,16 @@ cargo tauri build                            # outputs target/release/bundle/mac
 - People introductions are built in: say "Jarvis introduce yourself to my wife <name>",
   "Jarvis this is my daughter <name>", or "Jarvis meet <name>". JARVIS stores the profile in
   `_baseline/people.json`; voice recognition remains pending until raw-audio enrollment exists.
-- The iOS/watchOS companion package is started in `~/research/jarvis/apple_companion`.
+- The reusable iOS/watchOS companion package lives in `~/research/jarvis/apple_companion`.
   It provides onboarding, Keychain token storage, companion event DTOs, app turn/skill
-  control DTOs, per-person memory scopes, and evidence records. Actual signed app/watch
-  targets still need to be created.
+  control DTOs, per-person memory scopes, evidence records, and the ARKit-native spatial
+  surface scaffold so iOS holographic/spatial interaction does not depend on a DOM/WebView
+  model.
+- The generated Xcode project lives in `~/research/jarvis/apple_native/JARVISCompanionApps.xcodeproj`.
+  It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
+  people onboarding, real microphone sample capture for voice registration, native ARKit
+  spatial status, watch quick check-ins, and app-to-Mac control. Device/TestFlight signing
+  still requires selecting the Apple developer team in Xcode.
 - Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,
   `hold up`, `/paper discuss <question>`, `/paper mark <note>`, and `/paper summary`.
 - GTP-SDK drafting is available from Xcode chat as an explicit operator-voice translation layer,

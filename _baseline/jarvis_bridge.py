@@ -179,7 +179,7 @@ def _manifest_payload(host: str, port: int, token_source: str) -> dict:
         "base_url": f"http://{host}:{port}",
         "token_header": "X-JARVIS-Companion-Token",
         "token_source": _manifest_token_source_label(token_source),
-        "sources": ["iphone", "apple_watch", "carplay", "homekit", "blink", "esp32_future"],
+        "sources": ["iphone", "apple_watch", "native_spatial", "carplay", "homekit", "blink", "esp32_future"],
         "event_fields": {
             "required": ["source"],
             "recommended": [
@@ -195,6 +195,7 @@ def _manifest_payload(host: str, port: int, token_source: str) -> dict:
         },
         "boundaries": {
             "medical": "observable signals only; do not diagnose or label events",
+            "native_spatial": "ARKit-native iOS spatial surface; do not require DOM/WebView hologram rendering",
             "carplay": "audio-first/glanceable state source; driving blocks dream work",
         },
     }

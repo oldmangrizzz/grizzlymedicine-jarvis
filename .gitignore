@@ -48,6 +48,13 @@ jarvis_app/src-tauri/gen/
 jarvis_app/src-tauri/icons/android/
 jarvis_app/src-tauri/icons/ios/
 
+# --- Xcode local state ---
+DerivedData/
+**/DerivedData/
+xcuserdata/
+**/xcuserdata/
+*.xcuserstate
+
 # --- generated / transient audio (regenerable) ---
 *.wav
 _local_voice/

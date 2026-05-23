@@ -4,6 +4,7 @@ public struct CompanionEvent: Codable, Equatable, Sendable {
     public enum Source: String, Codable, Sendable {
         case iPhone = "iphone"
         case appleWatch = "apple_watch"
+        case nativeSpatial = "native_spatial"
         case carPlay = "carplay"
         case homeKit = "homekit"
         case blink = "blink"
@@ -174,6 +175,31 @@ public enum AppleSignalFactory {
             routeState: routeState,
             interactionMode: "carplay",
             confidence: 1.0
+        )
+    }
+
+    public static func nativeSpatialState(
+        deviceID: String,
+        running: Bool,
+        tracking: String,
+        mapping: String,
+        supported: Bool,
+        notes: String? = nil
+    ) -> CompanionEvent {
+        CompanionEvent(
+            source: .nativeSpatial,
+            deviceID: deviceID,
+            kind: "native_spatial_status",
+            motion: running ? "tracking" : "idle",
+            active: running,
+            interactionMode: "native_spatial",
+            confidence: supported ? 0.95 : 0.0,
+            notes: notes,
+            extra: [
+                "tracking": .string(tracking),
+                "mapping": .string(mapping),
+                "supported": .bool(supported),
+            ]
         )
     }
 

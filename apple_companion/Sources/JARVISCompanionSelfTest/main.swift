@@ -31,6 +31,7 @@ struct JARVISCompanionSelfTest {
         try eventEncodingMatchesIngressSchema()
         try requestBuilderUsesCompanionTokenHeader()
         try companionControlModelsMatchBridgeSchema()
+        try nativeSpatialModelsDoNotRequireDOMSurface()
         try await onboardingSeparatesPeopleAndCreatesEvidence()
         try await revocationClosesAccess()
         try evidenceDigestIsDeterministic()
@@ -104,6 +105,28 @@ struct JARVISCompanionSelfTest {
         try expect(result.ok == false, "result ok should decode")
         try expect(result.skill == "macos_open_app", "result skill should decode")
         try expect(result.authorizationRequired == true, "authorization flag should decode")
+    }
+
+    static func nativeSpatialModelsDoNotRequireDOMSurface() throws {
+        let capability = NativeSpatialCapability.current()
+        let status = NativeSpatialStatus(
+            runtime: capability.runtime,
+            supported: capability.supported,
+            running: false,
+            tracking: "not_started",
+            mapping: "not_available",
+            reason: capability.reason
+        )
+        let event = NativeSpatialEventFactory.statusEvent(status, deviceID: "iphone-native-spatial")
+        let data = try JSONEncoder().encode(event)
+        let object = try require(JSONSerialization.jsonObject(with: data) as? [String: Any], "native spatial event JSON object")
+        let extra = try require(object["extra"] as? [String: Any], "native spatial extra JSON object")
+
+        try expect(object["source"] as? String == "native_spatial", "native spatial source should encode")
+        try expect(object["interaction_mode"] as? String == "native_spatial", "native spatial interaction should encode")
+        try expect(extra["runtime"] != nil, "native spatial runtime should encode")
+        try expect(NativeSpatialConfiguration.fullFunctionality.sceneReconstruction, "full functionality should request scene reconstruction")
+        try expect(NativeSpatialConfiguration.fullFunctionality.peopleOcclusion, "full functionality should request people occlusion")
     }
 
     static func onboardingSeparatesPeopleAndCreatesEvidence() async throws {
