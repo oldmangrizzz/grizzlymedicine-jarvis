@@ -1,14 +1,13 @@
-import AVFoundation
 import JARVISCompanionCore
-import Speech
 import SwiftUI
 
 struct ControlView: View {
     @EnvironmentObject private var appState: CompanionAppState
-    @StateObject private var voice = VoiceCommandViewModel()
     @StateObject private var health = HealthContextViewModel()
     @State private var typedFallback: String = ""
     @State private var showTouchFallback = false
+    @State private var commandDraft: String = ""
+    @State private var showingCommandSheet = false
 
     var body: some View {
         NavigationStack {
@@ -36,6 +35,15 @@ struct ControlView: View {
             .task {
                 if appState.isPaired {
                     await appState.checkConnection()
+                }
+            }
+            .sheet(isPresented: $showingCommandSheet) {
+                NativeCommandSheet(commandText: $commandDraft) { command in
+                    Task {
+                        await executeSpokenCommand(command)
+                        commandDraft = ""
+                        showingCommandSheet = false
+                    }
                 }
             }
         }
@@ -74,24 +82,20 @@ struct ControlView: View {
         GlassPanel {
             VStack(spacing: 18) {
                 Button {
-                    Task { await toggleVoice() }
+                    showingCommandSheet = true
                 } label: {
-                    VoiceOrb(isListening: voice.isListening, isThinking: appState.isCommandInFlight)
+                    VoiceOrb(isListening: showingCommandSheet, isThinking: appState.isCommandInFlight)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(voice.isListening ? "Stop listening and send" : "Start voice command")
+                .accessibilityLabel("Open JARVIS command dictation")
 
                 Text(voicePrompt)
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white)
 
-                if !voice.transcript.isEmpty {
-                    TranscriptBlock(title: "You", text: voice.transcript, tint: .cyan)
-                }
-
-                if !voice.errorText.isEmpty {
-                    RecoveryBlock(text: voice.errorText)
+                if !commandDraft.isEmpty {
+                    TranscriptBlock(title: "Draft command", text: commandDraft, tint: .cyan)
                 }
             }
         }
@@ -226,22 +230,13 @@ struct ControlView: View {
         if appState.isCommandInFlight {
             return "Live command in progress."
         }
-        if voice.isListening {
-            return "Listening. Tap again to execute."
+        if showingCommandSheet {
+            return "Dictate or type, then execute."
         }
         if !appState.isPaired {
             return "Pair once, then speak."
         }
         return "Tap the orb and speak."
-    }
-
-    private func toggleVoice() async {
-        if voice.isListening {
-            let text = voice.stopListening()
-            await executeSpokenCommand(text)
-        } else {
-            await voice.startListening()
-        }
     }
 
     private func executeSpokenCommand(_ text: String) async {
@@ -251,156 +246,6 @@ struct ControlView: View {
             return
         }
         await appState.sendTurn(text)
-    }
-}
-
-@MainActor
-final class VoiceCommandViewModel: ObservableObject {
-    @Published private(set) var transcript: String = ""
-    @Published private(set) var isListening = false
-    @Published private(set) var errorText = ""
-
-    private let audioEngine = AVAudioEngine()
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en_US"))
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
-    private var hasInstalledTap = false
-    private var isStarting = false
-
-    func startListening() async {
-        guard !isListening, !isStarting else {
-            return
-        }
-        isStarting = true
-        defer { isStarting = false }
-        errorText = ""
-        transcript = ""
-        stopAudio(deactivateSession: false)
-
-        guard await requestSpeechAccess() else {
-            errorText = "Speech recognition permission is required for voice-first control."
-            return
-        }
-        guard await requestMicrophoneAccess() else {
-            errorText = "Microphone permission is required for voice-first control."
-            return
-        }
-        guard let recognizer, recognizer.isAvailable else {
-            errorText = "Speech recognition is not available on this device right now."
-            return
-        }
-
-        do {
-            try configureAudioSession()
-            guard AVAudioSession.sharedInstance().isInputAvailable else {
-                throw VoiceCommandError.microphoneUnavailable
-            }
-
-            let request = SFSpeechAudioBufferRecognitionRequest()
-            request.shouldReportPartialResults = true
-            recognitionRequest = request
-            recognitionTask?.cancel()
-            recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                Task { @MainActor in
-                    self?.receiveRecognition(result: result, error: error)
-                }
-            }
-
-            let inputNode = audioEngine.inputNode
-            let format = inputNode.inputFormat(forBus: 0)
-            guard format.sampleRate > 0, format.channelCount > 0 else {
-                throw VoiceCommandError.invalidMicrophoneFormat
-            }
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak request] buffer, _ in
-                request?.append(buffer)
-            }
-            hasInstalledTap = true
-            audioEngine.prepare()
-            try audioEngine.start()
-            isListening = true
-        } catch {
-            stopAudio()
-            errorText = "Voice start failed: \(error.localizedDescription)"
-        }
-    }
-
-    func stopListening() -> String {
-        let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        stopAudio()
-        return text
-    }
-
-    private func receiveRecognition(result: SFSpeechRecognitionResult?, error: Error?) {
-        if let result {
-            transcript = result.bestTranscription.formattedString
-        }
-        if let error {
-            errorText = "Speech recognition stopped: \(error.localizedDescription)"
-            stopAudio()
-        }
-    }
-
-    private func stopAudio(deactivateSession: Bool = true) {
-        if audioEngine.isRunning {
-            audioEngine.stop()
-        }
-        if hasInstalledTap {
-            audioEngine.inputNode.removeTap(onBus: 0)
-            hasInstalledTap = false
-        }
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionRequest = nil
-        recognitionTask = nil
-        isListening = false
-        if deactivateSession {
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        }
-    }
-
-    private func configureAudioSession() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
-        try session.setActive(true, options: .notifyOthersOnDeactivation)
-    }
-
-    private func requestSpeechAccess() async -> Bool {
-        await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status == .authorized)
-            }
-        }
-    }
-
-    private func requestMicrophoneAccess() async -> Bool {
-        switch AVAudioApplication.shared.recordPermission {
-        case .granted:
-            return true
-        case .denied:
-            return false
-        case .undetermined:
-            return await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
-                    continuation.resume(returning: granted)
-                }
-            }
-        @unknown default:
-            return false
-        }
-    }
-}
-
-private enum VoiceCommandError: LocalizedError {
-    case microphoneUnavailable
-    case invalidMicrophoneFormat
-
-    var errorDescription: String? {
-        switch self {
-        case .microphoneUnavailable:
-            return "No microphone input is currently available."
-        case .invalidMicrophoneFormat:
-            return "The microphone route is not ready yet."
-        }
     }
 }
 
@@ -449,6 +294,55 @@ private struct VoiceOrb: View {
             return [.cyan.opacity(0.95), .blue.opacity(0.70), .black.opacity(0.20)]
         }
         return [.blue.opacity(0.95), .cyan.opacity(0.42), .black.opacity(0.24)]
+    }
+}
+
+private struct NativeCommandSheet: View {
+    @Binding var commandText: String
+    let onExecute: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Use iOS dictation or type. Press Execute when the command is right.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                TextEditor(text: $commandText)
+                    .focused($focused)
+                    .frame(minHeight: 180)
+                    .padding(10)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.cyan.opacity(0.25), lineWidth: 1)
+                    )
+
+                Button {
+                    let clean = commandText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    onExecute(clean)
+                } label: {
+                    Label("Execute through JARVIS", systemImage: "waveform.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(commandText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                Button("Cancel", role: .cancel) {
+                    dismiss()
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(20)
+            .navigationTitle("Command")
+            .navigationBarTitleDisplayMode(.inline)
+            .task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                focused = true
+            }
+        }
     }
 }
 
