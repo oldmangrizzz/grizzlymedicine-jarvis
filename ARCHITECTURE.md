@@ -150,9 +150,9 @@ devices, check-ins, motion/focus/rest/driving summaries, and evidence provenance
 clinical events. This is the first responderOS/CMS evidence primitive: multiple authorized testers
 can be onboarded with separated memory and auditable device provenance.
 
-The companion app is also the phone/watch control edge. TestFlight builds pair through Convex HTTP
-actions at `fleet-goose-114.convex.site` and receive a device token from a short-lived pairing code;
-testers do not enter a laptop IP address or Mac bridge token. The primary shipped surface is
+The companion app is also the phone/watch control edge. TestFlight builds self-register through Convex
+HTTP actions at `fleet-goose-114.convex.site` and receive a per-device token on first launch; testers do
+not enter a laptop IP address, Mac bridge token, or pairing code. The primary shipped surface is
 voice-first: spoken commands execute immediate local device actions for web/video/music/maps/Shortcuts
 where iOS permits them, or call `/app/realtime-turn` for a blocking live JARVIS reply. The Convex
 HTTP action can use a public runtime URL when configured, otherwise it creates a `jarvis_turn`

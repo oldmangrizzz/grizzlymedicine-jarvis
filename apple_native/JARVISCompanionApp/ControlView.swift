@@ -35,9 +35,7 @@ struct ControlView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .task {
-                if appState.isPaired {
-                    await appState.checkConnection()
-                }
+                await appState.checkConnection()
             }
         }
     }
@@ -63,13 +61,13 @@ struct ControlView: View {
                 }
                 Spacer()
                 StatePill(
-                    title: appState.isPaired ? "Paired" : "Pair",
-                    systemImage: appState.isPaired ? "checkmark.seal.fill" : "link.badge.plus",
+                    title: appState.isPaired ? "Ready" : "Connecting",
+                    systemImage: appState.isPaired ? "checkmark.seal.fill" : "wifi.exclamationmark",
                     tint: appState.isPaired ? .green : .orange
                 )
             }
 
-            Text("Hands, eyes, and ears for the digital world. Speak naturally; JARVIS acts through the device and answers live.")
+            Text("Tap the blue circle. Speak normally. Tap it again when you are done.")
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.74))
         }
@@ -92,6 +90,11 @@ struct ControlView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white)
 
+                Text("Ask for a website, video, music, directions, emergency info, or anything JARVIS should handle.")
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white.opacity(0.58))
+
                 if !voice.transcript.isEmpty {
                     TranscriptBlock(title: "You", text: voice.transcript, tint: .cyan)
                 }
@@ -112,14 +115,14 @@ struct ControlView: View {
 
     private var visionSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Operational field")
+            Text("What JARVIS is doing")
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.cyan)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                SignalCard(title: "Cloud", value: appState.connectionStatus, systemImage: "cloud.fill", tint: appState.isPaired ? .green : .orange)
-                SignalCard(title: "Runtime", value: appState.isCommandInFlight ? "Live command in progress" : "Ready for command", systemImage: "sparkles", tint: .cyan)
+                SignalCard(title: "Connection", value: appState.connectionStatus, systemImage: "cloud.fill", tint: appState.isPaired ? .green : .orange)
+                SignalCard(title: "JARVIS", value: appState.isCommandInFlight ? "Answering now" : "Ready", systemImage: "sparkles", tint: .cyan)
             }
 
             if !appState.lastCommand.isEmpty {
@@ -163,7 +166,7 @@ struct ControlView: View {
             }
             .padding(.top, 10)
         } label: {
-            Label("Manual fallback", systemImage: "hand.tap")
+            Label("Can't talk? Type instead.", systemImage: "keyboard")
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.white.opacity(0.78))
@@ -176,7 +179,7 @@ struct ControlView: View {
     private var healthSurface: some View {
         GlassPanel {
             VStack(alignment: .leading, spacing: 12) {
-                Label("HealthKit and EMS context", systemImage: "heart.text.square.fill")
+                Label("Emergency info", systemImage: "heart.text.square.fill")
                     .font(.headline)
                     .foregroundStyle(.white)
                 Text(health.snapshot.statusLine)
@@ -200,7 +203,7 @@ struct ControlView: View {
                             await appState.speakHealthBriefing(health.snapshot)
                         }
                     } label: {
-                        Label("Speak EMS briefing", systemImage: "speaker.wave.2.fill")
+                        Label("Speak emergency info", systemImage: "speaker.wave.2.fill")
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -214,41 +217,41 @@ struct ControlView: View {
     private var inlinePairing: some View {
         GlassPanel {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Pair this device", systemImage: "link.badge.plus")
+                Label("Connecting to JARVIS", systemImage: "wifi.exclamationmark")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text("Enter the short pairing code. No laptop IP address. No Mac bridge token.")
+                Text("This should happen by itself. If it does not, tap Try again.")
                     .font(.callout)
                     .foregroundStyle(.white.opacity(0.72))
-                TextField("Pairing code", text: $appState.pairingCode)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .textFieldStyle(.roundedBorder)
                 Button {
-                    Task { await appState.pairDevice() }
+                    Task { await appState.registerDevice() }
                 } label: {
-                    Label("Pair with JARVIS Cloud", systemImage: "checkmark.seal.fill")
+                    Label(appState.isConnecting ? "Trying now" : "Try again", systemImage: "arrow.clockwise")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(appState.isConnecting)
             }
         }
     }
 
     private var voicePrompt: String {
         if appState.isCommandInFlight {
-            return "Live command in progress."
+            return "JARVIS is answering."
+        }
+        if appState.isConnecting {
+            return "Getting JARVIS ready."
         }
         if voice.isTranscribing {
-            return "Transcribing command."
+            return "Turning your voice into a command."
         }
         if voice.isListening {
-            return "Recording. Tap again to execute."
+            return "Listening. Tap again when done."
         }
         if !appState.isPaired {
-            return "Pair once, then speak."
+            return "Getting ready. You should not need setup."
         }
-        return "Tap the orb and speak."
+        return "Tap the blue circle and talk."
     }
 
     private func toggleVoice() async {

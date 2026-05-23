@@ -11,16 +11,16 @@ struct CompanionRootView: View {
                 .tabItem { Label("JARVIS", systemImage: "waveform.circle.fill") }
 
             SpatialHostView()
-                .tabItem { Label("Vision", systemImage: "arkit") }
+                .tabItem { Label("See", systemImage: "eye") }
 
             OnboardingHostView()
                 .tabItem { Label("People", systemImage: "person.2") }
 
             VoiceRegistrationView()
-                .tabItem { Label("Voice ID", systemImage: "person.wave.2") }
+                .tabItem { Label("My Voice", systemImage: "person.wave.2") }
 
             SetupView()
-                .tabItem { Label("Link", systemImage: "link") }
+                .tabItem { Label("Help", systemImage: "questionmark.circle") }
         }
         .environmentObject(appState)
         .tint(.cyan)
@@ -29,11 +29,15 @@ struct CompanionRootView: View {
         .onAppear {
             watchBridge.activate(appState: appState)
         }
+        .task {
+            await appState.checkConnection()
+        }
     }
 }
 
 private struct SetupView: View {
     @EnvironmentObject private var appState: CompanionAppState
+    @State private var showAdvanced = false
 
     var body: some View {
         NavigationStack {
@@ -47,41 +51,51 @@ private struct SetupView: View {
 
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("GMRI LINK")
+                        Text("JARVIS HELP")
                             .font(.caption.weight(.bold))
                             .tracking(1.4)
                             .foregroundStyle(.cyan)
-                        Text("Pair once. Speak after.")
+                        Text("If something feels stuck, press the button below.")
                             .font(.largeTitle.weight(.semibold))
                             .foregroundStyle(.white)
-                        Text("No laptop IP address. No Mac bridge token. This device joins JARVIS through Convex and then becomes a voice-first control surface.")
+                        Text("JARVIS connects in the background. You should not need codes, tokens, IP addresses, or setup steps.")
                             .font(.callout)
                             .foregroundStyle(.white.opacity(0.70))
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Cloud endpoint", text: $appState.cloudURLText)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .textFieldStyle(.roundedBorder)
-                        TextField("Pairing code", text: $appState.pairingCode)
-                            .textInputAutocapitalization(.characters)
-                            .autocorrectionDisabled()
-                            .textFieldStyle(.roundedBorder)
+                        Label(appState.connectionStatus, systemImage: appState.isPaired ? "checkmark.seal.fill" : "wifi.exclamationmark")
+                            .font(.headline)
+                            .foregroundStyle(appState.isPaired ? .green : .orange)
                         Button {
-                            Task { await appState.pairDevice() }
+                            Task { await appState.registerDevice() }
                         } label: {
-                            Label("Pair this device", systemImage: "link.badge.plus")
+                            Label(appState.isConnecting ? "Trying now" : "Fix connection", systemImage: "arrow.clockwise")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .disabled(appState.isConnecting)
                         Button {
                             Task { await appState.checkConnection() }
                         } label: {
-                            Label("Check cloud connection", systemImage: "cloud.fill")
+                            Label("Check again", systemImage: "cloud.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .disabled(appState.isConnecting)
+
+                        DisclosureGroup(isExpanded: $showAdvanced) {
+                            TextField("Cloud endpoint", text: $appState.cloudURLText)
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.URL)
+                                .textFieldStyle(.roundedBorder)
+                                .padding(.top, 8)
+                        } label: {
+                            Text("Advanced")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.72))
+                        }
+                        .tint(.cyan)
                     }
                     .padding(18)
                     .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -110,7 +124,7 @@ private struct SetupView: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Link")
+            .navigationTitle("Help")
             .navigationBarTitleDisplayMode(.inline)
         }
     }

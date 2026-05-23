@@ -12,6 +12,14 @@ struct CloudCompanionClient: Sendable {
         self.session = session
     }
 
+    func register(deviceID: String, label: String, platform: String) async throws -> CloudPairResponse {
+        try await perform(path: "/app/register", body: RegisterRequest(
+            deviceId: deviceID,
+            label: label,
+            platform: platform
+        ))
+    }
+
     func pair(code: String, deviceID: String, label: String, platform: String) async throws -> CloudPairResponse {
         try await perform(path: "/app/pair", body: PairRequest(
             code: code,
@@ -194,6 +202,12 @@ private struct TokenRequest: Encodable {
 
 private struct PairRequest: Encodable {
     let code: String
+    let deviceId: String
+    let label: String
+    let platform: String
+}
+
+private struct RegisterRequest: Encodable {
     let deviceId: String
     let label: String
     let platform: String

@@ -21,6 +21,41 @@ const randomString = (alphabet: string, length: number) => {
   return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 };
 
+const upsertCompanionDevice = async (
+  ctx: any,
+  args: { deviceId: string; label?: string; platform?: string },
+) => {
+  const deviceId = args.deviceId.trim();
+  if (!deviceId) {
+    throw new Error("missing device id");
+  }
+  const current = now();
+  const existing = await ctx.db.query("companionDevices")
+    .withIndex("by_device_id", (q: any) => q.eq("deviceId", deviceId))
+    .unique();
+  const deviceToken = existing?.deviceToken ?? `jd_${randomString(tokenAlphabet, 40)}`;
+  const row = {
+    deviceId,
+    deviceToken,
+    label: args.label ?? existing?.label,
+    platform: args.platform ?? existing?.platform,
+    authorized: true,
+    createdAt: existing?.createdAt ?? current,
+    lastSeenAt: current,
+  };
+  if (existing) {
+    await ctx.db.replace(existing._id, row);
+  } else {
+    await ctx.db.insert("companionDevices", row);
+  }
+  return {
+    ok: true,
+    deviceToken,
+    deviceId,
+    mode: "convex",
+  };
+};
+
 const activeDevice = async (ctx: any, deviceToken: string) => {
   const token = deviceToken.trim();
   if (!token) {
@@ -81,34 +116,31 @@ export const claimPairingSession = mutation({
       throw new Error("invalid or expired pairing code");
     }
 
-    const existing = await ctx.db.query("companionDevices")
-      .withIndex("by_device_id", (q) => q.eq("deviceId", a.deviceId))
-      .unique();
-    const deviceToken = `jd_${randomString(tokenAlphabet, 40)}`;
-    const row = {
+    const result = await upsertCompanionDevice(ctx, {
       deviceId: a.deviceId,
-      deviceToken,
       label: a.label ?? session.label,
       platform: a.platform,
-      authorized: true,
-      createdAt: existing?.createdAt ?? current,
-      lastSeenAt: current,
-    };
-    if (existing) {
-      await ctx.db.replace(existing._id, row);
-    } else {
-      await ctx.db.insert("companionDevices", row);
-    }
+    });
     await ctx.db.patch(session._id, {
       claimedAt: current,
       claimedByDeviceId: a.deviceId,
     });
-    return {
-      ok: true,
-      deviceToken,
+    return result;
+  },
+});
+
+export const registerDevice = mutation({
+  args: {
+    deviceId: v.string(),
+    label: v.optional(v.string()),
+    platform: v.optional(v.string()),
+  },
+  handler: async (ctx, a) => {
+    return upsertCompanionDevice(ctx, {
       deviceId: a.deviceId,
-      mode: "convex",
-    };
+      label: a.label,
+      platform: a.platform,
+    });
   },
 });
 

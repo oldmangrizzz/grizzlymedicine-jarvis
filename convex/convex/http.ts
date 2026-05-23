@@ -55,6 +55,12 @@ route("/app/pair", (ctx, body) => ctx.runMutation(api.companion.claimPairingSess
   platform: body.platform == null ? undefined : String(body.platform),
 }));
 
+route("/app/register", (ctx, body) => ctx.runMutation(api.companion.registerDevice, {
+  deviceId: String(body.deviceId ?? ""),
+  label: body.label == null ? undefined : String(body.label),
+  platform: body.platform == null ? undefined : String(body.platform),
+}));
+
 route("/app/status", (ctx, body) => ctx.runQuery(api.companion.status, {
   deviceToken: String(body.deviceToken ?? ""),
 }));

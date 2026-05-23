@@ -6,13 +6,13 @@ import UIKit
 @MainActor
 final class CompanionAppState: ObservableObject {
     @Published var cloudURLText: String
-    @Published var pairingCode: String = ""
     @Published private(set) var connectionStatus: String = "Not checked"
     @Published private(set) var lastCommand: String = ""
     @Published private(set) var lastDeviceAction: String = ""
     @Published private(set) var lastReply: String = ""
     @Published private(set) var lastError: String = ""
     @Published private(set) var isPaired: Bool = false
+    @Published private(set) var isConnecting: Bool = false
     @Published private(set) var isCommandInFlight: Bool = false
 
     private let tokenStore: KeychainCompanionTokenStore
@@ -37,29 +37,37 @@ final class CompanionAppState: ObservableObject {
         defaults.set(cloudURLText.trimmingCharacters(in: .whitespacesAndNewlines), forKey: cloudURLKey)
     }
 
-    func pairDevice() async {
-        saveConnection()
-        let code = pairingCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty else {
-            lastError = "Enter the pairing code from JARVIS Cloud."
+    func ensureRegistered() async {
+        if hasStoredToken {
+            isPaired = true
             return
         }
+        await registerDevice()
+    }
+
+    func registerDevice() async {
+        saveConnection()
+        guard !isConnecting else {
+            connectionStatus = "Connecting to JARVIS Cloud"
+            return
+        }
+        isConnecting = true
+        connectionStatus = "Connecting to JARVIS Cloud"
+        defer { isConnecting = false }
         do {
-            let response = try await makeCloudClient(requireToken: false).pair(
-                code: code,
+            let response = try await makeCloudClient(requireToken: false).register(
                 deviceID: deviceID(),
                 label: UIDevice.current.name,
                 platform: "ios"
             )
             try tokenStore.saveToken(response.deviceToken)
-            pairingCode = ""
             isPaired = true
             lastError = ""
-            connectionStatus = "Paired with JARVIS Cloud."
+            connectionStatus = "Connected to JARVIS Cloud."
         } catch {
             isPaired = false
-            connectionStatus = "Pairing failed"
-            lastError = "Pairing failed: \(error.localizedDescription)"
+            connectionStatus = "Cloud registration failed"
+            lastError = "Could not connect this device to JARVIS Cloud: \(error.localizedDescription)"
         }
     }
 
@@ -69,13 +77,17 @@ final class CompanionAppState: ObservableObject {
         }
         let token = try tokenStore.loadToken() ?? ""
         if requireToken && token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            throw CloudCompanionClientError.server("Pair this device with JARVIS Cloud first.")
+            throw CloudCompanionClientError.server("Connect this device to JARVIS Cloud first.")
         }
         return CloudCompanionClient(baseURL: baseURL, deviceToken: token)
     }
 
     func checkConnection() async {
         saveConnection()
+        await ensureRegistered()
+        guard isPaired else {
+            return
+        }
         do {
             let client = try makeCloudClient()
             let status = try await client.status()
@@ -86,6 +98,10 @@ final class CompanionAppState: ObservableObject {
             }
             lastError = ""
         } catch {
+            if error.invalidatesStoredDeviceToken {
+                try? tokenStore.deleteToken()
+            }
+            isPaired = false
             connectionStatus = "Not connected"
             lastError = "Cloud check failed: \(error.localizedDescription)"
         }
@@ -101,6 +117,12 @@ final class CompanionAppState: ObservableObject {
 
         if let action = await DeviceActionRouter.route(clean) {
             await handleDeviceAction(action, command: clean)
+            return
+        }
+
+        await ensureRegistered()
+        guard isPaired else {
+            speak("JARVIS Cloud is not reachable.")
             return
         }
 
@@ -150,6 +172,7 @@ final class CompanionAppState: ObservableObject {
     }
 
     private func publishDeviceAction(command: String, action: DeviceActionResult) async {
+        await ensureRegistered()
         guard isPaired else {
             return
         }
@@ -173,6 +196,7 @@ final class CompanionAppState: ObservableObject {
     }
 
     func publishHealthSnapshot(_ snapshot: HealthSnapshot, reason: String) async {
+        await ensureRegistered()
         guard isPaired else {
             return
         }
@@ -192,6 +216,10 @@ final class CompanionAppState: ObservableObject {
     }
 
     func send(event: CompanionEvent) async {
+        await ensureRegistered()
+        guard isPaired else {
+            return
+        }
         do {
             _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
             connectionStatus = "Sent \(event.kind) to JARVIS Cloud."
@@ -210,16 +238,33 @@ final class CompanionAppState: ObservableObject {
         return created
     }
 
+    private var hasStoredToken: Bool {
+        let token = (try? tokenStore.loadToken()) ?? ""
+        return !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private func speak(_ text: String) {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else {
             return
         }
+
         speaker.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: clean)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.prefersAssistiveTechnologySettings = true
         speaker.speak(utterance)
+    }
+}
+
+private extension Error {
+    var invalidatesStoredDeviceToken: Bool {
+        guard let error = self as? CloudCompanionClientError,
+              case .server(let message) = error else {
+            return false
+        }
+        return message.localizedCaseInsensitiveContains("bad device token") ||
+            message.localizedCaseInsensitiveContains("missing device token")
     }
 }
 
