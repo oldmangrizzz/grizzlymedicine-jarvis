@@ -13,7 +13,7 @@
 		<key>ai.realjarvis.phone</key>
 		<string>JARVIS AppStore Local ai.realjarvis.phone</string>
 		<key>ai.realjarvis.phone.watchkitapp</key>
-		<string>JARVIS AppStore Local ai.realjarvis.phone.watchkitapp</string>
+		<string>JARVIS AppStore HealthKit ai.realjarvis.phone.watchkitapp</string>
 	</dict>
 	<key>signingCertificate</key>
 	<string>Apple Distribution</string>

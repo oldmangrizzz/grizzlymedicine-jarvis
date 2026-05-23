@@ -26,6 +26,10 @@
 	<string>JARVIS Watch can capture consented spoken check-ins during beta testing.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>JARVIS Watch reads motion state as an observable companion signal.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>JARVIS Watch reads authorized HealthKit summaries as observable companion context for accessibility and EMS-facing briefings.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>JARVIS Watch does not write health records during beta testing.</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>

@@ -28,10 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>JARVIS uses the camera only for the native ARKit spatial surface.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>JARVIS connects to the operator-owned Mac bridge on the local network.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>JARVIS records consented voice samples for companion voice registration.</string>
+	<string>JARVIS uses the microphone for voice-first companion commands and consented voice registration samples.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>JARVIS reads motion state as an observable companion signal.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

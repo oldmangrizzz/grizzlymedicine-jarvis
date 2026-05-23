@@ -154,7 +154,7 @@ def _start_realtime_control_worker(rt, realtime):
     if realtime is None or not getattr(realtime, "enabled", False):
         return None
     stop = threading.Event()
-    interval = max(0.25, float(os.environ.get("JARVIS_CONVEX_CONTROL_POLL_SECONDS") or "1.0"))
+    interval = max(0.10, float(os.environ.get("JARVIS_CONVEX_CONTROL_POLL_SECONDS") or "0.25"))
     limit = max(1, min(25, int(os.environ.get("JARVIS_CONVEX_CONTROL_BATCH") or "10")))
 
     def loop():

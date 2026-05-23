@@ -17,6 +17,20 @@ final class PhoneWatchBridge: NSObject, ObservableObject {
         WCSession.default.activate()
     }
 
+    private func handleWatchMessage(_ message: [String: Any]) async {
+        let deviceID = message["device_id"] as? String ?? "apple-watch"
+        if let turnText = (message["turn_text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !turnText.isEmpty {
+            await appState?.sendTurn(turnText)
+            watchStatus = "Forwarded watch command"
+            return
+        }
+
+        let value = message["check_in"] as? String ?? "watch_check_in"
+        let notes = message["notes"] as? String
+        await handleWatchCheckIn(value: value, deviceID: deviceID, notes: notes)
+    }
+
     private func handleWatchCheckIn(value: String, deviceID: String, notes: String?) async {
         guard let appState else {
             watchStatus = "iPhone app state is not ready"
@@ -60,12 +74,31 @@ extension PhoneWatchBridge: WCSessionDelegate {
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        let value = message["check_in"] as? String ?? "watch_check_in"
-        let deviceID = message["device_id"] as? String ?? "apple-watch"
-        let notes = message["notes"] as? String
+        let copiedMessage = PhoneWatchMessage(message)
         replyHandler(["ok": true])
         Task { @MainActor in
-            await handleWatchCheckIn(value: value, deviceID: deviceID, notes: notes)
+            await handleWatchMessage(copiedMessage.dictionary)
         }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        let copiedMessage = PhoneWatchMessage(userInfo)
+        Task { @MainActor in
+            await handleWatchMessage(copiedMessage.dictionary)
+        }
+    }
+}
+
+private struct PhoneWatchMessage: Sendable {
+    let dictionary: [String: String]
+
+    init(_ raw: [String: Any]) {
+        var copied: [String: String] = [:]
+        for (key, value) in raw {
+            if let string = value as? String {
+                copied[key] = string
+            }
+        }
+        dictionary = copied
     }
 }

@@ -7,20 +7,20 @@ struct CompanionRootView: View {
 
     var body: some View {
         TabView {
-            SetupView()
-                .tabItem { Label("Setup", systemImage: "link") }
+            ControlView()
+                .tabItem { Label("JARVIS", systemImage: "waveform.circle.fill") }
+
+            SpatialHostView()
+                .tabItem { Label("Vision", systemImage: "arkit") }
 
             OnboardingHostView()
                 .tabItem { Label("People", systemImage: "person.2") }
 
             VoiceRegistrationView()
-                .tabItem { Label("Voice", systemImage: "waveform") }
+                .tabItem { Label("Voice ID", systemImage: "person.wave.2") }
 
-            SpatialHostView()
-                .tabItem { Label("Spatial", systemImage: "arkit") }
-
-            ControlView()
-                .tabItem { Label("Control", systemImage: "terminal") }
+            SetupView()
+                .tabItem { Label("Link", systemImage: "link") }
         }
         .environmentObject(appState)
         .onAppear {
@@ -60,7 +60,7 @@ private struct SetupView: View {
                 }
 
                 Section("Beta expectation") {
-                    Text("This build uses Convex as the companion spine. Testers pair once, then People, Voice, Spatial, Watch, and Control signals route through JARVIS Cloud without a laptop IP address.")
+                    Text("This build uses Convex as the companion spine. Testers pair once, then voice, vision, watch, people, and fallback touch signals route through JARVIS Cloud without a laptop IP address.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

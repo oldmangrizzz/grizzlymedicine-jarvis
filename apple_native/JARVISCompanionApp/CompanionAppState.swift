@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import JARVISCompanionCore
 import UIKit
@@ -7,12 +8,16 @@ final class CompanionAppState: ObservableObject {
     @Published var cloudURLText: String
     @Published var pairingCode: String = ""
     @Published private(set) var connectionStatus: String = "Not checked"
+    @Published private(set) var lastCommand: String = ""
+    @Published private(set) var lastDeviceAction: String = ""
     @Published private(set) var lastReply: String = ""
     @Published private(set) var lastError: String = ""
     @Published private(set) var isPaired: Bool = false
+    @Published private(set) var isCommandInFlight: Bool = false
 
     private let tokenStore: KeychainCompanionTokenStore
     private let defaults: UserDefaults
+    private let speaker = AVSpeechSynthesizer()
     private let cloudURLKey = "jarvis.companion.cloudURL"
     private let deviceIDKey = "jarvis.companion.deviceID"
     private let defaultCloudURL = "https://fleet-goose-114.convex.site"
@@ -89,19 +94,100 @@ final class CompanionAppState: ObservableObject {
     func sendTurn(_ text: String) async {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else {
-            lastError = "Say or type something for JARVIS first."
+            lastError = "I did not catch a command. Speak again or use the touch fallback."
             return
         }
+        lastCommand = clean
+
+        if let action = await DeviceActionRouter.route(clean) {
+            await handleDeviceAction(action, command: clean)
+            return
+        }
+
+        isCommandInFlight = true
+        defer { isCommandInFlight = false }
         do {
-            let requestID = "ios-\(UUID().uuidString.lowercased())"
             let client = try makeCloudClient()
-            let queued = try await client.requestTurn(text: clean, requestID: requestID, deviceID: deviceID())
-            lastReply = "Queued for JARVIS Cloud (\(queued.requestId))."
-            connectionStatus = "Turn queued"
+            lastReply = "I heard you. Asking JARVIS now."
+            connectionStatus = "JARVIS is thinking"
             lastError = ""
-            await pollTurn(requestID: queued.requestId, client: client)
+            speak("Asking JARVIS.")
+            let response = try await client.realtimeTurn(text: clean, deviceID: deviceID())
+            lastReply = response.reply ?? "JARVIS responded without text."
+            connectionStatus = "JARVIS answered"
+            speak(lastReply)
         } catch {
-            lastError = "Turn failed: \(error.localizedDescription)"
+            connectionStatus = "Runtime unavailable"
+            lastError = "Live JARVIS is not reachable: \(error.localizedDescription)"
+            speak("Live JARVIS is not reachable.")
+        }
+    }
+
+    func speakHealthBriefing(_ snapshot: HealthSnapshot) async {
+        lastCommand = "EMS briefing"
+        lastDeviceAction = "HealthKit context: \(snapshot.statusLine)"
+        lastReply = snapshot.emsBriefing
+        connectionStatus = "EMS briefing ready"
+        lastError = ""
+        speak(snapshot.emsBriefing)
+        await publishHealthSnapshot(snapshot, reason: "ems_briefing")
+    }
+
+    private func handleDeviceAction(_ action: DeviceActionResult, command: String) async {
+        if action.succeeded {
+            lastDeviceAction = "\(action.title): \(action.detail)"
+            lastReply = "\(action.title)."
+            connectionStatus = "Device action complete"
+            lastError = ""
+            speak(lastReply)
+            await publishDeviceAction(command: command, action: action)
+        } else {
+            lastDeviceAction = "\(action.title) failed: \(action.detail)"
+            lastError = "iOS would not open \(action.url.absoluteString)."
+            connectionStatus = "Device action blocked"
+            speak("Device action blocked.")
+        }
+    }
+
+    private func publishDeviceAction(command: String, action: DeviceActionResult) async {
+        guard isPaired else {
+            return
+        }
+        let event = CompanionEvent(
+            source: .iPhone,
+            deviceID: deviceID(),
+            kind: "device_action",
+            confidence: action.succeeded ? 1.0 : 0.0,
+            notes: "\(action.title): \(action.detail)",
+            extra: [
+                "command": .string(command),
+                "url": .string(action.url.absoluteString),
+                "succeeded": .bool(action.succeeded),
+            ]
+        )
+        do {
+            _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
+        } catch {
+            lastError = "Device action ran locally; cloud context update failed: \(error.localizedDescription)"
+        }
+    }
+
+    func publishHealthSnapshot(_ snapshot: HealthSnapshot, reason: String) async {
+        guard isPaired else {
+            return
+        }
+        let event = CompanionEvent(
+            source: .iPhone,
+            deviceID: deviceID(),
+            kind: "health_context",
+            confidence: snapshot.authorized ? 1.0 : 0.0,
+            notes: reason,
+            extra: snapshot.json
+        )
+        do {
+            _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
+        } catch {
+            lastError = "Health context stayed local; cloud update failed: \(error.localizedDescription)"
         }
     }
 
@@ -115,38 +201,6 @@ final class CompanionAppState: ObservableObject {
         }
     }
 
-    private func pollTurn(requestID: String, client: CloudCompanionClient) async {
-        for _ in 0..<12 {
-            do {
-                try await Task.sleep(nanoseconds: 2_000_000_000)
-                guard let request = try await client.controlStatus(requestID: requestID) else {
-                    continue
-                }
-                switch request.status {
-                case "done":
-                    lastReply = request.replyText ?? "JARVIS completed the turn without reply text."
-                    connectionStatus = "Turn complete"
-                    return
-                case "error":
-                    lastError = "JARVIS turn failed: \(request.error ?? "unknown error")"
-                    connectionStatus = "Turn failed"
-                    return
-                case "refused":
-                    lastError = "JARVIS refused the request: \(request.reason ?? "no reason supplied")"
-                    connectionStatus = "Turn refused"
-                    return
-                default:
-                    connectionStatus = "Turn \(request.status)"
-                }
-            } catch {
-                lastError = "Turn status check failed: \(error.localizedDescription)"
-                return
-            }
-        }
-        connectionStatus = "Turn queued"
-        lastReply = "Queued for JARVIS Cloud. The runtime will answer when it is online."
-    }
-
     private func deviceID() -> String {
         if let existing = defaults.string(forKey: deviceIDKey), !existing.isEmpty {
             return existing
@@ -154,6 +208,18 @@ final class CompanionAppState: ObservableObject {
         let created = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         defaults.set(created, forKey: deviceIDKey)
         return created
+    }
+
+    private func speak(_ text: String) {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else {
+            return
+        }
+        speaker.stopSpeaking(at: .immediate)
+        let utterance = AVSpeechUtterance(string: clean)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        utterance.prefersAssistiveTechnologySettings = true
+        speaker.speak(utterance)
     }
 }
 

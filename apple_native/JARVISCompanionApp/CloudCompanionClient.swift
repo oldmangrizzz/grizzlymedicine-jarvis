@@ -50,6 +50,14 @@ struct CloudCompanionClient: Sendable {
         ))
     }
 
+    func realtimeTurn(text: String, deviceID: String) async throws -> CloudRealtimeTurnResponse {
+        try await perform(path: "/app/realtime-turn", body: RealtimeTurnRequest(
+            deviceToken: deviceToken,
+            deviceId: deviceID,
+            text: text
+        ))
+    }
+
     func controlStatus(requestID: String) async throws -> CloudControlRequest? {
         try await perform(path: "/app/control-status", body: ControlStatusRequest(
             deviceToken: deviceToken,
@@ -162,6 +170,24 @@ struct CloudControlRequest: Codable, Equatable, Sendable {
     let authorizationRequired: Bool?
 }
 
+struct CloudRealtimeTurnResponse: Codable, Equatable, Sendable {
+    let reply: String?
+    let driftToPrototype: Double?
+    let endocrine: JSONValue?
+    let ecTone: JSONValue?
+    let ethicsConflict: JSONValue?
+    let model: String?
+
+    enum CodingKeys: String, CodingKey {
+        case reply
+        case driftToPrototype = "drift_to_prototype"
+        case endocrine
+        case ecTone = "ec_tone"
+        case ethicsConflict = "ethics_conflict"
+        case model
+    }
+}
+
 private struct TokenRequest: Encodable {
     let deviceToken: String
 }
@@ -192,6 +218,12 @@ private struct TurnRequest: Encodable {
     let requestedBy: String
     let text: String
     let createdAt: TimeInterval
+}
+
+private struct RealtimeTurnRequest: Encodable {
+    let deviceToken: String
+    let deviceId: String
+    let text: String
 }
 
 private struct ControlStatusRequest: Encodable {

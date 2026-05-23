@@ -150,14 +150,23 @@ devices, check-ins, motion/focus/rest/driving summaries, and evidence provenance
 clinical events. This is the first responderOS/CMS evidence primitive: multiple authorized testers
 can be onboarded with separated memory and auditable device provenance.
 
-The companion app is also the computer-control edge. TestFlight builds pair through Convex HTTP
+The companion app is also the phone/watch control edge. TestFlight builds pair through Convex HTTP
 actions at `fleet-goose-114.convex.site` and receive a device token from a short-lived pairing code;
-testers do not enter a laptop IP address or Mac bridge token. Cloud app turns queue as
-`controlRequests` named `jarvis_turn`, and `_baseline/convex_realtime.py` completes them through
-the same `JarvisRuntime.turn` used by the cockpit. Local companion-token requests on `8788` remain a
+testers do not enter a laptop IP address or Mac bridge token. The primary shipped surface is
+voice-first: spoken commands execute immediate local device actions for web/video/music/maps/Shortcuts
+where iOS permits them, or call `/app/realtime-turn` for a blocking live JARVIS reply. The Convex
+HTTP action can use a public runtime URL when configured, otherwise it creates a `jarvis_turn`
+`controlRequest` and blocks until `_baseline/convex_realtime.py` completes it through the same
+`JarvisRuntime.turn` used by the cockpit; timeout is surfaced as unavailable, not as queued chat.
+Local companion-token requests on `8788` remain a
 developer bridge for `/companion/turn`, `/companion/skills`, and `/companion/skill`. SAFE controls
 can run from the app queue, while SENSITIVE/DESTRUCTIVE Mac control still requires the private
 authorization code and stays audit-logged. There is no separate app-only execution bypass.
+
+The companion also includes HealthKit-backed observable context and an EMS-facing spoken briefing:
+authorized heart-rate/HRV/oxygen/step summaries are read as device signals and may be published as
+`health_context` ambient events. The app does not diagnose or label clinical state; it speaks device
+context and directs responders to ordinary EMS assessment and Medical ID.
 
 **Convex realtime spine.** Convex now carries realtime app-facing state beyond the stigmergent field:
 `runtimeState`, `ambientEvents`, `controlRequests`, `skillCatalog`, `onboardingEvidence`,
