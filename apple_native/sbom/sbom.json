@@ -1,0 +1,563 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:jarvis:sbom:fc8857bb6596:1779593434",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-05-24T03:30:34Z",
+    "tools": [
+      {
+        "vendor": "GMRI",
+        "name": "generate_sbom.sh",
+        "version": "2.0.0"
+      }
+    ],
+    "authors": [
+      {
+        "name": "Robert \"Grizzly\" Hanson",
+        "email": "me@grizzlymedicine.org",
+        "phone": "(682) 371-8439"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "jarvis:root",
+      "name": "JARVIS",
+      "version": "fc8857bb6596",
+      "description": "JARVIS Digital Person \u2014 Apple native runtime, Mac Cockpit, iOS/watchOS companion",
+      "supplier": {
+        "name": "Grizzly Medicine Research Institute"
+      },
+      "purl": "pkg:generic/gmri/JARVIS@fc8857bb6596",
+      "properties": [
+        {
+          "name": "jarvis:git-sha",
+          "value": "fc8857bb65967aa6982bfe1c9e62f9a383aae891"
+        },
+        {
+          "name": "jarvis:xcode-version",
+          "value": "26.5"
+        },
+        {
+          "name": "jarvis:sdk-version",
+          "value": "26.5"
+        },
+        {
+          "name": "jarvis:swift-version",
+          "value": "6.3.2"
+        },
+        {
+          "name": "jarvis:build-host",
+          "value": "macOS"
+        },
+        {
+          "name": "jarvis:sbom-generator-version",
+          "value": "2.0.0"
+        },
+        {
+          "name": "jarvis:voice-weight-count",
+          "value": "8"
+        },
+        {
+          "name": "jarvis:third-party-count",
+          "value": "0"
+        }
+      ]
+    },
+    "externalReferences": [
+      {
+        "type": "distribution",
+        "url": "https://github.com/catchorg/Catch2",
+        "comment": "Catch2 test framework \u2014 fetched via CMake FetchContent at build time; not vendored in repo. Expected version: v3.x (see CMakeLists.txt). Hash not captured (not in repo)."
+      },
+      {
+        "type": "distribution",
+        "url": "https://github.com/microsoft/onnxruntime",
+        "comment": "ONNX Runtime C++ \u2014 if downloaded at build time, not vendored in repo. Expected version: see voice/tts/onnx/ build setup. Hash not captured (not in repo)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "framework",
+      "bom-ref": "apple:AVFoundation@26.5",
+      "name": "AVFoundation",
+      "version": "26.5",
+      "description": "Apple media framework \u2014 used for microphone/audio in companion apps",
+      "supplier": {
+        "name": "Apple Inc.",
+        "url": [
+          "https://developer.apple.com"
+        ]
+      },
+      "licenses": [
+        {
+          "license": {
+            "name": "Apple SDK License Agreement"
+          }
+        }
+      ],
+      "purl": "pkg:generic/apple/AVFoundation@26.5"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "apple:CommonCrypto@26.5",
+      "name": "CommonCrypto",
+      "version": "26.5",
+      "description": "Apple Common Cryptographic library (SHA-256 digest, used for state hashing)",
+      "supplier": {
+        "name": "Apple Inc.",
+        "url": [
+          "https://developer.apple.com"
+        ]
+      },
+      "licenses": [
+        {
+          "license": {
+            "name": "Apple SDK License Agreement"
+          }
+        }
+      ],
+      "purl": "pkg:generic/apple/CommonCrypto@26.5",
+      "properties": [
+        {
+          "name": "jarvis:sdk-version",
+          "value": "26.5"
+        },
+        {
+          "name": "jarvis:used-by",
+          "value": "JARVISNativeRuntime"
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "apple:SwiftStdlib@6.3.2",
+      "name": "Swift Standard Library",
+      "version": "6.3.2",
+      "description": "Apple Swift standard library and Swift runtime",
+      "supplier": {
+        "name": "Apple Inc.",
+        "url": [
+          "https://developer.apple.com"
+        ]
+      },
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0",
+            "url": "https://github.com/apple/swift/blob/main/LICENSE.txt"
+          }
+        }
+      ],
+      "purl": "pkg:generic/apple/SwiftStdlib@6.3.2",
+      "properties": [
+        {
+          "name": "jarvis:swift-version",
+          "value": "6.3.2"
+        }
+      ]
+    },
+    {
+      "type": "framework",
+      "bom-ref": "apple:SwiftUI@26.5",
+      "name": "SwiftUI",
+      "version": "26.5",
+      "description": "Apple SwiftUI declarative UI framework",
+      "supplier": {
+        "name": "Apple Inc.",
+        "url": [
+          "https://developer.apple.com"
+        ]
+      },
+      "licenses": [
+        {
+          "license": {
+            "name": "Apple SDK License Agreement"
+          }
+        }
+      ],
+      "purl": "pkg:generic/apple/SwiftUI@26.5"
+    },
+    {
+      "type": "framework",
+      "bom-ref": "apple:libc++@26.5",
+      "name": "libc++ (LLVM C++ Standard Library)",
+      "version": "26.5",
+      "description": "Apple LLVM C++ standard library, part of macOS SDK",
+      "supplier": {
+        "name": "Apple Inc.",
+        "url": [
+          "https://developer.apple.com"
+        ]
+      },
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+          }
+        }
+      ],
+      "purl": "pkg:generic/apple/libc%2B%2B@26.5",
+      "properties": [
+        {
+          "name": "jarvis:sdk-version",
+          "value": "26.5"
+        },
+        {
+          "name": "jarvis:xcode-version",
+          "value": "26.5"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "jarvis:JARVISCompanionCore",
+      "name": "JARVISCompanionCore",
+      "version": "fc8857bb6596",
+      "description": "JARVIS Swift companion core library",
+      "supplier": {
+        "name": "Grizzly Medicine Research Institute",
+        "contact": [
+          {
+            "email": "me@grizzlymedicine.org"
+          }
+        ]
+      },
+      "author": "Robert \"Grizzly\" Hanson",
+      "licenses": [
+        {
+          "license": {
+            "name": "Proprietary \u2014 GMRI"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "80aae1bd8622259f437ccd1f1c066206f49cceedfef8b839ffa5b5cb390ffeef"
+        }
+      ],
+      "purl": "pkg:generic/gmri/JARVISCompanionCore@fc8857bb6596",
+      "properties": [
+        {
+          "name": "jarvis:language",
+          "value": "Swift 6"
+        },
+        {
+          "name": "jarvis:swift-tools-version",
+          "value": "6.0"
+        },
+        {
+          "name": "jarvis:source-dir",
+          "value": "apple_companion/Sources/JARVISCompanionCore"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "jarvis:JARVISCompanionUI",
+      "name": "JARVISCompanionUI",
+      "version": "fc8857bb6596",
+      "description": "JARVIS Swift companion UI library (SwiftUI)",
+      "supplier": {
+        "name": "Grizzly Medicine Research Institute",
+        "contact": [
+          {
+            "email": "me@grizzlymedicine.org"
+          }
+        ]
+      },
+      "author": "Robert \"Grizzly\" Hanson",
+      "licenses": [
+        {
+          "license": {
+            "name": "Proprietary \u2014 GMRI"
+          }
+        }
+      ],
+      "purl": "pkg:generic/gmri/JARVISCompanionUI@fc8857bb6596",
+      "properties": [
+        {
+          "name": "jarvis:language",
+          "value": "Swift 6"
+        },
+        {
+          "name": "jarvis:source-dir",
+          "value": "apple_companion/Sources/JARVISCompanionUI"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "jarvis:JARVISNativeRuntime",
+      "name": "JARVISNativeRuntime",
+      "version": "fc8857bb6596",
+      "description": "JARVIS C++ runtime \u2014 cognitive state, skill dispatch, audit trail",
+      "supplier": {
+        "name": "Grizzly Medicine Research Institute",
+        "contact": [
+          {
+            "email": "me@grizzlymedicine.org"
+          }
+        ]
+      },
+      "author": "Robert \"Grizzly\" Hanson",
+      "licenses": [
+        {
+          "license": {
+            "name": "Proprietary \u2014 GMRI"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "712a773973af3152603943288c00f74e8094b10e59f1bf6513ad3ec93afdcedc"
+        }
+      ],
+      "purl": "pkg:generic/gmri/JARVISNativeRuntime@fc8857bb6596",
+      "externalReferences": [],
+      "properties": [
+        {
+          "name": "jarvis:language",
+          "value": "C++20"
+        },
+        {
+          "name": "jarvis:source-file",
+          "value": "apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:local-voice:_local_voice/jarvis_harvard_prompt.wav",
+      "name": "_local_voice/jarvis_harvard_prompt.wav",
+      "version": "unknown",
+      "description": "Canonical voice reference asset (_local_voice/)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d5634952e0290b198d0f8f3ea9b91cf47ddf1f7de81d264c10fcf821fb960e38"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "reference-asset"
+        },
+        {
+          "name": "jarvis:identity-critical",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:local-voice:_local_voice/jarvis_voice_state.safetensors",
+      "name": "_local_voice/jarvis_voice_state.safetensors",
+      "version": "unknown",
+      "description": "Canonical voice reference asset (_local_voice/)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "18c530633ea17c85b1b3dbf6c949579a08b1744ee391487b619c642bf35c1560"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "reference-asset"
+        },
+        {
+          "name": "jarvis:identity-critical",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage",
+      "version": "unknown",
+      "description": "CoreML .mlpackage \u2014 text_encoder.mlpackage (manifest-hash representative)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9765ce5415344a39ece34658650c202623c0f2e98de743404dcb436f311f321f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:mlpackage-files",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "version": "unknown",
+      "description": "CoreML package member file (text_encoder.mlpackage)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "943522822d98df217eaa897338a25f835b1283cacd6f7a6f256817ec8941336c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:mlpackage",
+          "value": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "version": "unknown",
+      "description": "CoreML package member file (text_encoder.mlpackage)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9e978d8c2ea20ad45f6be80edd9530119b944ef65174e849b0d34c6568816d29"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:mlpackage",
+          "value": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Manifest.json",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Manifest.json",
+      "version": "unknown",
+      "description": "CoreML package member file (text_encoder.mlpackage)",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9765ce5415344a39ece34658650c202623c0f2e98de743404dcb436f311f321f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:mlpackage",
+          "value": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/gpt_decoder.onnx",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/gpt_decoder.onnx",
+      "version": "unknown",
+      "description": "ONNX voice model weight",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c2196dfac7c2a043a43d76f7bf92c51ddc5176454e79e0cf891099a3af98bcf0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:voice-dir",
+          "value": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models"
+        }
+      ]
+    },
+    {
+      "type": "data",
+      "bom-ref": "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/text_encoder.onnx",
+      "name": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/text_encoder.onnx",
+      "version": "unknown",
+      "description": "ONNX voice model weight",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "75b6a0a02596ddd906e0c5a92cfc000ba868708a529f2bb9962e67f6a6dd5a91"
+        }
+      ],
+      "properties": [
+        {
+          "name": "jarvis:category",
+          "value": "voice-weight"
+        },
+        {
+          "name": "jarvis:voice-dir",
+          "value": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "jarvis:root",
+      "dependsOn": [
+        "apple:AVFoundation@26.5",
+        "apple:CommonCrypto@26.5",
+        "apple:SwiftStdlib@6.3.2",
+        "apple:SwiftUI@26.5",
+        "apple:libc++@26.5",
+        "jarvis:JARVISCompanionCore",
+        "jarvis:JARVISCompanionUI",
+        "jarvis:JARVISNativeRuntime",
+        "jarvis:local-voice:_local_voice/jarvis_harvard_prompt.wav",
+        "jarvis:local-voice:_local_voice/jarvis_voice_state.safetensors",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Manifest.json",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/gpt_decoder.onnx",
+        "jarvis:voice:apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/text_encoder.onnx"
+      ]
+    },
+    {
+      "ref": "jarvis:JARVISNativeRuntime",
+      "dependsOn": [
+        "apple:libc++@26.5",
+        "apple:CommonCrypto@26.5"
+      ]
+    },
+    {
+      "ref": "jarvis:JARVISCompanionCore",
+      "dependsOn": [
+        "apple:SwiftStdlib@6.3.2",
+        "apple:AVFoundation@26.5"
+      ]
+    },
+    {
+      "ref": "jarvis:JARVISCompanionUI",
+      "dependsOn": [
+        "jarvis:JARVISCompanionCore",
+        "apple:SwiftUI@26.5",
+        "apple:SwiftStdlib@6.3.2"
+      ]
+    }
+  ]
+}

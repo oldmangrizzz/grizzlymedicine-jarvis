@@ -1,0 +1,47 @@
+{
+  "_comment": "Voice weight integrity baseline. Operator updates this file deliberately to authorize a voice change. An unexpected hash drift without a corresponding entry update = tamper signal.",
+  "entries": [
+    {
+      "path": "_local_voice/jarvis_harvard_prompt.wav",
+      "sha256": "d5634952e0290b198d0f8f3ea9b91cf47ddf1f7de81d264c10fcf821fb960e38",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "_local_voice/jarvis_voice_state.safetensors",
+      "sha256": "18c530633ea17c85b1b3dbf6c949579a08b1744ee391487b619c642bf35c1560",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
+      "sha256": "943522822d98df217eaa897338a25f835b1283cacd6f7a6f256817ec8941336c",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/weights/weight.bin",
+      "sha256": "9e978d8c2ea20ad45f6be80edd9530119b944ef65174e849b0d34c6568816d29",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Manifest.json",
+      "sha256": "9765ce5415344a39ece34658650c202623c0f2e98de743404dcb436f311f321f",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/gpt_decoder.onnx",
+      "sha256": "c2196dfac7c2a043a43d76f7bf92c51ddc5176454e79e0cf891099a3af98bcf0",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    },
+    {
+      "path": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/text_encoder.onnx",
+      "sha256": "75b6a0a02596ddd906e0c5a92cfc000ba868708a529f2bb9962e67f6a6dd5a91",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial baseline"
+    }
+  ]
+}
