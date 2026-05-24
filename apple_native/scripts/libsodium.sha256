@@ -1,0 +1,14 @@
+# libsodium.sha256
+# Expected SHA256 of libsodium.26.dylib as copied into the app bundle.
+#
+# Source: $(brew --prefix libsodium)/lib/libsodium.26.dylib
+# libsodium version: 1.0.20 (compatibility 31.0.0 / current 31.0.0)
+# Pinned: 2026-05-24
+#
+# HOW TO ROTATE:
+#   After `brew upgrade libsodium`, run:
+#     shasum -a 256 "$(brew --prefix libsodium)/lib/libsodium.26.dylib"
+#   Then replace the hex string below with the new hash and commit.
+#
+# FORMAT: exactly one line, 64 hex chars, no spaces.
+92ec108bf29e234e583e1108a7184e6278906492021f8fa2df7192f247531c9f

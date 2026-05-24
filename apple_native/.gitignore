@@ -1,0 +1,53 @@
+# ─── CMake build trees ────────────────────────────────────────────────────────
+# Never commit generated CMake/FetchContent artifacts. All build directories
+# under JARVISNativeRuntime/ are regenerable from source.
+
+# Top-level build directories
+JARVISNativeRuntime/build/
+JARVISNativeRuntime/build_*/
+JARVISNativeRuntime/*/build/
+JARVISNativeRuntime/*/build_*/
+JARVISNativeRuntime/*/*/build/
+JARVISNativeRuntime/*/*/build_*/
+JARVISNativeRuntime/*/*/*/build/
+JARVISNativeRuntime/*/*/*/build_*/
+
+# Specific named build trees
+JARVISNativeRuntime/build_props/
+JARVISNativeRuntime/build_fuzz/
+JARVISNativeRuntime/build_regression/
+JARVISNativeRuntime/build_side_channel_memory_check/
+JARVISNativeRuntime/build_identity_spoof_memory_check/
+JARVISNativeRuntime/build_character_values/
+JARVISNativeRuntime/build_memory_extraction/
+
+# CMake generated files (anywhere in the tree)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_CPack_Packages/
+
+# FetchContent download cache and extracted deps
+**/_deps/
+
+# ─── Compiled dylibs / binaries ───────────────────────────────────────────────
+# These are either downloaded (onnxruntime) or built (SE dylib).
+# Never commit prebuilt binaries — record URL+SHA256 in CMakeLists.txt instead.
+*.dylib
+*.dSYM/
+*.a
+*.o
+*.so
+
+# ─── SwiftPM build outputs ───────────────────────────────────────────────────
+# The root .gitignore already covers .build/ but be explicit here too.
+.build/
+.swiftpm/
+DerivedData/
+
+# ─── Xcode local state ────────────────────────────────────────────────────────
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
