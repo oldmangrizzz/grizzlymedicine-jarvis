@@ -1,57 +1,74 @@
 import SwiftUI
 
+// Local copy of the canonical GMRI palette from JARVISMacCockpit/GMRITheme.swift.
+// Mapping: success=emerald, danger/warning=crimson, info/neutral=GMRI silver,
+// background=GMRI black, surface=slightly lifted black, accentHalo=emerald halo.
+enum GMRITheme {
+    enum color {
+        static let background = Color(red: 0.02, green: 0.023, blue: 0.025)
+        static let surface = Color(red: 0.035, green: 0.040, blue: 0.044)
+        static let neutral = Color(red: 0.80, green: 0.82, blue: 0.84)
+        static let info = neutral
+        static let success = Color(red: 0.00, green: 0.78, blue: 0.42)
+        static let danger = Color(red: 0.79, green: 0.09, blue: 0.18)
+        static let warning = danger
+        static let accentHalo = Color(red: 0.30, green: 0.95, blue: 0.58)
+    }
+}
+
+
 enum CompanionAccentHue: String, CaseIterable, Identifiable, Sendable {
-    case green
-    case gold
-    case orange
-    case red
-    case pink
-    case purple
-    case teal
-    case blue
-    case white
+    case emerald = "green"
+    case gold = "gold"
+    case sunset = "orange"
+    case crimson = "red"
+    case rose = "pink"
+    case violet = "purple"
+    case sea = "teal"
+    case azure = "blue"
+    case neutral = "white"
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .green: return "Green"
+        case .emerald: return "Green"
         case .gold: return "Gold"
-        case .orange: return "Orange"
-        case .red: return "Red"
-        case .pink: return "Pink"
-        case .purple: return "Purple"
-        case .teal: return "Teal"
-        case .blue: return "Blue"
-        case .white: return "White"
+        case .sunset: return "Orange"
+        case .crimson: return "Red"
+        case .rose: return "Pink"
+        case .violet: return "Purple"
+        case .sea: return "Teal"
+        case .azure: return "Blue"
+        case .neutral: return "White"
         }
     }
 
     var color: Color {
         switch self {
-        case .green: return .green
-        case .gold: return .yellow
-        case .orange: return .orange
-        case .red: return .red
-        case .pink: return .pink
-        case .purple: return .purple
-        case .teal: return .teal
-        case .blue: return .blue
-        case .white: return .white
+        case .emerald: return GMRITheme.color.success
+        case .gold: return GMRITheme.color.info
+        case .sunset: return GMRITheme.color.warning
+        case .crimson: return GMRITheme.color.danger
+        case .rose: return GMRITheme.color.danger
+        case .violet: return GMRITheme.color.info
+        case .sea: return GMRITheme.color.info
+        case .azure: return GMRITheme.color.info
+        case .neutral: return GMRITheme.color.neutral
         }
     }
 
     var spokenNames: [String] {
         switch self {
-        case .green: return ["green", "growth"]
+        case .emerald: return ["green", "growth"]
         case .gold: return ["gold", "yellow"]
-        case .orange: return ["orange"]
-        case .red: return ["red"]
-        case .pink: return ["pink"]
-        case .purple: return ["purple", "violet"]
-        case .teal: return ["teal"]
-        case .blue: return ["blue"]
-        case .white: return ["white"]
+        case .sunset: return ["orange"]
+        case .crimson: return ["red"]
+        case .rose: return ["pink"]
+        case .violet: return ["purple", "violet"]
+        case .sea: return ["teal"]
+        case .azure: return ["blue"]
+        case .neutral: return ["white"]
         }
     }
 }
@@ -68,7 +85,7 @@ final class CompanionAccentTheme: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let stored = defaults.string(forKey: selectedKey)
-            .flatMap(CompanionAccentHue.init(rawValue:)) ?? .white
+            .flatMap(CompanionAccentHue.init(rawValue:)) ?? .neutral
         self.selected = stored
         self.hasChosenAccent = defaults.bool(forKey: chosenKey)
     }

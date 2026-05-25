@@ -1,0 +1,68 @@
+RNG seed: 1549948345
+
+=== Mel-L2 Results (all 50 prompts) ===
+ idx  cat               L2(dB)  result
+  00  very_short          0.0001  PASS
+  01  very_short          0.0001  PASS
+  02  very_short          0.0001  PASS
+  03  very_short          0.0002  PASS
+  04  very_short          0.0001  PASS
+  05  short               0.0001  PASS
+  06  short               0.0002  PASS
+  07  short               0.0001  PASS
+  08  short               0.0002  PASS
+  09  short               0.0002  PASS
+  10  short               0.0001  PASS
+  11  short               0.0001  PASS
+  12  short               0.0002  PASS
+  13  short               0.0001  PASS
+  14  short               0.0001  PASS
+  15  medium              0.0002  PASS
+  16  medium              0.0004  PASS
+  17  medium              0.0002  PASS
+  18  medium              0.0003  PASS
+  19  medium              0.0002  PASS
+  20  medium              0.0001  PASS
+  21  medium              0.0001  PASS
+  22  medium              0.0001  PASS
+  23  medium              0.0002  PASS
+  24  medium              0.0001  PASS
+  25  long                0.0003  PASS
+  26  long                0.0001  PASS
+  27  long                0.0002  PASS
+  28  long                0.0001  PASS
+  29  long                0.0001  PASS
+  30  long                0.0004  PASS
+  31  long                0.0003  PASS
+  32  interrupt_part1     0.0001  PASS
+  33  interrupt_part2     0.0002  PASS
+  34  interrupt_part1     0.0001  PASS
+  35  interrupt_part2     0.0001  PASS
+  36  prosody             0.0002  PASS
+  37  prosody             0.0002  PASS
+  38  prosody             0.0002  PASS
+  39  prosody             0.0002  PASS
+  40  prosody             0.0003  PASS
+  41  numeric             0.0002  PASS
+  42  numeric             0.0001  PASS
+  43  numeric             0.0002  PASS
+  44  numeric             0.0001  PASS
+  45  numeric             0.0001  PASS
+  46  codeswitch          0.0002  PASS
+  47  codeswitch          0.0001  PASS
+  48  codeswitch          0.0001  PASS
+  49  codeswitch          0.0001  PASS
+
+=== Mel-L2 Results (worst 5) ===
+ idx  cat               L2(dB)  result
+  30  long                0.0004  PASS
+  16  medium              0.0004  PASS
+  40  prosody             0.0003  PASS
+  25  long                0.0003  PASS
+  18  medium              0.0003  PASS
+Total failures: 0 / 50
+Worst L2: 0.00038131 dB
+
+All tests passed (103 assertions in 1 test case)
+
+

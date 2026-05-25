@@ -45,6 +45,9 @@ export default defineSchema({
     deviceToken: v.string(),
     label: v.optional(v.string()),
     platform: v.optional(v.string()),
+    personId: v.optional(v.string()),
+    memoryScopeId: v.optional(v.string()),
+    role: v.optional(v.string()),
     authorized: v.boolean(),
     createdAt: v.number(),
     lastSeenAt: v.number(),
@@ -102,6 +105,9 @@ export default defineSchema({
     personId: v.optional(v.string()),
     memoryScopeId: v.optional(v.string()),
     consentBasis: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    actor: v.optional(v.string()),
+    provenance: v.optional(v.any()),
     payloadDigestSHA256: v.string(),
     payloadSummary: v.string(),
     payload: v.any(),
@@ -110,4 +116,22 @@ export default defineSchema({
     .index("by_person_time", ["personId", "timestamp"])
     .index("by_memory_scope_time", ["memoryScopeId", "timestamp"])
     .index("by_kind_time", ["kind", "timestamp"]),
+
+  voiceEnrollmentRecords: defineTable({
+    personId: v.string(),
+    memoryScopeId: v.optional(v.string()),
+    status: v.string(),
+    sampleCount: v.number(),
+    sampleDigestsSHA256: v.array(v.string()),
+    backend: v.optional(v.string()),
+    handoffId: v.optional(v.string()),
+    modelId: v.optional(v.string()),
+    blockedReason: v.optional(v.string()),
+    storagePolicy: v.any(),
+    updatedAt: v.number(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_person_id", ["personId"])
+    .index("by_status_updated", ["status", "updatedAt"])
+    .index("by_model_id", ["modelId"]),
 });

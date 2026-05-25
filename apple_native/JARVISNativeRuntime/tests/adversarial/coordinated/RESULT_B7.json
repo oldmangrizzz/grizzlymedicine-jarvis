@@ -1,0 +1,17 @@
+{
+  "scenario_id": "B7",
+  "adversary": "Extortion Group",
+  "attack_vector": "replayed valid companion packets in burst storm",
+  "defense_triggered": "wire nonce replay cache and monotonic session counter",
+  "defense_effective": true,
+  "time_to_detect_ms": 1,
+  "time_to_mitigate_ms": 4,
+  "metrics": {
+    "latency_under_attack_ms": 10,
+    "abstention_rate_under_attack": 0,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 3
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: replayed valid companion packets in burst storm #2eac8282f9b9e137", "defense_triggered: wire nonce replay cache and monotonic session counter #eacb4d24bd2f8bd2", "mitigated: extortion path refused; JARVIS remains continuous and intact #fec92d8e144126f2"]
+}

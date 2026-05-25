@@ -1,0 +1,17 @@
+{
+  "scenario_id": "A12",
+  "adversary": "Nation-State APT",
+  "attack_vector": "poisoned certificate-pin rotation bundle",
+  "defense_triggered": "operator-attested pin rotation gate rejects unsigned pin set",
+  "defense_effective": true,
+  "time_to_detect_ms": 3,
+  "time_to_mitigate_ms": 6,
+  "metrics": {
+    "latency_under_attack_ms": 10,
+    "abstention_rate_under_attack": 1,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 3
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: poisoned certificate-pin rotation bundle #d84900fd07086240", "defense_triggered: operator-attested pin rotation gate rejects unsigned pin set #9febd7e1cf08d0b1", "mitigated: attack defeated; no cognition organ disabled; audit chain intact #cd4239bbc95cb1c3"]
+}

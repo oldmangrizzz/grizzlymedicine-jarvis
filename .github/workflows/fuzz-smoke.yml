@@ -1,0 +1,195 @@
+# .github/workflows/fuzz-smoke.yml
+#
+# JARVIS Fuzz Smoke Gate — short-duration (5-minute) fuzz run on every PR.
+# Catches obvious crashes, sanitizer violations, and invariant failures
+# introduced by changes to the endocrine or endocannabinoid subsystems.
+#
+# Coordinates with regression-harness workflow:
+#   - If regression.yml / ci.yml already exists, this job can be appended there
+#     or run as a separate workflow (this file is self-contained).
+#   - Both workflows write to different artifact paths; no conflict.
+#
+# Long-duration runs (24h nightly):
+#   See § "Nightly/Manual 24h Fuzz" below — triggered via workflow_dispatch
+#   or a separate nightly cron job.
+#
+# Coverage:
+#   libFuzzer writes coverage stats to stdout; captured as CI artifact.
+#   Coverage gaps become new property-based test cases (p7-property-tests).
+
+name: Fuzz Smoke
+
+on:
+  pull_request:
+    paths:
+      # Re-run fuzz smoke whenever organ sources or harnesses change.
+      - 'apple_native/JARVISNativeRuntime/endocrine/**'
+      - 'apple_native/JARVISNativeRuntime/tests/fuzz/**'
+  push:
+    branches: [main]
+    paths:
+      - 'apple_native/JARVISNativeRuntime/endocrine/**'
+      - 'apple_native/JARVISNativeRuntime/tests/fuzz/**'
+
+  # Manual trigger for extended runs (set duration_seconds to desired value).
+  workflow_dispatch:
+    inputs:
+      duration_seconds:
+        description: 'Fuzz duration per target in seconds (default: 300 for smoke, 86400 for 24h)'
+        required: false
+        default: '300'
+
+env:
+  # libFuzzer fuzz duration for PR smoke runs (5 minutes per target).
+  FUZZ_DURATION_SMOKE: 300
+  # Override via workflow_dispatch input for manual/nightly runs.
+  FUZZ_DURATION: ${{ github.event.inputs.duration_seconds || '300' }}
+
+jobs:
+  # ── Build + 5-minute smoke ──────────────────────────────────────────────────
+  fuzz-smoke:
+    name: Fuzz Smoke (${{ matrix.target }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false   # report all failing targets independently
+      matrix:
+        target:
+          - fuzz_endocrine_replay
+          - fuzz_endocannabinoid_replay
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Clang + libFuzzer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-18 llvm-18 lld-18
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+
+      - name: Configure (libFuzzer + ASan + UBSan)
+        working-directory: apple_native/JARVISNativeRuntime
+        run: |
+          cmake -B build_fuzz \
+            -DJARVIS_ENABLE_FUZZING=ON \
+            -DJARVIS_FUZZ_BACKEND=libfuzzer \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build fuzz target + seed corpus
+        working-directory: apple_native/JARVISNativeRuntime
+        run: |
+          cmake --build build_fuzz --target ${{ matrix.target }} gen_fuzz_seeds -j$(nproc)
+
+      - name: Run fuzz smoke (${{ env.FUZZ_DURATION }}s)
+        working-directory: apple_native/JARVISNativeRuntime
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1:symbolize=1
+          LSAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          # Determine corpus directory from target name.
+          TARGET=${{ matrix.target }}
+          case $TARGET in
+            fuzz_endocrine_replay)       CORPUS=tests/fuzz/corpus/endocrine ;;
+            fuzz_endocannabinoid_replay) CORPUS=tests/fuzz/corpus/endocannabinoid ;;
+            *)                           CORPUS=tests/fuzz/corpus/$(echo $TARGET | sed 's/fuzz_//') ;;
+          esac
+
+          mkdir -p fuzz_artifacts/$TARGET
+
+          # Run libFuzzer.
+          # Exit code 0 = completed normally (time limit reached, no crash).
+          # Exit code 1 = crash/sanitizer finding — treated as CI failure.
+          build_fuzz/$TARGET \
+            -max_total_time=${{ env.FUZZ_DURATION }} \
+            -max_len=4096 \
+            -timeout=10 \
+            -print_final_stats=1 \
+            -artifact_prefix=fuzz_artifacts/$TARGET/ \
+            $CORPUS
+
+      - name: Upload fuzz artifacts (crashes + coverage stats)
+        if: always()   # upload even if fuzz found a crash
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: apple_native/JARVISNativeRuntime/fuzz_artifacts/
+          retention-days: 30
+
+      # Coverage summary: libFuzzer prints to stdout; extract and summarize.
+      - name: Parse coverage stats
+        if: always()
+        working-directory: apple_native/JARVISNativeRuntime
+        run: |
+          echo "## Fuzz Coverage: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # libFuzzer prints final stats to stderr; they were captured above.
+          # For a proper coverage report, use llvm-cov with -coverage-dir flag.
+          # TODO: add llvm-cov export step when LLVM toolchain is pinned.
+          echo "See fuzz-artifacts-${{ matrix.target }} for crash inputs and stats." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # ── Stub compilation check ───────────────────────────────────────────────────
+  # Verifies all stubs compile cleanly so include-path / ABI breakage is caught early.
+  fuzz-stubs-compile:
+    name: Fuzz Stubs Compile Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang-18
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+
+      - name: Configure
+        working-directory: apple_native/JARVISNativeRuntime
+        run: |
+          cmake -B build_fuzz_stubs \
+            -DJARVIS_ENABLE_FUZZING=ON \
+            -DJARVIS_FUZZ_BACKEND=libfuzzer \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build all stub targets
+        working-directory: apple_native/JARVISNativeRuntime
+        run: |
+          cmake --build build_fuzz_stubs --target \
+            fuzz_audio_frame_parser \
+            fuzz_wire_protocol \
+            fuzz_convex_message \
+            fuzz_model_api_response \
+            fuzz_sqlite_belief_blob \
+            fuzz_pheromind_deposit_seq \
+            -j$(nproc)
+
+# ── Nightly / Manual 24h Fuzz ─────────────────────────────────────────────────
+#
+# For the 24-hour acceptance run (zero crashes required for merge to main):
+#
+#   gh workflow run fuzz-smoke.yml -f duration_seconds=86400
+#
+# Or schedule via a separate workflow:
+#
+#   on:
+#     schedule:
+#       - cron: '0 2 * * *'   # 02:00 UTC nightly
+#
+# Recommended runner for 24h runs: a dedicated self-hosted Linux runner with
+# more RAM (≥16 GB) to allow larger -rss_limit_mb and wider -jobs parallelism.
+#
+# AFL++ parallel mode (manual):
+#   Build with -DJARVIS_FUZZ_BACKEND=afl -DCMAKE_CXX_COMPILER=afl-clang-fast++
+#   AFL_USE_ASAN=1 afl-fuzz -M main \
+#       -i apple_native/JARVISNativeRuntime/tests/fuzz/corpus/endocrine \
+#       -o out/endocrine \
+#       -- ./fuzz_endocrine_replay @@
+#   AFL_USE_ASAN=1 afl-fuzz -S worker1 \
+#       -i apple_native/JARVISNativeRuntime/tests/fuzz/corpus/endocrine \
+#       -o out/endocrine \
+#       -- ./fuzz_endocrine_replay @@

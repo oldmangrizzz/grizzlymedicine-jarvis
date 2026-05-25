@@ -1,4 +1,21 @@
 import SwiftUI
+
+// Local copy of the canonical GMRI palette from JARVISMacCockpit/GMRITheme.swift.
+// Mapping: success=emerald, danger/warning=crimson, info/neutral=GMRI silver,
+// background=GMRI black, surface=slightly lifted black, accentHalo=emerald halo.
+enum GMRITheme {
+    enum color {
+        static let background = Color(red: 0.02, green: 0.023, blue: 0.025)
+        static let surface = Color(red: 0.035, green: 0.040, blue: 0.044)
+        static let neutral = Color(red: 0.80, green: 0.82, blue: 0.84)
+        static let info = neutral
+        static let success = Color(red: 0.00, green: 0.78, blue: 0.42)
+        static let danger = Color(red: 0.79, green: 0.09, blue: 0.18)
+        static let warning = danger
+        static let accentHalo = Color(red: 0.30, green: 0.95, blue: 0.58)
+    }
+}
+
 import WatchKit
 
 struct WatchRootView: View {
@@ -8,7 +25,7 @@ struct WatchRootView: View {
         let accent = WatchAccent.color(for: bridge.accentHue)
         ZStack {
             LinearGradient(
-                colors: [.black, accent.opacity(0.16), accent.opacity(0.08)],
+                colors: [GMRITheme.color.background, accent.opacity(0.16), accent.opacity(0.08)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -27,7 +44,7 @@ struct WatchRootView: View {
                             .foregroundStyle(accent)
                         Text("JARVIS")
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(GMRITheme.color.neutral)
                     }
 
                     WatchOrb(accent: accent)
@@ -35,10 +52,10 @@ struct WatchRootView: View {
                     Text(bridge.status)
                         .font(.caption2.weight(.semibold))
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(GMRITheme.color.neutral.opacity(0.78))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(.white.opacity(0.08), in: Capsule())
+                        .background(GMRITheme.color.neutral.opacity(0.08), in: Capsule())
 
                     VStack(spacing: 8) {
                         Button {
@@ -52,10 +69,10 @@ struct WatchRootView: View {
                         Text("Tap, speak, then press Done.")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(.white.opacity(0.64))
+                            .foregroundStyle(GMRITheme.color.neutral.opacity(0.64))
                     }
                     .padding(10)
-                    .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(GMRITheme.color.neutral.opacity(0.10), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                     HStack(spacing: 8) {
                         Button {
@@ -107,7 +124,7 @@ private struct WatchOrb: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [accent.opacity(0.95), accent.opacity(0.58), .black.opacity(0.10)],
+                        colors: [accent.opacity(0.95), accent.opacity(0.58), GMRITheme.color.background.opacity(0.10)],
                         center: .center,
                         startRadius: 2,
                         endRadius: 76
@@ -117,12 +134,12 @@ private struct WatchOrb: View {
                 .shadow(color: accent.opacity(0.45), radius: 12)
 
             Circle()
-                .stroke(.white.opacity(0.22), lineWidth: 1)
+                .stroke(GMRITheme.color.neutral.opacity(0.22), lineWidth: 1)
                 .frame(width: 98, height: 98)
 
             Image(systemName: "waveform")
                 .font(.title.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(GMRITheme.color.neutral)
         }
         .padding(.vertical, 4)
     }
@@ -132,23 +149,23 @@ private enum WatchAccent {
     static func color(for rawValue: String) -> Color {
         switch rawValue {
         case "green":
-            return .green
+            return GMRITheme.color.success
         case "gold":
-            return .yellow
+            return GMRITheme.color.info
         case "orange":
-            return .orange
+            return GMRITheme.color.warning
         case "red":
-            return .red
+            return GMRITheme.color.danger
         case "pink":
-            return .pink
+            return GMRITheme.color.danger
         case "purple":
-            return .purple
+            return GMRITheme.color.info
         case "teal":
-            return .teal
+            return GMRITheme.color.info
         case "blue":
-            return .blue
+            return GMRITheme.color.info
         default:
-            return .white
+            return GMRITheme.color.neutral
         }
     }
 }

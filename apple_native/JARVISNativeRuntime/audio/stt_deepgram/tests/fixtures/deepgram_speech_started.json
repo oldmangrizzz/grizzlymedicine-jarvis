@@ -1,0 +1,5 @@
+{
+  "type": "SpeechStarted",
+  "channel": [0, 1],
+  "timestamp": 0.08
+}

@@ -15,6 +15,8 @@ public struct CompanionEvent: Codable, Equatable, Sendable {
     public var deviceID: String?
     public var kind: String
     public var timestamp: TimeInterval?
+    public var personID: String?
+    public var memoryScopeID: String?
     public var focus: String?
     public var sleepFocus: Bool?
     public var charging: Bool?
@@ -41,6 +43,8 @@ public struct CompanionEvent: Codable, Equatable, Sendable {
         deviceID: String? = nil,
         kind: String = "state",
         timestamp: TimeInterval? = nil,
+        personID: String? = nil,
+        memoryScopeID: String? = nil,
         focus: String? = nil,
         sleepFocus: Bool? = nil,
         charging: Bool? = nil,
@@ -66,6 +70,8 @@ public struct CompanionEvent: Codable, Equatable, Sendable {
         self.deviceID = deviceID
         self.kind = kind
         self.timestamp = timestamp
+        self.personID = personID
+        self.memoryScopeID = memoryScopeID
         self.focus = focus
         self.sleepFocus = sleepFocus
         self.charging = charging
@@ -93,6 +99,8 @@ public struct CompanionEvent: Codable, Equatable, Sendable {
         case deviceID = "device_id"
         case kind
         case timestamp
+        case personID = "person_id"
+        case memoryScopeID = "memory_scope_id"
         case focus
         case sleepFocus = "sleep_focus"
         case charging

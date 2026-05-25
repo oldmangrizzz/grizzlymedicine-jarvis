@@ -1,0 +1,17 @@
+{
+  "type": "Metadata",
+  "transaction_key": "deprecated",
+  "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "created": "2026-05-24T01:33:00.000Z",
+  "duration": 0,
+  "channels": 1,
+  "models": ["nova-2-general"],
+  "model_info": {
+    "nova-2-general": {
+      "name": "nova-2-general",
+      "version": "2024-01-18.26916",
+      "arch": "nova-2"
+    }
+  }
+}

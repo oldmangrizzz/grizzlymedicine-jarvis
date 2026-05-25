@@ -13,6 +13,10 @@ public final class CompanionOnboardingViewModel: ObservableObject {
     @Published public var newPersonName: String = ""
     @Published public var newRelationship: String = ""
     @Published public var selectedRole: PersonRole = .spouse
+    @Published public var consentRecordedBy: String = "operator"
+    @Published public var consentConfirmed: Bool = false
+    @Published public var memoryScopeConfirmed: Bool = false
+    @Published public var evidenceExportConfirmed: Bool = false
     @Published public private(set) var lastMessage: String = ""
     @Published public private(set) var lastError: String = ""
 
@@ -29,18 +33,34 @@ public final class CompanionOnboardingViewModel: ObservableObject {
         evidence = state.evidence
     }
 
-    public func authorizePerson(consentedBy: String = "operator") async {
+    public var canAuthorizePerson: Bool {
+        !newPersonName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            consentConfirmed &&
+            memoryScopeConfirmed &&
+            evidenceExportConfirmed
+    }
+
+    public func authorizePerson(consentedBy: String? = nil) async {
         lastError = ""
         do {
             let person = try await store.authorizePerson(
                 displayName: newPersonName,
                 relationship: newRelationship,
                 role: selectedRole,
-                consentedBy: consentedBy,
-                consentScope: "voice enrollment status, paired Apple devices, companion context events, and evidence export"
+                consentCapture: ConsentCapture(
+                    grantedBy: consentedBy ?? consentRecordedBy,
+                    scope: consentScopeSummary(for: selectedRole),
+                    subjectConsentConfirmed: consentConfirmed,
+                    memorySeparationConfirmed: memoryScopeConfirmed,
+                    evidenceExportConfirmed: evidenceExportConfirmed,
+                    operatorAttestation: "Operator recorded explicit consent for selected observable companion signals."
+                )
             )
             newPersonName = ""
             newRelationship = ""
+            consentConfirmed = false
+            memoryScopeConfirmed = false
+            evidenceExportConfirmed = false
             lastMessage = "Authorized \(person.displayName) with memory scope \(person.memoryScopeID)."
             await refresh()
         } catch {
@@ -95,6 +115,11 @@ public final class CompanionOnboardingViewModel: ObservableObject {
             throw CompanionClientError.invalidBaseURL
         }
         return CompanionClient(configuration: CompanionConfiguration(baseURL: url, token: companionToken))
+    }
+
+    private func consentScopeSummary(for role: PersonRole) -> String {
+        let scope = PersonPermissionScope.defaults(for: role)
+        return "Role \(role.rawValue); permissions \(scope.permissions.map(\.rawValue).joined(separator: ",")); sources \(scope.allowedSources.joined(separator: ",")); exportable onboarding evidence."
     }
 }
 #endif

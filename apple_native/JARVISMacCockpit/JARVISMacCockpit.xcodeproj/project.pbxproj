@@ -1,0 +1,115 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+		1E219437413304E1996D52C9 /* JARVISMacCockpit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISMacCockpit.swift; sourceTree = "<group>"; };
+		93E3884B246BA9CB1220FDD4 /* MacCockpitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCockpitView.swift; sourceTree = "<group>"; };
+		60EEA7CCEAB3D0CB3683DA4F /* MacBrandSealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacBrandSealView.swift; sourceTree = "<group>"; };
+		13C7B141832FF631A0D10A20 /* NativeRuntimeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeRuntimeBridge.swift; sourceTree = "<group>"; };
+		5CDC0F485E7109F1235FBFB0 /* NativeVoiceCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeVoiceCapture.swift; sourceTree = "<group>"; };
+		32480A81E6A0A2FFAC6CFB6E /* NativeModelClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeModelClient.swift; sourceTree = "<group>"; };
+		69DF808ED6B1F1B32592E6A8 /* NativeConvexClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeConvexClient.swift; sourceTree = "<group>"; };
+		2C8CE918F4445563810B7D64 /* NativeConvexWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeConvexWorker.swift; sourceTree = "<group>"; };
+		B24EF65743C7B293EDF1EC65 /* NativeJSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJSONValue.swift; sourceTree = "<group>"; };
+		A0A7162C7E5DBDE0E1236D39 /* JARVISLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging/JARVISLog.swift; sourceTree = "<group>"; };
+		2E2C6F58B0686707BA0C1815 /* JARVISCertPinning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/JARVISCertPinning.swift; sourceTree = "<group>"; };
+		9068517C9CFFA828FE9435E1 /* SiriQuarantineGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Security/SiriQuarantineGuard.swift; sourceTree = "<group>"; };
+		6A1A4F60AD0230EC323E8771 /* native_runtime_core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NativeRuntimeModule/native_runtime_core.cpp; sourceTree = "<group>"; };
+		CD8385D320934AEA12474BA6 /* redacting_logger_core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NativeRuntimeModule/redacting_logger_core.cpp; sourceTree = "<group>"; };
+		0C9204E6B41580611374875C /* pins.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Networking/pins.plist; sourceTree = "<group>"; };
+		57AE6481E0EE7602A4566B2E /* JARVISMacCockpitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/JARVISMacCockpitTests/JARVISMacCockpitTests.swift; sourceTree = "<group>"; };
+		B64482ACDBB947E155C9073D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A4CCC5F0FFE852AFC47A5788 /* JARVISMacCockpit.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JARVISMacCockpit.entitlements; sourceTree = "<group>"; };
+		8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/JARVISMacCockpit.xcconfig; sourceTree = "<group>"; };
+		8953E668E85F8541E5F74A98 /* JARVISMacCockpit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JARVISMacCockpit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		97FDCB32742374E9587EBC0A /* JARVISMacCockpitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JARVISMacCockpitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		325268C30EDBEBE3B5AB2F7A /* JARVISMacCockpit.swift in Build */ = {isa = PBXBuildFile; fileRef = 1E219437413304E1996D52C9 /* JARVISMacCockpit.swift */; };
+		51EAC3BCD79D544D748122FC /* MacCockpitView.swift in Build */ = {isa = PBXBuildFile; fileRef = 93E3884B246BA9CB1220FDD4 /* MacCockpitView.swift */; };
+		75C190AB465A0F5B148B8A8C /* MacBrandSealView.swift in Build */ = {isa = PBXBuildFile; fileRef = 60EEA7CCEAB3D0CB3683DA4F /* MacBrandSealView.swift */; };
+		AEDEFEAD033475539473BCE4 /* NativeRuntimeBridge.swift in Build */ = {isa = PBXBuildFile; fileRef = 13C7B141832FF631A0D10A20 /* NativeRuntimeBridge.swift */; };
+		D65330E4D54C0920B6540CEE /* NativeVoiceCapture.swift in Build */ = {isa = PBXBuildFile; fileRef = 5CDC0F485E7109F1235FBFB0 /* NativeVoiceCapture.swift */; };
+		6CBFA681B4249936F70ECF74 /* NativeModelClient.swift in Build */ = {isa = PBXBuildFile; fileRef = 32480A81E6A0A2FFAC6CFB6E /* NativeModelClient.swift */; };
+		4B3F7288E8C93EEA3528D216 /* NativeConvexClient.swift in Build */ = {isa = PBXBuildFile; fileRef = 69DF808ED6B1F1B32592E6A8 /* NativeConvexClient.swift */; };
+		5B4F3730E330D01D3D165185 /* NativeConvexWorker.swift in Build */ = {isa = PBXBuildFile; fileRef = 2C8CE918F4445563810B7D64 /* NativeConvexWorker.swift */; };
+		133E5E166F56A711BAC9E7E4 /* NativeJSONValue.swift in Build */ = {isa = PBXBuildFile; fileRef = B24EF65743C7B293EDF1EC65 /* NativeJSONValue.swift */; };
+		42C79E3DF3A466A5AE8679B4 /* JARVISLog.swift in Build */ = {isa = PBXBuildFile; fileRef = A0A7162C7E5DBDE0E1236D39 /* JARVISLog.swift */; };
+		6DA530D57F5E8E1EF82862D3 /* JARVISCertPinning.swift in Build */ = {isa = PBXBuildFile; fileRef = 2E2C6F58B0686707BA0C1815 /* JARVISCertPinning.swift */; };
+		B1EE60110B4DC1080E8F4838 /* SiriQuarantineGuard.swift in Build */ = {isa = PBXBuildFile; fileRef = 9068517C9CFFA828FE9435E1 /* SiriQuarantineGuard.swift */; };
+		B6B13041C5D74B735530E0E9 /* native_runtime_core.cpp in Build */ = {isa = PBXBuildFile; fileRef = 6A1A4F60AD0230EC323E8771 /* native_runtime_core.cpp */; };
+		8DEA9F3D4031028674FE0372 /* redacting_logger_core.cpp in Build */ = {isa = PBXBuildFile; fileRef = CD8385D320934AEA12474BA6 /* redacting_logger_core.cpp */; };
+		CC315889DD4F19441FDB51FB /* pins.plist in Build */ = {isa = PBXBuildFile; fileRef = 0C9204E6B41580611374875C /* pins.plist */; };
+		00267AA08436B9C4B46AD436 /* JARVISMacCockpitTests.swift in Build */ = {isa = PBXBuildFile; fileRef = 57AE6481E0EE7602A4566B2E /* JARVISMacCockpitTests.swift */; };
+		24530C31C6CE7CC0C68613C0 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C4D79C63B0AAF0DD272974DA /* XCTest.framework */; };
+		C4D79C63B0AAF0DD272974DA /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		2B731CEFC6751AAE0EC69B98 = {isa = PBXGroup; children = (
+				1E219437413304E1996D52C9 /* JARVISMacCockpit.swift */,
+				93E3884B246BA9CB1220FDD4 /* MacCockpitView.swift */,
+				60EEA7CCEAB3D0CB3683DA4F /* MacBrandSealView.swift */,
+				13C7B141832FF631A0D10A20 /* NativeRuntimeBridge.swift */,
+				5CDC0F485E7109F1235FBFB0 /* NativeVoiceCapture.swift */,
+				32480A81E6A0A2FFAC6CFB6E /* NativeModelClient.swift */,
+				69DF808ED6B1F1B32592E6A8 /* NativeConvexClient.swift */,
+				2C8CE918F4445563810B7D64 /* NativeConvexWorker.swift */,
+				B24EF65743C7B293EDF1EC65 /* NativeJSONValue.swift */,
+				A0A7162C7E5DBDE0E1236D39 /* JARVISLog.swift */,
+				2E2C6F58B0686707BA0C1815 /* JARVISCertPinning.swift */,
+				9068517C9CFFA828FE9435E1 /* SiriQuarantineGuard.swift */,
+				6A1A4F60AD0230EC323E8771 /* native_runtime_core.cpp */,
+				CD8385D320934AEA12474BA6 /* redacting_logger_core.cpp */,
+				0C9204E6B41580611374875C /* pins.plist */,
+				57AE6481E0EE7602A4566B2E /* JARVISMacCockpitTests.swift */,
+				B64482ACDBB947E155C9073D /* Info.plist */,
+				A4CCC5F0FFE852AFC47A5788 /* JARVISMacCockpit.entitlements */,
+				8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */,
+				86024CAD1E83101D97359D73 /* Products */,
+			); sourceTree = "<group>"; };
+		86024CAD1E83101D97359D73 /* Products */ = {isa = PBXGroup; children = (
+				8953E668E85F8541E5F74A98 /* JARVISMacCockpit.app */,
+				97FDCB32742374E9587EBC0A /* JARVISMacCockpitTests.xctest */,
+			); name = Products; sourceTree = "<group>"; };
+		9C0CDACBCB11B5A73C0A33C6 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
+				325268C30EDBEBE3B5AB2F7A /* JARVISMacCockpit.swift in Sources */,
+				51EAC3BCD79D544D748122FC /* MacCockpitView.swift in Sources */,
+				75C190AB465A0F5B148B8A8C /* MacBrandSealView.swift in Sources */,
+				AEDEFEAD033475539473BCE4 /* NativeRuntimeBridge.swift in Sources */,
+				D65330E4D54C0920B6540CEE /* NativeVoiceCapture.swift in Sources */,
+				6CBFA681B4249936F70ECF74 /* NativeModelClient.swift in Sources */,
+				4B3F7288E8C93EEA3528D216 /* NativeConvexClient.swift in Sources */,
+				5B4F3730E330D01D3D165185 /* NativeConvexWorker.swift in Sources */,
+				133E5E166F56A711BAC9E7E4 /* NativeJSONValue.swift in Sources */,
+				42C79E3DF3A466A5AE8679B4 /* JARVISLog.swift in Sources */,
+				6DA530D57F5E8E1EF82862D3 /* JARVISCertPinning.swift in Sources */,
+				B1EE60110B4DC1080E8F4838 /* SiriQuarantineGuard.swift in Sources */,
+				B6B13041C5D74B735530E0E9 /* native_runtime_core.cpp in Sources */,
+				8DEA9F3D4031028674FE0372 /* redacting_logger_core.cpp in Sources */,
+			); runOnlyForDeploymentPostprocessing = 0; };
+		559034208AE29C96C45305E8 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (
+				CC315889DD4F19441FDB51FB /* pins.plist in Resources */,
+			); runOnlyForDeploymentPostprocessing = 0; };
+		91C73240995D03C9FE9DCEC1 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		7D1B0A44A57E4B61A9F0C201 /* Bundle runtime dylibs */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = (); name = "Bundle runtime dylibs"; outputPaths = ("$(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)/Contents/MacOS/libJARVISSecureEnclave.dylib", "$(TARGET_BUILD_DIR)/$(FULL_PRODUCT_NAME)/Contents/MacOS/libsodium.26.dylib"); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/bash; shellScript = "bash \"${SRCROOT}/tools/bundle_dylibs.sh\""; };
+		CC687EAC0A40BA68600C6802 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
+				00267AA08436B9C4B46AD436 /* JARVISMacCockpitTests.swift in Sources */,
+			); runOnlyForDeploymentPostprocessing = 0; };
+		F254C1196975440FD4DCE9FD = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (
+				24530C31C6CE7CC0C68613C0 /* XCTest.framework in Frameworks */,
+			); runOnlyForDeploymentPostprocessing = 0; };
+		12135613CE93203A2C467133 = {isa = PBXTargetDependency; target = 99889D60A11D60E2AA54819D /* JARVISMacCockpit */; targetProxy = BE195B3D9698233CD82E9F8B; };
+		BE195B3D9698233CD82E9F8B = {isa = PBXContainerItemProxy; containerPortal = 46F86FAA6BBF9AC94A7E4595; proxyType = 1; remoteGlobalIDString = 99889D60A11D60E2AA54819D; remoteInfo = JARVISMacCockpit; };
+		99889D60A11D60E2AA54819D /* JARVISMacCockpit */ = {isa = PBXNativeTarget; buildConfigurationList = 8F965A892E9E4784ADD5B68A; buildPhases = ( 9C0CDACBCB11B5A73C0A33C6, 91C73240995D03C9FE9DCEC1, 559034208AE29C96C45305E8, 7D1B0A44A57E4B61A9F0C201 ); buildRules = (); dependencies = (); name = JARVISMacCockpit; productName = JARVISMacCockpit; productReference = 8953E668E85F8541E5F74A98; productType = "com.apple.product-type.application"; };
+		124C588D1E4E0F457FAD7DFF /* JARVISMacCockpitTests */ = {isa = PBXNativeTarget; buildConfigurationList = 2BD1254260B3A4E09E52CC62; buildPhases = ( CC687EAC0A40BA68600C6802, F254C1196975440FD4DCE9FD ); buildRules = (); dependencies = ( 12135613CE93203A2C467133, ); name = JARVISMacCockpitTests; productName = JARVISMacCockpitTests; productReference = 97FDCB32742374E9587EBC0A; productType = "com.apple.product-type.bundle.unit-test"; };
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1500; LastUpgradeCheck = 1500; TargetAttributes = {99889D60A11D60E2AA54819D = {CreatedOnToolsVersion = 15.0;}; 124C588D1E4E0F457FAD7DFF = {CreatedOnToolsVersion = 15.0; TestTargetID = 99889D60A11D60E2AA54819D;}; }; }; buildConfigurationList = 1E2EF4F27A9C5D42CF8A02FE; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 2B731CEFC6751AAE0EC69B98; productRefGroup = 86024CAD1E83101D97359D73; projectDirPath = ""; projectRoot = ""; targets = ( 99889D60A11D60E2AA54819D, 124C588D1E4E0F457FAD7DFF ); };
+		FA9139DD8B03E3F922556BF8 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {}; name = Debug; };
+		72FB3ED29B4639D83EC5DB14 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {ENABLE_TESTABILITY = YES; PRODUCT_NAME = JARVISMacCockpit; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; }; name = Debug; };
+		5AB3A6BF84C2901E813939E6 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; PRODUCT_BUNDLE_IDENTIFIER = org.gmri.jarvis.cockpit.tests; PRODUCT_NAME = JARVISMacCockpitTests; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JARVISMacCockpit.app/Contents/MacOS/JARVISMacCockpit"; WRAPPER_EXTENSION = xctest; }; name = Debug; };
+		FFE2104CCFAB79205AC64460 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {}; name = Release; };
+		191734982F22ABEBB64A1AE0 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {ENABLE_TESTABILITY = YES; PRODUCT_NAME = JARVISMacCockpit; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; }; name = Release; };
+		54ECD3B736C66C8688F6C25B /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = 8A0F87D7A438AB3E5F72AD3B /* JARVISMacCockpit.xcconfig */; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; PRODUCT_BUNDLE_IDENTIFIER = org.gmri.jarvis.cockpit.tests; PRODUCT_NAME = JARVISMacCockpitTests; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JARVISMacCockpit.app/Contents/MacOS/JARVISMacCockpit"; WRAPPER_EXTENSION = xctest; }; name = Release; };
+		1E2EF4F27A9C5D42CF8A02FE = {isa = XCConfigurationList; buildConfigurations = ( FA9139DD8B03E3F922556BF8, FFE2104CCFAB79205AC64460 ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		8F965A892E9E4784ADD5B68A = {isa = XCConfigurationList; buildConfigurations = ( 72FB3ED29B4639D83EC5DB14, 191734982F22ABEBB64A1AE0 ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		2BD1254260B3A4E09E52CC62 = {isa = XCConfigurationList; buildConfigurations = ( 5AB3A6BF84C2901E813939E6, 54ECD3B736C66C8688F6C25B ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

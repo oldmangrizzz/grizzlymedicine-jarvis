@@ -30,9 +30,14 @@ public struct CompanionOnboardingView: View {
                             Text(role.rawValue).tag(role)
                         }
                     }
+                    TextField("Consent recorded by", text: $model.consentRecordedBy)
+                    Toggle("Consent confirmed for selected observable signals", isOn: $model.consentConfirmed)
+                    Toggle("Use a separate memory scope for this person", isOn: $model.memoryScopeConfirmed)
+                    Toggle("Allow exportable consent/device/voice evidence records", isOn: $model.evidenceExportConfirmed)
                     Button("Authorize with separated memory scope") {
                         Task { await model.authorizePerson() }
                     }
+                    .disabled(!model.canAuthorizePerson)
                 }
 
                 Section("Authorized people") {
@@ -100,6 +105,12 @@ private struct PersonRow: View {
 
             Text("Voice: \(voiceStatusText(person.voiceEnrollment))")
                 .font(.caption)
+            Text("Permissions: \(person.permissionScope.permissions.map(\.rawValue).joined(separator: ", "))")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text("Devices: \(person.devices.filter { $0.revokedAt == nil }.count)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
 
             HStack {
                 Button("Mark 3 voice samples") {
@@ -120,6 +131,8 @@ private struct PersonRow: View {
             return "consented, pending samples"
         case .samplesCapturedPendingModel(let sampleCount):
             return "\(sampleCount) samples captured, model pending"
+        case .modelEnrollmentBlocked(let sampleCount, let reason):
+            return "\(sampleCount) samples captured, model blocked: \(reason)"
         case .enrolled(let modelID):
             return "enrolled: \(modelID)"
         case .revoked:

@@ -14,6 +14,12 @@
       "source": "operator-authorized initial baseline"
     },
     {
+      "path": "_local_voice/operator_anchor.wav",
+      "sha256": "5f593755cae3cefe1d2a4eac2fd487768ab648ece7d1f6e6f033d502d0ec45e6",
+      "timestamp": "2026-05-24T03:30:02Z",
+      "source": "operator-authorized initial voice anchor baseline"
+    },
+    {
       "path": "apple_native/JARVISNativeRuntime/voice/tts/coreml/models/text_encoder.mlpackage/Data/com.apple.CoreML/model.mlmodel",
       "sha256": "943522822d98df217eaa897338a25f835b1283cacd6f7a6f256817ec8941336c",
       "timestamp": "2026-05-24T03:30:02Z",
@@ -33,9 +39,9 @@
     },
     {
       "path": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/gpt_decoder.onnx",
-      "sha256": "c2196dfac7c2a043a43d76f7bf92c51ddc5176454e79e0cf891099a3af98bcf0",
+      "sha256": "58610c1d9d7cb2e99e47522f7109b60b5b9f15b7696d2b2bc6ba63f767c9c288",
       "timestamp": "2026-05-24T03:30:02Z",
-      "source": "operator-authorized initial baseline"
+      "source": "export fix: causal FlowLM attention mask; canonical voice unchanged"
     },
     {
       "path": "apple_native/JARVISNativeRuntime/voice/tts/onnx/onnx_models/text_encoder.onnx",

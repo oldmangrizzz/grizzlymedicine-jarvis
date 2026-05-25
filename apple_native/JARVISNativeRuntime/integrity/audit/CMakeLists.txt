@@ -94,6 +94,7 @@ foreach(test_name
     test_audit_log
     test_audit_log_no_key_fail_closed
     test_tamper_detection
+    test_audit_hardening
 )
     add_executable(${test_name} tests/${test_name}.cpp)
     target_link_libraries(${test_name}

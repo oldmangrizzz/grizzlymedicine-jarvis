@@ -1,0 +1,36 @@
+{
+  "type": "Results",
+  "channel_index": [0, 1],
+  "duration": 1.44,
+  "start": 0.0,
+  "is_final": true,
+  "speech_final": true,
+  "channel": {
+    "alternatives": [
+      {
+        "transcript": "Ready. Online.",
+        "confidence": 0.9912,
+        "words": [
+          {
+            "word": "ready",
+            "punctuated_word": "Ready.",
+            "start": 0.08,
+            "end": 0.64,
+            "confidence": 0.9934,
+            "speaker": 0,
+            "speaker_confidence": 0.99
+          },
+          {
+            "word": "online",
+            "punctuated_word": "Online.",
+            "start": 0.72,
+            "end": 1.36,
+            "confidence": 0.9890,
+            "speaker": 0,
+            "speaker_confidence": 0.99
+          }
+        ]
+      }
+    ]
+  }
+}

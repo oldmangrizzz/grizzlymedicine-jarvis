@@ -17,11 +17,28 @@ final class WatchBridge: NSObject, ObservableObject {
     }
 
     func sendCheckIn(_ value: String) {
+        let device = WKInterfaceDevice.current()
+        device.isBatteryMonitoringEnabled = true
+        let battery = device.batteryLevel >= 0 ? String(Double(device.batteryLevel * 100.0)) : ""
+        let charging: String
+        switch device.batteryState {
+        case .charging, .full:
+            charging = "true"
+        case .unplugged:
+            charging = "false"
+        case .unknown:
+            charging = ""
+        @unknown default:
+            charging = ""
+        }
         send([
             "source": "apple_watch",
-            "device_id": WKInterfaceDevice.current().identifierForVendor?.uuidString ?? "apple-watch",
+            "device_id": device.identifierForVendor?.uuidString ?? "apple-watch",
             "check_in": value,
             "notes": "watchOS quick action",
+            "active": "true",
+            "battery": battery,
+            "charging": charging,
         ])
     }
 

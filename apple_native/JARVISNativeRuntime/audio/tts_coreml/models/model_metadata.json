@@ -1,0 +1,32 @@
+{
+  "architecture": "pocket-tts-2.1.0-kyutai",
+  "required_packages": [
+    "text_encoder.mlpackage",
+    "flow_decoder.mlpackage",
+    "mimi_decoder.mlpackage"
+  ],
+  "flow_lm": {
+    "num_layers": 6,
+    "d_model": 1024,
+    "num_heads": 16,
+    "head_dim": 64,
+    "ldim": 32,
+    "lsd_steps": 1,
+    "eos_threshold": -4.0,
+    "vocab_size": 4001
+  },
+  "mimi": {
+    "sample_rate": 24000,
+    "frame_rate": 12.5,
+    "inner_dim": 32
+  },
+  "voice_state": {
+    "path": "/Users/rbhanson/research/jarvis/_local_voice/jarvis_voice_state.safetensors",
+    "sha256_expected": "18c530633ea17c85b1b3dbf6c949579a08b1744ee391487b619c642bf35c1560"
+  },
+  "conversion": {
+    "tool": "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/audio/tts_coreml/tools/convert_coreml_native.py",
+    "coremltools": "9.0",
+    "torch": "2.12.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "endocrine": { "mode": "epsilon", "epsilon": 1e-15, "identity_critical": false },
+  "endocannabinoid": { "mode": "epsilon", "epsilon": 1e-15, "identity_critical": false },
+  "pheromind": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "swarm": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "HDC": { "mode": "recall_at_1", "minimum": 0.966, "identity_critical": false },
+  "BeliefStore": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "HMEM": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "SAGE": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "CUSUM": { "mode": "oracle_exact", "epsilon": 0.0, "identity_critical": false },
+  "CharacterValues": { "mode": "bit_exact", "epsilon": 0.0, "identity_critical": true }
+}

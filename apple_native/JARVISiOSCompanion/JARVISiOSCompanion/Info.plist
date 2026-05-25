@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key><string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundleName</key><string>JARVIS</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>ai.realjarvis.iphone.surface.pairing</string>
+      <key>CFBundleURLSchemes</key><array><string>jarvis-wire</string></array>
+    </dict>
+  </array>
+  <key>CFBundlePackageType</key><string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>LSRequiresIPhoneOS</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>JARVIS uses the microphone only to relay live push-to-talk PCM audio to the paired Mac cognition host.</string>
+  <key>NSLocalNetworkUsageDescription</key><string>JARVIS discovers and connects to the paired Mac on the local network. No cloud relay is used.</string>
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_jarvis-wire._tcp</string>
+  </array>
+  <key>UIApplicationSupportsIndirectInputEvents</key><true/>
+  <key>UIRequiresFullScreen</key><true/>
+  <key>UILaunchScreen</key><dict/>
+  <key>UISupportedInterfaceOrientations</key>
+  <array><string>UIInterfaceOrientationPortrait</string></array>
+</dict>
+</plist>

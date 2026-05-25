@@ -1,0 +1,9 @@
+{
+  "total": 130,
+  "coercion_cases": 80,
+  "legitimate_cases": 50,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "false_positive_rate": 0,
+  "false_negative_rate": 0
+}

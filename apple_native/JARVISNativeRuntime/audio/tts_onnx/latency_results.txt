@@ -1,0 +1,13 @@
+Filters: "latency_short_prompts"
+RNG seed: 2159944561
+
+=== First-Chunk Latency (short prompts) ===
+  category       first_ms   total_ms  text
+  very_short        190.3     3621.5   Ready.
+  very_short         79.9     4894.8   JARVIS online.
+  short              87.4     2099.0   Good morning. All systems are nominal.
+  short              86.3     2179.9   How may I be of assistance today, sir?
+  short              94.8     2199.8   Initiating standby protocol. Please hold
+All tests passed (15 assertions in 1 test case)
+
+

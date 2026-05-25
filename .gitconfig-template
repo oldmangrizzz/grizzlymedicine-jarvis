@@ -1,0 +1,66 @@
+# JARVIS Project — Git Signing Configuration Template
+# Operator: Robert "Grizzly" Hanson <me@grizzlymedicine.org>
+# DO NOT run these as --global without operator approval.
+# Apply to this repo only: git config <key> <value>  (no --global)
+# Or apply globally at your discretion: git config --global <key> <value>
+#
+# Requires git >= 2.34 (ships with macOS 13+; current: Apple Git-155 on this machine).
+# SSH signing is preferred over GPG: simpler key management, no gpg-agent, native to OpenSSH.
+#
+# --------------------------------------------------------------------------
+# STEP 1 — Generate a dedicated signing key (if you don't have one already)
+# --------------------------------------------------------------------------
+# ssh-keygen -t ed25519 -C "me@grizzlymedicine.org" -f ~/.ssh/jarvis_signing_key
+# This creates:
+#   ~/.ssh/jarvis_signing_key      (private — keep offline/in 1Password)
+#   ~/.ssh/jarvis_signing_key.pub  (public  — commit to repo as allowed_signers)
+#
+# --------------------------------------------------------------------------
+# STEP 2 — Configure this repository
+# --------------------------------------------------------------------------
+# Run from /Users/rbhanson/research/jarvis/:
+#
+#   git config commit.gpgsign       true
+#   git config gpg.format           ssh
+#   git config user.signingkey      ~/.ssh/jarvis_signing_key.pub
+#   git config user.name            "Robert \"Grizzly\" Hanson"
+#   git config user.email           me@grizzlymedicine.org
+#   git config gpg.ssh.allowedSignersFile .git/allowed_signers
+#
+# --------------------------------------------------------------------------
+# STEP 3 — Populate the allowed_signers file (see allowed_signers.template)
+# --------------------------------------------------------------------------
+#   cp .githooks/allowed_signers.template .git/allowed_signers
+#   # Then replace the placeholder public key with your actual key:
+#   echo "me@grizzlymedicine.org namespaces=\"git\" $(cat ~/.ssh/jarvis_signing_key.pub)" \
+#       > .git/allowed_signers
+#
+# The allowed_signers file is intentionally kept in .git/ (not committed) so
+# the private signing key identity isn't forced onto collaborators.  For CI
+# verification, provide a copy in the repo at SIGNING_ALLOWED_SIGNERS (see SIGNING.md).
+#
+# --------------------------------------------------------------------------
+# STEP 4 — Verify a commit
+# --------------------------------------------------------------------------
+#   git log --show-signature -1
+#   git verify-commit HEAD
+#
+# --------------------------------------------------------------------------
+# Equivalent .gitconfig snippet (for inclusion in ~/.gitconfig if desired)
+# --------------------------------------------------------------------------
+[user]
+	name  = Robert "Grizzly" Hanson
+	email = me@grizzlymedicine.org
+	signingkey = ~/.ssh/jarvis_signing_key.pub
+
+[commit]
+	gpgsign = true
+
+[tag]
+	gpgsign = true
+
+[gpg]
+	format = ssh
+
+[gpg "ssh"]
+	allowedSignersFile = ~/.config/jarvis/allowed_signers

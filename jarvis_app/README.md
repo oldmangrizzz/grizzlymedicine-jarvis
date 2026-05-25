@@ -1,123 +1,77 @@
-# JARVIS — desktop control app
+# JARVIS — native desktop cockpit
 
-A small Tauri (Rust core + native webview) cockpit. One window: a power button that
-brings the runtime online, and a control panel that drives it. No terminal once it's
-built — that's the point.
+The beta macOS cockpit is the Swift + C++ target in `apple_native/JARVISMacCockpit`.
+It is not the old Tauri/WebView wrapper.
 
-## What the power button does
+## Runtime ownership
 
-- **ON** — the Rust core mints a fresh token, spawns `jarvis_bridge.py` (which hosts the
-  live runtime) as a child process with that token in its environment, waits for `/state`
-  to answer, then lights the panel.
-- **OFF** — kills the child cleanly. Closing the window also kills it; no orphaned runtime.
+- Swift owns macOS lifecycle, UI, microphone permission/capture, model networking, and STT networking.
+- C++ owns runtime identity/state, field signals, turn preparation, and turn commit.
+- C++ emits a typed `JARVISUISpec` receipt (`JARVISRuntimeUISpecJSON`) for runtime status,
+  metric cards, field signals, action descriptors, and query descriptors.
+- Swift renders only registered native components (`runtimeStatus`, `metricCards`,
+  `fieldSignalList`, `actionList`) and rejects trusted HTML, JavaScript, WebView, or script
+  components.
+- UI actions carry HASP route, risk, authorization, audit event, and receipt metadata. Native HASP
+  dispatch returns receipts now; unimplemented adapters render or complete as blocked/refused.
+- Python may remain as reference/dev tooling only; it is not in the beta-critical runtime path.
+- Rust/Tauri, Web Speech, and native system-voice fallback are not part of the beta macOS runtime.
 
-The token never leaves the machine and is never shown — the app holds it and the bridge
-holds it, both on `127.0.0.1`.
-
-## The panel
-
-- **Internal state** — live cortisol / dopamine / adrenaline, endocannabinoid tone, and
-  field-signal count, polled from `/state` every 2s.
-- **Speak to JARVIS** — type or mic (on-device Web Speech); posts `/turn`, shows the reply,
-  speaks replies aloud when **Voice** is on, and can run a hands-free **Loop**:
-  listen → reply → listen again. **Sentry** mode requires the "JARVIS" wakeword;
-  **Live** mode sends every heard transcript.
-- **Actions** — Deliberate, Recall origin, Sense field (the SAFE skills), and Open XR surface
-  (launches `jarvis_xr.html` for Quest 3 / Viture / Apple AR).
-- **Activity** — a rolling log of everything the cockpit did.
-
-Voice output is hard-gated by the backend: live speech is **XTTS-v2 with the
-confirmed local JARVIS prompt WAV, or no speech**. There is no system voice,
-generic TTS, Chatterbox, or pocket-tts fallback path.
-
-## First run (one-time, requires the Rust toolchain)
+## Build and local receipt
 
 ```bash
-# 1. install Rust + the Tauri CLI (once)
-curl https://sh.rustup.rs -sSf | sh
-cargo install tauri-cli --version "^2"
-
-# 2. from the app folder
-cd ~/research/jarvis/jarvis_app/src-tauri
-cargo tauri dev      # runs it live
+cd ~/research/jarvis/apple_native
+xcodegen generate
+xcodebuild -project JARVISCompanionApps.xcodeproj -scheme JARVISNativeRuntimeReceipt -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project JARVISCompanionApps.xcodeproj -scheme JARVISNativeHTTPServiceReceipt -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project JARVISCompanionApps.xcodeproj -scheme JARVISMacCockpit -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-To produce a double-clickable `JARVIS.app` you launch from Finder forever after:
+The `JARVISNativeRuntimeReceipt` command-line target exercises C++ runtime
+create/state/catalog/UI-spec/prepare/commit plus HASP SAFE dispatch,
+authorization-required, blocked-adapter, PROHIBITED/refused, and audit receipts
+locally without model or STT network calls.
+The `JARVISNativeHTTPServiceReceipt` target starts the Swift `Network`
+listener and verifies `/state`, `/companion/skills`, `/companion/turn`,
+blocked `/companion/speech`, and explicit `/companion/transcribe` missing-audio
+receipts without Python or Tauri.
 
-```bash
-cargo tauri icon ~/path/to/a/1024x1024.png   # once, generates app icons
-cargo tauri build                            # outputs target/release/bundle/macos/JARVIS.app
-```
+## Native knobs
 
-## Assumptions / knobs
+- `JARVIS_NATIVE_MODEL` selects the requested chat model; default is `glm-5.1`.
+- `JARVIS_NATIVE_AUTH_CODE` or `JARVIS_AUTH_CODE` gates native SENSITIVE and
+  DESTRUCTIVE skill dispatch. `*_SHA256` variants are accepted when CommonCrypto
+  is available. Convex/app queues never carry the private code.
+- `JARVIS_NATIVE_MODEL_BASE` selects the native chat endpoint; `OLLAMA_BASE_URL`
+  is accepted as a compatibility alias. Default is `https://ollama.com`.
+- `OLLAMA_API_KEY` is sent as a bearer token when present.
+- `DEEPGRAM_API_KEY` enables native STT; `JARVIS_NATIVE_STT_MODEL` defaults to `nova-3`.
+- `JARVIS_NATIVE_SERVICE_HOST` and `JARVIS_NATIVE_SERVICE_PORT` select the local
+  Swift HTTP listener; defaults are `127.0.0.1:8788`.
+- `JARVIS_RUNTIME_COMPANION_TOKEN` (or `JARVIS_NATIVE_SERVICE_TOKEN`) gates
+  `/companion/*` routes with `X-JARVIS-Companion-Token`.
+- Native speech is **JARVIS voice or silence**. `JARVIS_NATIVE_VOICE_BACKEND`,
+  `JARVIS_NATIVE_VOICE_ID`, and `JARVIS_NATIVE_VOICE_CONFIRMED=1` identify a
+  future native JARVIS voice, but the current beta still reports
+  `voice_unavailable` until a real native synthesis backend is linked.
+- Convex app routes require `JARVIS_RUNTIME_KIND=native` before they will forward
+  `/app/realtime-turn`, `/app/speech`, or `/app/transcribe` to
+  `JARVIS_RUNTIME_PUBLIC_URL` with `JARVIS_RUNTIME_COMPANION_TOKEN`. Point that
+  URL at the Swift service (or an operator-owned tunnel to it), not Python.
+- Voice recordings are bounded and stored under the app's Application Support
+  recording directory only long enough to read the captured bytes, then removed.
 
-- Expects the runtime at `~/research/jarvis/_baseline/`. Override with the `JARVIS_BASELINE`
-  env var if it moves.
-- Calls `~/research/jarvis/.venv/bin/python` by default so GUI launches do not fall back
-  to Apple's Python 3.9. Override with `JARVIS_PYTHON` if needed. That interpreter needs
-  the runtime's deps and the repo `.env` (Ollama-cloud / Deepgram / Cloudflare / Convex
-  keys) already in place.
-- Bridge port is `8787`.
-- Convex is the realtime spine when `CONVEX_URL` and `JARVIS_CONVEX_REALTIME_TOKEN`
-  are configured. The bridge publishes runtime, TTS, ambient, turn, and skill-result
-  state to Convex and consumes queued `controlRequests` through HASP. Private
-  authorization codes are never stored in Convex.
-- TestFlight companions self-register to Convex through `https://fleet-goose-114.convex.site`;
-  testers do not enter a pairing code, laptop IP, or Mac bridge token.
-- TestFlight build `1.0 (17)` makes JARVIS the first surface: orb-driven voice capture,
-  immediate device actions for web/video/music/maps/Shortcuts where iOS allows them, a
-  blocking realtime JARVIS reply path through Convex, watch-to-phone command relay, and
-  HealthKit-backed observable context/EMS briefing. It adds GMRI crest branding, personal
-  highlight color selection, a plain trusted-people surface, and JARVIS-voice WAV playback
-  for spoken confirmations. The mic button records bounded audio and sends it through the
-  authenticated JARVIS runtime transcription path; it does not invoke Apple's Speech framework.
-  It does not present a queued chat UX and does not fall back to the native iOS system voice.
-  It self-registers with Convex on launch; a tester should not need a pairing code or setup screen.
-- Voice input/output uses macOS's selected microphone and output device. In clamshell mode, pair the
-  hearing aids with the Mac and select them under macOS Sound/Input; the cockpit will use that device
-  until iOS/watchOS clients exist.
-- Verbal comms controls: "Jarvis live mode", "sentry mode", "stop listening", "voice off",
-  and "voice on".
-- Xcode's Locally Hosted model provider should use port `1234`, description `jarvis`.
-  That is a separate JARVIS provider port, not Ollama's `11434` and not the cockpit bridge's `8787`.
-- From Xcode chat, execution is explicit only: `/skills`, `/state`, `/skill <name> {"arg":"value"}`,
-  `/paper ...`, `/teach skill ...`, `/save skill ...`, or `/gtp ...`. Sensitive/destructive
-  skills require `auth: <private code>` on its own line.
-- In the cockpit, sensitive/destructive `/skill` refusals trigger spoken authorization: JARVIS speaks
-  the challenge, listens through Web Speech/accessibility speech recognition, then retries with the
-  transcribed private code. The raw code is not logged.
-- New recipe skills can be taught without Python edits:
-  `/teach skill <name>` drafts and validates; `/save skill <name>` plus `auth: <private code>`
-  persists it under `_baseline/skills.d/` and live-loads it.
-- Skill gates can evolve without Python edits: `skill_gate_status`, `skill_gate_set`, and
-  `skill_gate_clear` persist overrides in `_baseline/skill_gates.json`; changing gates requires auth.
-- Apple capability skills are registered for Calendar, Reminders, Notes, Shortcuts/HomeKit, and
-  CloudKit. First live use may trigger macOS privacy prompts for the corresponding apps/services.
-- Email skills are registered for Mail.app, generic IMAP/SMTP, and Gmail REST. Reads/searches are
-  ordinary skills; drafts are WRITE; send/move/Gmail mutation require auth; delete/trash is
-  destructive-gated. Gmail login uses browser OAuth: say "Jarvis connect Gmail", authorize the
-  `gmail_oauth_connect` skill, then use Google's login page with Apple Passwords/passkey/autofill.
-  JARVIS stores OAuth tokens in macOS Keychain and never receives the Google password. Env-token
-  deployments can still use `JARVIS_GMAIL_ACCESS_TOKEN` / `JARVIS_GMAIL_REFRESH_TOKEN`.
-- YouTube and YouTube Music skills are registered for status, search/open, and browser now-playing
-  context. Search/open requires auth because it moves the browser/audio environment.
-- People introductions are built in: say "Jarvis introduce yourself to my wife <name>",
-  "Jarvis this is my daughter <name>", or "Jarvis meet <name>". JARVIS stores the profile in
-  `_baseline/people.json`; voice recognition remains pending until raw-audio enrollment exists.
-- The reusable iOS/watchOS companion package lives in `~/research/jarvis/apple_companion`.
-  It provides onboarding, Keychain token storage, companion event DTOs, app turn/skill
-  control DTOs, per-person memory scopes, evidence records, and the ARKit-native spatial
-  surface scaffold so iOS holographic/spatial interaction does not depend on a DOM/WebView
-  model.
-- The generated Xcode project lives in `~/research/jarvis/apple_native/JARVISCompanionApps.xcodeproj`.
-  It contains `JARVISCompanionApp` (iOS) and `JARVISWatchApp` (watchOS) targets with setup,
-  people onboarding, real microphone sample capture for voice registration, native ARKit
-  spatial status, watch quick check-ins, voice-first device control, HealthKit/EMS context,
-  and realtime JARVIS replies. App Store Connect build `1.0 (17)` is signed, uploaded,
-  marked valid, includes the embedded watchOS app, and is assigned to the Internal Testers
-  TestFlight group. Its setup path is cloud self-registration, not a pairing code or Mac bridge URL/token.
-- Paper-reading mode is available from Xcode chat: `/paper load <path>`, `/paper aloud 12`,
-  `hold up`, `/paper discuss <question>`, `/paper mark <note>`, and `/paper summary`.
-- GTP-SDK drafting is available from Xcode chat as an explicit operator-voice translation layer,
-  not JARVIS's ambient voice: `/gtp status`, `/gtp draft`, `/gtp review <draft>`, or a clear
-  trigger like "write this in my voice".
+## Native local service surface
+
+The macOS cockpit starts a Swift/Foundation/Network HTTP service backed by
+`NativeRuntimeBridge`: `GET /state`, `GET /skills`, `GET /companion/skills`,
+`POST /companion/turn`, `POST /companion/transcribe`, `GET|POST /companion/speech`,
+and `POST /companion/skill`. Unavailable model/STT/voice/skill-adapter paths
+return `ok:false` blocked or unavailable receipts; they do not fake success.
+
+## Archived Tauri/WebView path
+
+`jarvis_app/src-tauri` and the old Python bridge notes are retained only as
+legacy reference while the native replacement is completed. They are not the
+operator first-run path and should not be used to validate the beta macOS
+runtime.

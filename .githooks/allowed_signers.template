@@ -1,0 +1,19 @@
+# Allowed Signers Template
+# ---------------------------------------------------------------------------
+# This file is the TEMPLATE for .git/allowed_signers
+#
+# Usage:
+#   1. Copy to .git/allowed_signers (git-local, not committed)
+#   2. Replace the placeholder public key with your actual SSH public key
+#   3. Reference it: git config gpg.ssh.allowedSignersFile .git/allowed_signers
+#
+# For CI verification, a copy may be kept at .github/SIGNING_ALLOWED_SIGNERS
+#
+# Format: <email> namespaces="git" <key-type> <public-key> [<comment>]
+# ---------------------------------------------------------------------------
+
+# Operator: Robert "Grizzly" Hanson
+# Replace REPLACE_WITH_YOUR_SSH_PUBLIC_KEY_CONTENT with the output of:
+#   cat ~/.ssh/jarvis_signing_key.pub
+#
+me@grizzlymedicine.org namespaces="git" REPLACE_WITH_YOUR_SSH_PUBLIC_KEY_CONTENT

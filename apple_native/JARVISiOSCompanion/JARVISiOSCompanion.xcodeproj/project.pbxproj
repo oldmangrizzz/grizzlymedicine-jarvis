@@ -1,0 +1,516 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		116A27AFD951C168994E0D68 /* WireNetworking.swift in Sources */ = {isa = PBXBuildFile; fileRef = A426B15D17F66BD121BDBE49 /* WireNetworking.swift */; };
+		22FBE801F26B7FA730B44FE8 /* PairingSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 774CCD3931061EA26BCBD82D /* PairingSupport.swift */; };
+		2C81CA4F53C48715E4742773 /* CompanionRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 435111BE8AFBD4F59D142BD1 /* CompanionRootView.swift */; };
+		3CE2DF9A0710D0B20709F29A /* AudioSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCADA044D98053EC8A08A36F /* AudioSurface.swift */; };
+		5013B94326CC0C8B9B456030 /* CompanionAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */; };
+		74F9312D733D62637EDC08AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */; };
+		88D7B861E1F24E57BE953649 /* JARVISiOSCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE9F5611A6B70CA946AA051 /* JARVISiOSCompanionApp.swift */; };
+		990F31545CE314D12A307E08 /* JARVISWire in Frameworks */ = {isa = PBXBuildFile; productRef = 42D3F7F8893966A3CA8E180C /* JARVISWire */; };
+		9BD45336D72CACD087B24AF1 /* SecurityAndNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED8BFC20094F8D36DA30BD3 /* SecurityAndNotifications.swift */; };
+		AC0D15839E9642093AD341B7 /* JARVISWire in Frameworks */ = {isa = PBXBuildFile; productRef = 9B3FBCB295067AD0DF6A9AB9 /* JARVISWire */; };
+		EA52C928D3D2EFD2FF201F4C /* JARVISiOSCompanionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242915D82708866D814A4E1C /* JARVISiOSCompanionTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7AD9565356697A3B31659062 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA7EE07FF40AD39866661CCA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2FA595F4D9FF585FF9E7B276;
+			remoteInfo = JARVISiOSCompanion;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		02CF2F9E5E114CA6273D3CF5 /* wire */ = {isa = PBXFileReference; lastKnownFileType = folder; name = wire; path = ../wire; sourceTree = SOURCE_ROOT; };
+		242915D82708866D814A4E1C /* JARVISiOSCompanionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISiOSCompanionTests.swift; sourceTree = "<group>"; };
+		38A7955CA7F071A7C37DDBE7 /* JARVISiOSCompanion.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JARVISiOSCompanion.entitlements; sourceTree = "<group>"; };
+		435111BE8AFBD4F59D142BD1 /* CompanionRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionRootView.swift; sourceTree = "<group>"; };
+		6C3181E04D7834C3EFD537FE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7281B0B51B7CF4C46EFE2091 /* JARVISiOSCompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = JARVISiOSCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		774CCD3931061EA26BCBD82D /* PairingSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingSupport.swift; sourceTree = "<group>"; };
+		7A04E26028E8CE402400AA59 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7AE9F5611A6B70CA946AA051 /* JARVISiOSCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JARVISiOSCompanionApp.swift; sourceTree = "<group>"; };
+		9EB42DAE4E52CE2B9561CC89 /* JARVISiOSCompanionTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = JARVISiOSCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A426B15D17F66BD121BDBE49 /* WireNetworking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireNetworking.swift; sourceTree = "<group>"; };
+		B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionAppModel.swift; sourceTree = "<group>"; };
+		CED8BFC20094F8D36DA30BD3 /* SecurityAndNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityAndNotifications.swift; sourceTree = "<group>"; };
+		FCADA044D98053EC8A08A36F /* AudioSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSurface.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		82570E3B864AD6FF079A0610 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC0D15839E9642093AD341B7 /* JARVISWire in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9A84091032EFE854D280509 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				990F31545CE314D12A307E08 /* JARVISWire in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		277BF958CBDCD352221C2E6E /* JARVISiOSCompanion */ = {
+			isa = PBXGroup;
+			children = (
+				B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */,
+				FCADA044D98053EC8A08A36F /* AudioSurface.swift */,
+				B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */,
+				435111BE8AFBD4F59D142BD1 /* CompanionRootView.swift */,
+				6C3181E04D7834C3EFD537FE /* Info.plist */,
+				38A7955CA7F071A7C37DDBE7 /* JARVISiOSCompanion.entitlements */,
+				7AE9F5611A6B70CA946AA051 /* JARVISiOSCompanionApp.swift */,
+				774CCD3931061EA26BCBD82D /* PairingSupport.swift */,
+				CED8BFC20094F8D36DA30BD3 /* SecurityAndNotifications.swift */,
+				A426B15D17F66BD121BDBE49 /* WireNetworking.swift */,
+			);
+			path = JARVISiOSCompanion;
+			sourceTree = "<group>";
+		};
+		70FB89A127608D76DBB079C2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7281B0B51B7CF4C46EFE2091 /* JARVISiOSCompanion.app */,
+				9EB42DAE4E52CE2B9561CC89 /* JARVISiOSCompanionTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		92A3C6C877D80E1AC8538598 = {
+			isa = PBXGroup;
+			children = (
+				277BF958CBDCD352221C2E6E /* JARVISiOSCompanion */,
+				CFF336700C31BE602A8CB0D6 /* JARVISiOSCompanionTests */,
+				E0135F0553A0C21EE1779CD3 /* Packages */,
+				70FB89A127608D76DBB079C2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CFF336700C31BE602A8CB0D6 /* JARVISiOSCompanionTests */ = {
+			isa = PBXGroup;
+			children = (
+				7A04E26028E8CE402400AA59 /* Info.plist */,
+				242915D82708866D814A4E1C /* JARVISiOSCompanionTests.swift */,
+			);
+			name = JARVISiOSCompanionTests;
+			path = Tests/JARVISiOSCompanionTests;
+			sourceTree = "<group>";
+		};
+		E0135F0553A0C21EE1779CD3 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				02CF2F9E5E114CA6273D3CF5 /* wire */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2FA595F4D9FF585FF9E7B276 /* JARVISiOSCompanion */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7FF195F430DA0D8493B83D3 /* Build configuration list for PBXNativeTarget "JARVISiOSCompanion" */;
+			buildPhases = (
+				FC819B4C5C491B43DE9CA70E /* Sources */,
+				BB3CB98F356576BCD6B44597 /* Resources */,
+				82570E3B864AD6FF079A0610 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JARVISiOSCompanion;
+			packageProductDependencies = (
+				9B3FBCB295067AD0DF6A9AB9 /* JARVISWire */,
+			);
+			productName = JARVISiOSCompanion;
+			productReference = 7281B0B51B7CF4C46EFE2091 /* JARVISiOSCompanion.app */;
+			productType = "com.apple.product-type.application";
+		};
+		3C7D51CB544B417708014DEA /* JARVISiOSCompanionTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F1E6CA51A63F47A622D0AA2D /* Build configuration list for PBXNativeTarget "JARVISiOSCompanionTests" */;
+			buildPhases = (
+				AD91245BC4F25EC7A5489CB1 /* Sources */,
+				F9A84091032EFE854D280509 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1E86B272CB0DB2FEA3B2CAC7 /* PBXTargetDependency */,
+			);
+			name = JARVISiOSCompanionTests;
+			packageProductDependencies = (
+				42D3F7F8893966A3CA8E180C /* JARVISWire */,
+			);
+			productName = JARVISiOSCompanionTests;
+			productReference = 9EB42DAE4E52CE2B9561CC89 /* JARVISiOSCompanionTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA7EE07FF40AD39866661CCA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					2FA595F4D9FF585FF9E7B276 = {
+						ProvisioningStyle = Automatic;
+					};
+					3C7D51CB544B417708014DEA = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 09BF14C14B1F7B5DAA8F09AE /* Build configuration list for PBXProject "JARVISiOSCompanion" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 92A3C6C877D80E1AC8538598;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DB7BAC810459E02288C2982F /* XCLocalSwiftPackageReference "../wire" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 70FB89A127608D76DBB079C2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2FA595F4D9FF585FF9E7B276 /* JARVISiOSCompanion */,
+				3C7D51CB544B417708014DEA /* JARVISiOSCompanionTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB3CB98F356576BCD6B44597 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				74F9312D733D62637EDC08AD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AD91245BC4F25EC7A5489CB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA52C928D3D2EFD2FF201F4C /* JARVISiOSCompanionTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC819B4C5C491B43DE9CA70E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3CE2DF9A0710D0B20709F29A /* AudioSurface.swift in Sources */,
+				5013B94326CC0C8B9B456030 /* CompanionAppModel.swift in Sources */,
+				2C81CA4F53C48715E4742773 /* CompanionRootView.swift in Sources */,
+				88D7B861E1F24E57BE953649 /* JARVISiOSCompanionApp.swift in Sources */,
+				22FBE801F26B7FA730B44FE8 /* PairingSupport.swift in Sources */,
+				9BD45336D72CACD087B24AF1 /* SecurityAndNotifications.swift in Sources */,
+				116A27AFD951C168994E0D68 /* WireNetworking.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1E86B272CB0DB2FEA3B2CAC7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2FA595F4D9FF585FF9E7B276 /* JARVISiOSCompanion */;
+			targetProxy = 7AD9565356697A3B31659062 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		426088A7EA0F06FB5A72CA84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = Tests/JARVISiOSCompanionTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ai.realjarvis.iphone.surface.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JARVIS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/JARVIS";
+			};
+			name = Debug;
+		};
+		745C4284901CE46349ED3496 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A34DFE0C8ACFEE936A6FBDA0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = Tests/JARVISiOSCompanionTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ai.realjarvis.iphone.surface.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JARVIS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/JARVIS";
+			};
+			name = Release;
+		};
+		D5D8F7D5D1EB8195C4E83027 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = JARVISiOSCompanion/JARVISiOSCompanion.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_TESTABILITY = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1 $(inherited)";
+				INFOPLIST_FILE = JARVISiOSCompanion/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.realjarvis.iphone.surface;
+				PRODUCT_MODULE_NAME = JARVISiOSCompanion;
+				PRODUCT_NAME = JARVIS;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = Debug;
+		};
+		F3C795130843EE36D776ED14 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = JARVISiOSCompanion/JARVISiOSCompanion.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_TESTABILITY = YES;
+				INFOPLIST_FILE = JARVISiOSCompanion/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.realjarvis.iphone.surface;
+				PRODUCT_MODULE_NAME = JARVISiOSCompanion;
+				PRODUCT_NAME = JARVIS;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = Release;
+		};
+		F4FC27B9217307065C0384CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		09BF14C14B1F7B5DAA8F09AE /* Build configuration list for PBXProject "JARVISiOSCompanion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				745C4284901CE46349ED3496 /* Debug */,
+				F4FC27B9217307065C0384CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D7FF195F430DA0D8493B83D3 /* Build configuration list for PBXNativeTarget "JARVISiOSCompanion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D5D8F7D5D1EB8195C4E83027 /* Debug */,
+				F3C795130843EE36D776ED14 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F1E6CA51A63F47A622D0AA2D /* Build configuration list for PBXNativeTarget "JARVISiOSCompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				426088A7EA0F06FB5A72CA84 /* Debug */,
+				A34DFE0C8ACFEE936A6FBDA0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		DB7BAC810459E02288C2982F /* XCLocalSwiftPackageReference "../wire" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../wire;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		42D3F7F8893966A3CA8E180C /* JARVISWire */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = JARVISWire;
+		};
+		9B3FBCB295067AD0DF6A9AB9 /* JARVISWire */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = JARVISWire;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AA7EE07FF40AD39866661CCA /* Project object */;
+}

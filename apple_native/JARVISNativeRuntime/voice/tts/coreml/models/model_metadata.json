@@ -1,0 +1,34 @@
+{
+  "architecture": "pocket-tts-2.1.0-kyutai",
+  "flow_lm": {
+    "num_layers": 6,
+    "d_model": 1024,
+    "num_heads": 64,
+    "head_dim": 64,
+    "ldim": 32,
+    "lsd_steps": 4,
+    "vocab_size": 4001
+  },
+  "mimi": {
+    "sample_rate": 24000,
+    "frame_rate": 12.5,
+    "inner_dim": 32,
+    "outer_dim": 512,
+    "upsample_stride": 16
+  },
+  "voice_state": {
+    "path": "/Users/rbhanson/research/jarvis/_local_voice/jarvis_voice_state.safetensors",
+    "num_layers": 6,
+    "seq_len": 939
+  },
+  "tokenizer": {
+    "type": "sentencepiece",
+    "path": "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/coreml/models/tokenizer.model",
+    "n_bins": 4000
+  },
+  "synth_config": {
+    "seed": 42,
+    "temperature": 0.75,
+    "sample_rate": 24000
+  }
+}

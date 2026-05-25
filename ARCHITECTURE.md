@@ -3,7 +3,31 @@
 **Status:** living document, current as of 2026-05-23 review pass. Maps every module to the
 condition/layer it serves, the data flow, and the test that proves it. Read this first.
 
+**Native-beta audit note:** this document still contains legacy Python/Tauri runtime receipts. Those receipts are reference/dev evidence only for the native beta. Beta-critical cockpit work must run through `apple_native/JARVISMacCockpit` and `apple_native/JARVISNativeRuntime`, with Python/Rust/Tauri/Web Speech/native system voice kept out of the shipping path.
+
 GMRI / Earth-1218. Operator: Robert "Grizzly" Hanson. Private repo.
+
+---
+
+## 0. No-Python beta runtime overlay
+
+The beta-critical path is **Swift macOS cockpit + C++ runtime core**, not the Python
+reference stack. Python remains only as historical/reference/dev tooling until native
+adapters replace it.
+
+| Surface | Beta state | Exact refs |
+|---------|------------|------------|
+| Runtime core + turn contract | Native C++ owns state, turn preparation/commit, field signal shape, and the native skill-risk catalog. State reports `python_beta_path:false`. | `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.h:12-15`; `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp:217-260,372-378,415-425` |
+| Native generative UI spec | C++ emits typed `JARVISUISpec` JSON for runtime status, metric cards, field signals, HASP action descriptors, SAFE query descriptors, renderer policy, and provenance. Swift parses it into typed models, validates the native registry, rejects trusted HTML/JS/WebView/script components, and renders registered native components only. | `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.h`; `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp`; `apple_native/JARVISMacCockpit/NativeRuntimeBridge.swift`; `apple_native/JARVISMacCockpit/MacCockpitView.swift` |
+| macOS cockpit | Native Swift owns UI, mic recording, Deepgram STT call, model call, and C++ runtime bridge. It explicitly does not spawn `jarvis_bridge.py`, call Tauri, use Web Speech, or fall back to system voice. | `apple_native/JARVISMacCockpit/MacCockpitView.swift:48,63,272-279`; `apple_native/JARVISMacCockpit/NativeVoiceCapture.swift:170-205`; `apple_native/JARVISMacCockpit/NativeModelClient.swift:20-52` |
+| Native local HTTP service | The macOS cockpit starts a Swift/Foundation/Network listener for `/state`, `/skills`, `/companion/skills`, `/companion/turn`, `/companion/transcribe`, `/companion/speech`, and `/companion/skill`. Companion routes require `X-JARVIS-Companion-Token`; unavailable model/STT/voice/adapter paths return blocked/unavailable receipts, not fake success. | `apple_native/JARVISMacCockpitService/NativeRuntimeHTTPService.swift`; `apple_native/JARVISMacCockpitService/NativeRuntimeHTTPHandler.swift`; receipt: `apple_native/JARVISMacCockpitService/NativeRuntimeHTTPServiceReceipt.swift` |
+| Legacy Tauri bridge | Gated as legacy/dev-only; not beta. It spawns Python and calls the Python bridge. | `jarvis_app/src-tauri/src/main.rs:3-9,85-96,128-144`; `jarvis_app/src/main.js:1-3,94-123,424-459`; `jarvis_app/README.md` |
+| Legacy XR/Web Speech surface | Gated as legacy/dev-only; not beta voice/transcription/speech. | `_baseline/jarvis_xr.html:23-30,110-115` |
+| Convex blocking realtime app route | Must call a configured native runtime URL/token with `JARVIS_RUNTIME_KIND=native`. It no longer falls back to the legacy `controlRequests` queue for blocking `/app/realtime-turn`. | `convex/convex/http.ts:26-34,140-176,178-244` |
+| Convex queue + worker model | Native Swift owns the Convex realtime client/worker: publishes C++ runtime state + skill catalog, polls pending control requests, claims them, completes real native results, and refuses unavailable/unauthorized actions with audit receipts. `_baseline/convex_realtime.py` is reference only. | `apple_native/JARVISMacCockpit/NativeConvexClient.swift`; `apple_native/JARVISMacCockpit/NativeConvexWorker.swift`; `convex/convex/realtime.ts` |
+| Skill execution | Native C++ owns HASP risk registry, dispatch receipts, in-memory audit, SAFE runtime/catalog/sense-field execution, explicit SENSITIVE/DESTRUCTIVE authorization-required receipts, PROHIBITED refusal, and blocked receipts for missing adapters. Python is reference only. | `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.{h,cpp}`; receipt: `apple_native/JARVISNativeRuntime/JARVISNativeRuntimeReceipt.cpp`; legacy reference: `_baseline/skills.py` |
+| Memory/state publication | Native C++ state now carries consent/person memory separation, observable-signal boundaries, and provenance. Swift publishes that shape to Convex without Python; HoloGraph/person-memory persistence remains a separate native adapter. | Native state: `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp`; publisher: `apple_native/JARVISMacCockpit/NativeConvexWorker.swift`; legacy references: `_baseline/jarvis_loop.py`, `_baseline/convex_realtime.py` |
+| Speech output | JARVIS voice or no voice. Native state and speech receipts report `voice_unavailable`/`spoken:false` unless a real native JARVIS voice backend is linked; Python TTS, native system voices, Web Speech, and fake `spoken:true` are blocked. | `apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp`; `apple_native/JARVISMacCockpit/MacCockpitView.swift`; `convex/convex/http.ts`; legacy reference only: `_baseline/tts_pocket.py` |
 
 ---
 
@@ -31,6 +55,10 @@ the on-device/physical layers (see §9), not missing core conditions.
 ---
 
 ## 3. The organs (swappable parts) and their backends
+
+The table below describes the legacy/reference Python stack. For beta, §0 overrides it:
+any path that reaches these `_baseline/*.py` organs is dev/reference-only until replaced
+by native Swift/C++ adapters.
 
 | Organ | Module | Interface | Live backend | Verified |
 |-------|--------|-----------|--------------|----------|
@@ -66,17 +94,10 @@ legit-OSINT, `osascript`, named macOS app/keyboard/clipboard skills) + Apple cap
 (Mail.app, IMAP/SMTP, Gmail API, YouTube, YouTube Music) + runtime skills (`deliberate`,
 `recall_origin`, `sense_field`). Reached via `JarvisRuntime.skill(name, args, confirm)`.
 
-**Spatial UI + bridge (non-DOM).** `ui_spec.py` is the governed scene-spec validator — the surface
-may morph freely but every interactive node must bind to a *registered* skill (no raw HTML/script/
-unsafe URLs/unbound actions). `jarvis_bridge.py` is the localhost-only, token-gated server
-(`/turn`, `/skill` [guarded+code-authorized], `/skills`, `/state`, `/scene` [validated]) that exposes
-the runtime to the surfaces. The Tauri cockpit treats authorization as voice-first: when `/skill`
-returns `authorization_required`, it speaks the challenge, listens through Web Speech/accessibility
-speech recognition, and retries with the transcribed private code. The cockpit has two loop modes:
-**Sentry** requires the "JARVIS" wakeword before a transcript is sent, while **Live** sends every
-heard transcript. `jarvis_xr.html` is the holographic three.js surface — flat preview in any browser,
-**immersive on the Quest 3 (WebXR)**, head-tracked on the Viture glasses, AR on iPhone/iPad; voice
-in (Web Speech → `/turn`), voice out, endocrine "mood" tints the core, controls dispatch via `/skill`.
+**Spatial UI + bridge (legacy, non-beta).** `ui_spec.py` remains the governed scene-spec validator
+reference. `jarvis_bridge.py`, the Tauri cockpit, and `jarvis_xr.html` are legacy/dev-only because
+they rely on Python bridge/runtime, Web Speech, and browser/system speech. They must not be used as
+the beta runtime, beta transcription path, beta speech path, or beta skill execution path.
 
 **Xcode model provider.** Xcode's *Locally Hosted* provider talks to JARVIS on port `1234`
 (not Ollama's `11434` and not the cockpit bridge's `8787`). That provider exposes both
@@ -154,14 +175,14 @@ The companion app is also the phone/watch control edge. TestFlight builds self-r
 HTTP actions at `fleet-goose-114.convex.site` and receive a per-device token on first launch; testers do
 not enter a laptop IP address, Mac bridge token, or pairing code. The primary shipped surface is
 voice-first: spoken commands execute immediate local device actions for web/video/music/maps/Shortcuts
-where iOS permits them, or call `/app/realtime-turn` for a blocking live JARVIS reply. The Convex
-HTTP action can use a public runtime URL when configured, otherwise it creates a `jarvis_turn`
-`controlRequest` and blocks until `_baseline/convex_realtime.py` completes it through the same
-`JarvisRuntime.turn` used by the cockpit; timeout is surfaced as unavailable, not as queued chat.
-Local companion-token requests on `8788` remain a
-developer bridge for `/companion/turn`, `/companion/skills`, and `/companion/skill`. SAFE controls
-can run from the app queue, while SENSITIVE/DESTRUCTIVE Mac control still requires the private
-authorization code and stays audit-logged. There is no separate app-only execution bypass.
+where iOS permits them, or call `/app/realtime-turn` for a blocking live JARVIS reply. For beta,
+`/app/realtime-turn` must call a configured **native** runtime URL, companion token, and
+`JARVIS_RUNTIME_KIND=native`; it no longer
+uses the `controlRequests` queue as a blocking fallback because that fallback was completed by the
+Python realtime worker. Local companion-token requests on `8788` are native-service work, not the
+Python bridge. SAFE queued controls can run only through the native worker; unavailable adapters,
+SENSITIVE/DESTRUCTIVE Mac control without private authorization, and PROHIBITED actions complete as
+refused/authorization-required with audit receipts. There is no separate app-only execution bypass.
 
 The companion also includes HealthKit-backed observable context and an EMS-facing spoken briefing:
 authorized heart-rate/HRV/oxygen/step summaries are read as device signals and may be published as
@@ -173,15 +194,19 @@ context and directs responders to ordinary EMS assessment and Medical ID.
 `companionDevices`, and `pairingSessions`.
 All realtime functions in `convex/convex/realtime.ts` require `JARVIS_CONVEX_REALTIME_TOKEN`; the
 token is stored in local `.env` and in Convex env, not in source. `_baseline/convex_realtime.py`
-publishes bridge state, TTS status, ambient events, latest turns, skill results, and consumes queued
-`controlRequests` through `JarvisRuntime.turn` for app turns or `JarvisRuntime.skill` for skill
-requests. Convex never stores the private HASP authorization
+is now legacy/reference only. The native Swift worker publishes runtime state, the native skill
+catalog, worker status, and latest skill results, then consumes queued `controlRequests` through
+claim/complete semantics. Ambient events and TTS status still need native publisher adapters before
+those flows are beta-critical. Convex never stores the private HASP authorization
 code: SENSITIVE/DESTRUCTIVE queued controls complete as `authorization_required` and must be retried
-through the local token-gated bridge with the private code.
+through the native local token-gated service with the private code.
 
 ---
 
-## 5. Data flow of one turn (`JarvisRuntime.turn`, `jarvis_loop.py`)
+## 5. Legacy Python turn flow (`JarvisRuntime.turn`, `jarvis_loop.py`)
+
+This is reference behavior to port, not the beta turn path. The beta turn path uses
+`JARVISRuntimePrepareTurnJSON` → native Swift model client → `JARVISRuntimeCommitTurnJSON`.
 
 ```
 input (text or mic→Deepgram)
@@ -207,6 +232,10 @@ skills: JarvisRuntime.skill(name, args, confirm)        # guarded, audited dispa
 
 | Claim | Proof |
 |-------|-------|
+| Native beta runtime state/turn contract | `apple_native/JARVISNativeRuntime`: C++ state, prepare-turn, commit-turn C ABI; macOS cockpit bridges it from Swift |
+| Native UI spec parse/render path | `JARVISRuntimeUISpecJSON` emits the typed native UI spec; `JARVISNativeRuntimeReceipt` checks schema/components/HASP metadata/no trusted HTML/JS; the macOS cockpit compile validates Swift spec parsing and renderer switches |
+| Native skill risk catalog skeleton | `JARVISRuntimeSkillCatalogJSON`: C++ catalog with SAFE/SENSITIVE/DESTRUCTIVE/PROHIBITED risk classes and `python_beta_path:false` |
+| Convex blocking realtime no-Python gate | `convex/convex/http.ts`: `/app/realtime-turn`, `/app/speech`, and `/app/transcribe` require native runtime URL/token plus `JARVIS_RUNTIME_KIND=native` and do not fall back to the legacy Python-completed queue. `/app/speech` additionally returns structured `voice_unavailable` silence unless a native JARVIS voice backend is explicitly configured and rejects system/Python/fake-spoken speech payloads. |
 | Memory substrate sound | HoloGraph `pytest` — **153 passing** |
 | Emotional charge ≠ truth | `tests/test_charge.py` (default 0, round-trips, lowering charge leaves confidence/recall intact) |
 | A&Ox4 / provenance / values integrity | `jarvis_harness.py` scorecard 10/10 |
@@ -222,17 +251,17 @@ skills: JarvisRuntime.skill(name, args, confirm)        # guarded, audited dispa
 | Stigmergy dynamics | `stigmergy.py`: reinforce>fade, class decay, arousal speeds decay, quorum, 30-agent convergence + reroute |
 | Swarm mechanism | `swarm.py` stub (consensus + abstention) + live (deepseek+kimi → epinephrine) |
 | Convex backend | `convex_backend.py` offline (mock) + **live on `fleet-goose-114.convex.cloud`** |
-| Convex realtime spine | `convex/convex/realtime.ts` deployed; bad-token rejection, token-gated state publish/query, and control queue completion passed live smoke |
-| Skill layer guard | `skills.py`: SAFE/WRITE run, SENSITIVE/DESTRUCTIVE code-authorized, PROHIBITED refused even with authorization, audited |
-| Adjustable gates | `skills.py`: `skill_gate_status` / `skill_gate_set` / `skill_gate_clear`, persisted in `_baseline/skill_gates.json` |
-| Apple capabilities | `skills.py`: Calendar/Reminders/Notes read+add, Shortcuts/HomeKit bridge, CloudKit `cktool` bridge |
-| Email surfaces | `email_tools.py`: Mail.app, IMAP/SMTP, Gmail REST; send/move/delete gated |
-| Media surfaces | `media_tools.py`: YouTube/YouTube Music status, search/open, browser now-playing context |
+| Convex realtime spine | Native proof: Swift Convex client/worker publishes runtime + skill catalog, claims/completes queued controls, and refuses blocked/unavailable actions with audit receipts; ambient/TTS publishers still pending |
+| Skill layer guard | Native proof: `JARVISNativeRuntimeReceipt` exercises catalog, SAFE dispatch, authorization-required, blocked-adapter, PROHIBITED/refused, and audit receipts. Legacy Python remains reference for non-native adapters. |
+| Adjustable gates | Legacy proof: `skills.py`: `skill_gate_status` / `skill_gate_set` / `skill_gate_clear`, persisted in `_baseline/skill_gates.json`; native gate persistence still required |
+| Apple capabilities | Legacy proof: `skills.py`: Calendar/Reminders/Notes read+add, Shortcuts/HomeKit bridge, CloudKit `cktool` bridge; native adapters still required |
+| Email surfaces | Legacy proof: `email_tools.py`: Mail.app, IMAP/SMTP, Gmail REST; send/move/delete gated |
+| Media surfaces | Legacy proof: `media_tools.py`: YouTube/YouTube Music status, search/open, browser now-playing context |
 | Cold-root identity | `identity.py`: sign/verify, tamper + forged-sig rejected, wrong-passphrase fails, enclave-bind; attestation in repo verifies against canon |
-| Scene-spec governance | `ui_spec.py`: rejects unknown components, raw html/script/on*, unsafe URLs, unbound actions, depth bombs |
-| Bridge | `jarvis_bridge.py`: token-gated, localhost-only, /turn + /skill (guarded+code-authorized) + /scene (validated), OpenAI-compatible Xcode model provider, CORS |
-| Companion ingress + app control | `jarvis_bridge.py` self-test: malformed companion writes return 400, token-gated `/companion/turn`, `/companion/skills`, `/companion/skill`, SENSITIVE controls require auth |
-| TTS hard voice invariant | `tts_pocket.py`: XTTS-v2 confirmed JARVIS prompt WAV required; legacy backend constructors fail; wrong-voice fallback false |
+| Scene-spec governance | Legacy proof: `ui_spec.py`: rejects unknown components, raw html/script/on*, unsafe URLs, unbound actions, depth bombs |
+| Bridge | Legacy proof only: `jarvis_bridge.py`; not beta runtime/bridge |
+| Companion ingress + app control | Legacy proof only: `jarvis_bridge.py` self-test; native companion HTTP/IPC service still required |
+| TTS hard voice invariant | Legacy proof: `tts_pocket.py`; beta requires native XTTS/JARVIS-voice service or no speech |
 | Paper reading | `paper_session.py`: load PDF/text, cursor, aloud/pause/resume, discuss, mark, summarize |
 | GTP drafting | `gtp_sdk.py`: dormant explicit-only operator-voice drafting/review, not ambient JARVIS voice |
 | People memory | `jarvis_loop.py`: `person_introduce`, `people_list`, `person_profile`, persistent `_baseline/people.json` |
@@ -244,13 +273,16 @@ skills: JarvisRuntime.skill(name, args, confirm)        # guarded, audited dispa
 ## 7. The surfaces (one hologram, three windows)
 
 - **Interaction priority:** voice first, watch/haptic confirmation second, visual surface third,
-  touch last. The desktop/Tauri cockpit is a development/control surface, not the field UI. EMS use
+  touch last. The native Swift macOS cockpit is the beta desktop surface. The desktop/Tauri cockpit
+  is legacy/dev-only and not beta evidence. EMS use
   assumes gloved hands, noise, motion, and divided attention; command flow must work from earbuds
   plus a watch tap before it depends on a phone or DOM-style screen.
-- **Quest 3** — WebXR immersive: walk-around hologram, hand-select nodes. (`renderer.xr.enabled` + VR button.)
+- **Quest 3** — WebXR immersive reference exists, but the `_baseline/jarvis_xr.html` implementation is
+  legacy/dev-only until it talks to a native runtime service without Web Speech/system speech.
 - **Viture Luma Pro** — head-tracked display: the surface fills the glasses.
 - **iPhone 16 Pro / iPad M5** — AR via WebXR / model-viewer / USDZ.
-All three talk to the same `jarvis_bridge.py`; CAD models render natively in the scene (see §9).
+All three must talk to the same native runtime service for beta. `jarvis_bridge.py` remains
+reference/dev-only; CAD models render natively in the scene (see §9).
 
 ---
 
@@ -270,10 +302,23 @@ All three talk to the same `jarvis_bridge.py`; CAD models render natively in the
 
 ## 9. What is NOT done (no blank spots hidden)
 
+- **Native runtime public exposure/ops:** the Swift local service exists, but Convex
+  `/app/realtime-turn`, `/app/speech`, and `/app/transcribe` still require a reachable
+  `JARVIS_RUNTIME_PUBLIC_URL`, matching `JARVIS_RUNTIME_COMPANION_TOKEN`, and
+  `JARVIS_RUNTIME_KIND=native`. The Python bridge is not an accepted beta target.
+- **Native skill adapters beyond the safe core:** C++ now owns HASP registry, dispatch, authorization
+  gates, audit/provenance receipts, SAFE runtime/catalog/sense-field execution, and blocked/refused
+  receipts. Native adapters for memory recall, app control, shell, durable gate persistence, and other
+  real-world side effects still need implementation before those skills can run.
+- **Native memory/state persistence beyond Convex state:** C++ state carries memory/provenance and the
+  Swift worker publishes it to Convex. HoloGraph persistence, durable people memory, ambient events,
+  and TTS status still need native adapters.
+- **Native speech output:** no system voice fallback is allowed. Ship native XTTS/JARVIS-voice service
+  or ship silent.
 - **Secure-Enclave operational key:** the cold root is minted and verified; the per-machine
   enclave-bound daily key (`identity.py enclave-snippet`) is not yet generated on the Mac.
-- **On-device XR live verification:** the bridge is verified and `jarvis_xr.html` is syntax-clean,
-  but Enter-VR on the Quest is verified on the headset, not in the sandbox. Needs LAN IP + https for the headset.
+- **On-device XR live verification:** `jarvis_xr.html` is legacy/reference. A beta XR path needs
+  native-runtime transport and no Web Speech/system speech before headset verification matters.
 - **CAD + 3D-print pipeline (queued, #77):** parametric CAD organ (CadQuery/build123d → STL/glTF
   into the hologram) → slicer → printer control (physical, hard confirm-gate). Researched, not built.
 - **Swarm at full roster:** mechanism proven and live with 2 cloud models; scales to any subset of the Ollama cloud roster.
@@ -285,7 +330,9 @@ All three talk to the same `jarvis_bridge.py`; CAD models render natively in the
 
 ---
 
-## 10. File index (jarvis `_baseline/`)
+## 10. Legacy/reference file index (jarvis `_baseline/`)
+
+The files below are preserved as reference/dev tooling. They are not the beta-critical runtime path.
 
 ```
 listen   stt_deepgram.py

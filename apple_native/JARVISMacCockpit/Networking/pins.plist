@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    pins.plist — JARVIS SPKI certificate pin store
+    GMRI / JARVIS digital-personhood project
+
+    Format: hostname → array of base64(SHA-256(SubjectPublicKeyInfo DER))
+    Policy: minimum 2 pins per host (primary = leaf, backup = intermediate CA).
+    Survives certificate renewal as long as the same key pair is used.
+
+    ROTATE BEFORE EXPIRY. See security/PIN_ROTATION.md for rotation policy.
+
+    Last extracted: 2026-05-24T01:33Z
+    Tool: tools/extract_spki_pin.sh <host> --chain
+
+    Pin layout per host:
+      [0] leaf certificate SPKI  — rotate when cert renews with new key
+      [1] intermediate CA SPKI   — rotate only when CA changes
+      [2] root CA SPKI           — rotate only in emergency / CA compromise
+-->
+<plist version="1.0">
+<dict>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Deepgram STT (api.deepgram.com)                                     -->
+    <!-- Issuer: Let's Encrypt R13 (short-lived ~90-day certs)               -->
+    <!-- Leaf expires: 2026-06-30 — ROTATE BEFORE EXPIRY                     -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>api.deepgram.com</key>
+    <array>
+        <!-- [0] leaf: CN=api.deepgram.com, expires 2026-06-30 -->
+        <string>kKyqsiseGkGRI3huaY6YdXi59AYtdVsBSM4GuAZywbQ=</string>
+        <!-- [1] intermediate: CN=R13 (Let's Encrypt), expires 2027-03-12 -->
+        <string>AlSQhgtJirc8ahLyekmtX+Iw+v46yPYRLJt9Cq1GlB0=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Ollama Cloud API (ollama.com)                                        -->
+    <!-- Issuer: Google Trust Services WR3                                   -->
+    <!-- Leaf expires: 2026-07-24                                             -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>ollama.com</key>
+    <array>
+        <!-- [0] leaf: CN=ollama.com, expires 2026-07-24 -->
+        <string>SlipvEbDtlXr5OGLwSGDYyr1hCku5oiYQTeiZmBkB/g=</string>
+        <!-- [1] intermediate: CN=WR3 (Google Trust Services), expires 2029-02-20 -->
+        <string>OdSlmQD9NWJh4EbcOHBxkhygPwNSwA9Q91eounfbcoE=</string>
+        <!-- [2] root: CN=GTS Root R1, expires 2028-01-28 -->
+        <string>hxqRlPTu1bMS/0DITB1SSu0vd4u/8l8TjPgfaAp63Gc=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Google Gemini — REST API (generativelanguage.googleapis.com)         -->
+    <!-- Issuer: Google Trust Services WE2                                   -->
+    <!-- Leaf expires: 2026-07-30                                             -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>generativelanguage.googleapis.com</key>
+    <array>
+        <!-- [0] leaf: CN=upload.video.google.com (Google wildcard), expires 2026-07-30 -->
+        <string>eL8NRzX+CyyicuFpTYEF4XQtOPKJ/BQF3NhHKqyrnM8=</string>
+        <!-- [1] intermediate: CN=WE2 (Google Trust Services), expires 2029-02-20 -->
+        <string>vh78KSg1Ry4NaqGDV10w/cTb9VH3BQUZoCWNa93W/EY=</string>
+        <!-- [2] root: CN=GTS Root R4, expires 2028-01-28 -->
+        <string>mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Google AI Platform / Vertex AI (aiplatform.googleapis.com)          -->
+    <!-- Same cert chain as generativelanguage.googleapis.com (Google CDN)   -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>aiplatform.googleapis.com</key>
+    <array>
+        <!-- [0] leaf: CN=upload.video.google.com (Google wildcard), expires 2026-07-30 -->
+        <string>eL8NRzX+CyyicuFpTYEF4XQtOPKJ/BQF3NhHKqyrnM8=</string>
+        <!-- [1] intermediate: CN=WE2 (Google Trust Services), expires 2029-02-20 -->
+        <string>vh78KSg1Ry4NaqGDV10w/cTb9VH3BQUZoCWNa93W/EY=</string>
+        <!-- [2] root: CN=GTS Root R4, expires 2028-01-28 -->
+        <string>mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- GitHub (api.github.com)                                              -->
+    <!-- Issuer: Sectigo Public Server Authentication CA DV E36              -->
+    <!-- Leaf expires: 2026-08-01                                             -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>api.github.com</key>
+    <array>
+        <!-- [0] leaf: CN=*.github.com, expires 2026-08-01 -->
+        <string>QVnLDkTvhX8bfBbaP6XeqWLCOja893s79lYfjQc/hWI=</string>
+        <!-- [1] intermediate: CN=Sectigo Public Server Authentication CA DV E36, exp 2036-03-21 -->
+        <string>ZSagvDzjltLkewXEBuDxIzpW/dpVw1Juvvmd0hhkzdY=</string>
+        <!-- [2] root: CN=Sectigo Public Server Authentication Root E46, exp 2038-01-18 -->
+        <string>sLVjNUaFYfW7n6EtgBeEpjOlcnBdNPMrZDRF36iwBdE=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- GitHub Copilot (api.githubcopilot.com)                               -->
+    <!-- Issuer: Sectigo Public Server Authentication CA DV R36              -->
+    <!-- Leaf expires: 2026-07-02                                             -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>api.githubcopilot.com</key>
+    <array>
+        <!-- [0] leaf: CN=*.githubcopilot.com, expires 2026-07-02 -->
+        <string>taNMyGQdN3cEnkEtpmfYjXrtYGQjbSehaWCycLuVdnY=</string>
+        <!-- [1] intermediate: CN=Sectigo Public Server Authentication CA DV R36, exp 2036-03-21 -->
+        <string>a9khLOZJxlnJyrxstg/P+seiDCm+Yf3OsrXyFocBaI0=</string>
+        <!-- [2] root: CN=Sectigo Public Server Authentication Root R46, exp 2038-01-18 -->
+        <string>Douxi77vs4G+Ib/BogbTFymEYq0QSFXwSgVCaZcI09Q=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Convex fleet (fleet-goose-114.convex.cloud + WSS counterpart)        -->
+    <!-- Issuer: Google Trust Services WE1                                   -->
+    <!-- Leaf expires: 2026-07-10                                             -->
+    <!-- WSS (wss://fleet-goose-114.convex.cloud) uses same TLS cert.        -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>fleet-goose-114.convex.cloud</key>
+    <array>
+        <!-- [0] leaf: CN=convex.cloud (wildcard), expires 2026-07-10 -->
+        <string>iGgHCBV+8eUb8PHuMmz/rCl6Kz7bN8/ar21b1G25zbc=</string>
+        <!-- [1] intermediate: CN=WE1 (Google Trust Services), expires 2029-02-20 -->
+        <string>kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</string>
+        <!-- [2] root: CN=GTS Root R4, expires 2028-01-28 -->
+        <string>mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</string>
+    </array>
+
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <!-- Convex cloud base domain (*.convex.cloud) — wildcard backup entry    -->
+    <!-- Same chain as fleet-goose-114 above.                                -->
+    <!-- ──────────────────────────────────────────────────────────────────── -->
+    <key>convex.cloud</key>
+    <array>
+        <!-- [0] leaf wildcard -->
+        <string>iGgHCBV+8eUb8PHuMmz/rCl6Kz7bN8/ar21b1G25zbc=</string>
+        <!-- [1] intermediate: CN=WE1 (Google Trust Services) -->
+        <string>kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</string>
+        <!-- [2] root: CN=GTS Root R4 -->
+        <string>mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</string>
+    </array>
+
+</dict>
+</plist>

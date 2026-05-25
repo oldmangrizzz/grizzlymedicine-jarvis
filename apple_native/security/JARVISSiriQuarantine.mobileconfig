@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  JARVISSiriQuarantine.mobileconfig
+  Apple Configuration Profile — Siri + Dictation + Spotlight + Apple Intelligence quarantine
+  Operator: Robert "Grizzly" Hanson, GMRI
+  Created: 2026-05-24
+
+  TARGET: Operator's own macOS, iOS, iPadOS, and watchOS devices.
+  ENROLLMENT TYPE: User-enrolled (not supervised MDM).
+    - On macOS: install via `sudo profiles install -path JARVISSiriQuarantine.mobileconfig`
+      or System Settings → Privacy & Security → Profiles → "+" → open this file.
+    - On iOS/iPadOS: AirDrop this file to the device, then accept in Settings → Profile Downloaded.
+    - On watchOS: restrictions propagate from paired iPhone profile automatically where supported.
+
+  SIGNING NOTE: This profile is unsigned. Apple allows unsigned profiles to be installed
+  manually on personal devices. If you want cryptographic assurance, sign with:
+    security cms -S -N "iPhone Developer: Robert Hanson (TEAMID)" \
+                 -i JARVISSiriQuarantine.mobileconfig \
+                 -o JARVISSiriQuarantine.signed.mobileconfig
+  The signed profile is the one you install. The unsigned source is what you edit.
+
+  IMPORTANT — WHAT THIS PROFILE CANNOT DO:
+    1. It does not disable AirPods physical gesture → Siri. Manually reassign each pair
+       in Settings → Bluetooth → [pair name] → left/right press-and-hold → Off.
+    2. It does not bulk-disable per-app Siri Suggestions in Mail/Calendar/Messages.
+       Go to Settings → Siri & Search → [each app] → "Show Siri Suggestions in App" = off.
+    3. It does not remove the Siri watch face. Remove it manually on the Watch.
+    4. It does not disable macOS Voice Control (Accessibility). Disable manually:
+       System Settings → Accessibility → Voice Control → off.
+    5. On watchOS, full enforcement requires supervised MDM. User-enrolled propagation
+       is partial. Treat the Watch as partially-quarantined.
+
+  RESIDUAL MANUAL STEPS REQUIRED AFTER INSTALL: see SIRI_QUARANTINE.md §4.
+-->
+<plist version="1.0">
+<dict>
+
+  <!-- ── Profile Identity ─────────────────────────────────────────────── -->
+  <key>PayloadDisplayName</key>
+  <string>JARVIS Siri Quarantine</string>
+
+  <key>PayloadDescription</key>
+  <string>Disables Siri, Hey Siri, Dictation, Spotlight Suggestions, and Apple Intelligence on JARVIS operator devices. Installed by operator for personal use.</string>
+
+  <key>PayloadIdentifier</key>
+  <string>org.gmri.jarvis.siri-quarantine</string>
+
+  <key>PayloadOrganization</key>
+  <string>GrizzlyMedicine Research Institute</string>
+
+  <key>PayloadUUID</key>
+  <string>4A7B1C3D-9E2F-4A5B-8C6D-0E1F2A3B4C5D</string>
+
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+
+  <key>PayloadType</key>
+  <string>Configuration</string>
+
+  <!-- User-enrolled; does not claim supervised -->
+  <key>PayloadScope</key>
+  <string>System</string>
+
+  <!-- ── Payloads ──────────────────────────────────────────────────────── -->
+  <key>PayloadContent</key>
+  <array>
+
+    <!-- ── 1. com.apple.applicationaccess — Core Siri + Dictation Restrictions ── -->
+    <dict>
+      <key>PayloadType</key>
+      <string>com.apple.applicationaccess</string>
+
+      <key>PayloadIdentifier</key>
+      <string>org.gmri.jarvis.siri-quarantine.applicationaccess</string>
+
+      <key>PayloadUUID</key>
+      <string>1B2C3D4E-5F6A-7B8C-9D0E-1F2A3B4C5D6E</string>
+
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+
+      <key>PayloadDisplayName</key>
+      <string>JARVIS — Siri and Dictation Restrictions</string>
+
+      <!-- Disable Siri entirely (covers: invocation, Hey Siri, lock-screen, Shortcuts voice) -->
+      <key>assistantIsDisabled</key>
+      <true/>
+
+      <!-- Disable Siri on the lock screen specifically (belt-and-suspenders) -->
+      <key>assistantWhileLockedIsDisabled</key>
+      <true/>
+
+      <!-- Disable dictation (keyboard mic button) -->
+      <key>dictationIsDisabled</key>
+      <true/>
+
+      <!-- Disable Siri profanity filter toggle (iOS/iPadOS — harmless on macOS) -->
+      <key>siriProfanityFilterIsDisabled</key>
+      <false/>
+      <!--
+        Note: siriProfanityFilterIsDisabled = false ENABLES the profanity filter.
+        Setting it to true DISABLES the filter (i.e., allows profanity through Siri).
+        Since Siri itself is disabled, this key is moot; set to false (filter on) as
+        a clean default in case Siri is ever re-enabled.
+      -->
+
+      <!-- Disable Spotlight internet results (Siri Suggestions in Spotlight) -->
+      <key>allowSpotlightInternetResults</key>
+      <false/>
+
+      <!-- Disable Apple Intelligence (iOS 18.1+ / macOS 15.1+) -->
+      <!-- On older OS versions this key is silently ignored -->
+      <key>allowAppleIntelligence</key>
+      <false/>
+
+      <!-- Disable Siri server logging / Siri improvement program -->
+      <!-- This is a user-facing toggle; MDM equivalent: -->
+      <key>allowAssistantUserGeneratedContent</key>
+      <false/>
+
+      <!-- Disable voice dialing (belt-and-suspenders for iPhone) -->
+      <key>allowVoiceDialing</key>
+      <false/>
+
+    </dict>
+
+  </array>
+
+</dict>
+</plist>
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════
+  INSTALLATION INSTRUCTIONS
+  ══════════════════════════════════════════════════════════════════════════
+
+  macOS (Sequoia / Sonoma):
+  ─────────────────────────
+  Option A — Terminal (fastest, applies immediately):
+    sudo profiles install -path /path/to/JARVISSiriQuarantine.mobileconfig
+  Verify:
+    sudo profiles list | grep JARVIS
+
+  Option B — GUI:
+    1. Double-click the .mobileconfig file in Finder.
+    2. System Settings → Privacy & Security → Profiles → "Profile Downloaded"
+    3. Click Install… → enter password.
+
+  Removal (if needed):
+    sudo profiles remove -identifier org.gmri.jarvis.siri-quarantine
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  iOS / iPadOS (17 / 18):
+  ────────────────────────
+  Option A — AirDrop:
+    1. AirDrop this file from Mac to iPhone/iPad.
+    2. Tap "Accept" on the device.
+    3. Open Settings → General → VPN & Device Management → "Profile Downloaded"
+    4. Tap Install → enter passcode → Install (twice).
+
+  Option B — Email/Files:
+    1. Email the file to yourself or place in iCloud Drive.
+    2. Tap the .mobileconfig attachment.
+    3. Follow steps 3–4 above.
+
+  Verify: Settings → General → VPN & Device Management → "JARVIS Siri Quarantine"
+
+  Removal: Settings → General → VPN & Device Management → profile → Remove Profile
+
+  ──────────────────────────────────────────────────────────────────────────
+
+  watchOS:
+  ────────
+  Install the profile on the paired iPhone first. Watch restrictions propagate
+  from the iPhone profile where the MDM payload type supports watchOS.
+  Note: Full enforcement requires supervised MDM enrollment. User-enrolled
+  propagation disables Watch Siri invocation (side-crown press) and Hey Siri,
+  but is not guaranteed for all surfaces. See SIRI_QUARANTINE.md §3.
+
+  Manual steps on the Watch:
+    Settings (on watch) → Siri → disable all three toggles:
+      - Hey Siri
+      - Raise to Speak
+      - Press Crown for Siri
+    Also: remove the Siri watch face from the face carousel.
+
+  ══════════════════════════════════════════════════════════════════════════
+-->

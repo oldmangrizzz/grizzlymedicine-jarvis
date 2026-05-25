@@ -1,0 +1,17 @@
+{
+  "scenario_id": "A13",
+  "adversary": "Nation-State APT",
+  "attack_vector": "replay of older encrypted audit segment",
+  "defense_triggered": "monotonic sequence and previous-hash continuity reject replay",
+  "defense_effective": true,
+  "time_to_detect_ms": 2,
+  "time_to_mitigate_ms": 4,
+  "metrics": {
+    "latency_under_attack_ms": 8,
+    "abstention_rate_under_attack": 0,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 3
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: replay of older encrypted audit segment #2b2e801a21e6dbe4", "defense_triggered: monotonic sequence and previous-hash continuity reject replay #e2ed6a5c268d0106", "mitigated: attack defeated; no cognition organ disabled; audit chain intact #d2a7ec115f511623"]
+}

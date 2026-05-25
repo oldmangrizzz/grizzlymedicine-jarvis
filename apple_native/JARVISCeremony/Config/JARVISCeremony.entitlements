@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        JARVIS Soul Anchor production entitlements.
+
+        Constraints (from operator law + audit fleet):
+          * NO keychain-access-groups. Persisting SE-resident keys to the Keychain
+            requires this entitlement → which requires a provisioning profile →
+            which fails AMFI -413 on machines that don't have one. The SE rewrite
+            stores keys as CryptoKit `SecureEnclave.P256.*.dataRepresentation`
+            blobs at ~/.jarvis/keys/*.se.blob instead. Reintroducing this key
+            re-creates the original Secure-Enclave-unavailable failure mode.
+          * audio-input is REQUIRED — the operator records a voice anchor as part
+            of the ceremony. Missing this entitlement silently denied the mic for
+            ~4 hours of detective work.
+          * Hardened-runtime defaults intentionally set to <false/> rather than
+            omitted: explicit "we are not asking for this capability" beats an
+            implicit-default that could shift under future Xcode/macOS versions.
+    -->
+
+    <!-- Sandbox & runtime posture -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <false/>
+
+    <!-- Network: ceremony is fully offline; no client, no server. -->
+    <key>com.apple.security.network.client</key>
+    <false/>
+    <key>com.apple.security.network.server</key>
+    <false/>
+
+    <!-- Operator-driven file access (USB volume selection). -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+
+    <!-- Microphone for voice-anchor capture. The ceremony cannot complete
+         without this; missing key = silent TCC denial. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+</dict>
+</plist>

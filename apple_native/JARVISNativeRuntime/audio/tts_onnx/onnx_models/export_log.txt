@@ -1,0 +1,36 @@
+INFO: Loading pocket-tts model (temp=0.75, lsd_steps=1, eos_thresh=-4.0) …
+INFO: Loading model from config at /Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/config/english.yaml...
+INFO: Loading sentencepiece tokenizer from hf://kyutai/pocket-tts-without-voice-cloning/languages/english/tokenizer.model@d29db7978e464fb90cb3359ee0c69a273b9142cc
+INFO: Loading TTSModel weights from hf://kyutai/pocket-tts/languages/english/model.safetensors@39592ff23c9ef80098bb74895d104c26275fe2c9
+INFO: TTS Model loaded successfully. Its size is 438.0 MB
+INFO:   Loaded. ldim=32 d_model=1024 layers=6
+INFO: Exporting text_encoder.onnx …
+INFO:   Saved text_encoder.onnx (16.39 MB)
+INFO: Exporting gpt_decoder.onnx (FlowLM single step, growing KV cache) …
+INFO:   layers=6 d_model=1024 ldim=32 heads=16 head_dim=64
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:23: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert (B, T, D) == (Bk, Tk, Dk)
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:24: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert D > 0
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:25: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert D % 2 == 0
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/audio/tts_onnx/tools/export_xtts_to_onnx.py:245: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+  s = torch.tensor(step_i / self.lsd_decode_steps,
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/audio/tts_onnx/tools/export_xtts_to_onnx.py:247: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+  t = torch.tensor((step_i + 1) / self.lsd_decode_steps,
+INFO:   Saved gpt_decoder.onnx (341.45 MB)
+INFO: Exporting hifigan.onnx (Mimi batch decoder, non-streaming) …
+INFO:   ldim=32 frame_rate=12.5 encoder_frame_rate=200.0
+INFO:   Saved hifigan.onnx (41.27 MB)
+INFO:   ONNX checker OK: text_encoder.onnx
+INFO:   ONNX checker OK: gpt_decoder.onnx
+INFO:   ONNX checker OK: hifigan.onnx
+INFO: 
+Export complete:
+INFO:   text_encoder.onnx               16.39 MB
+INFO:   gpt_decoder.onnx                341.45 MB
+INFO:   hifigan.onnx                    41.27 MB
+INFO: 
+Next:
+INFO:   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DONNX_MODELS_DIR=onnx_models
+INFO:   cmake --build build && ctest --test-dir build --output-on-failure

@@ -1,0 +1,15 @@
+{
+  "shadow_window_seconds": 60,
+  "organs": [
+    {"name":"CharacterValues","native_binary":"../JARVISNativeRuntime/identity/character_values/libjarvis_identity_character_values.a","python_endpoint":"/var/run/jarvis/CharacterValues.python.sock","native_endpoint":"/var/run/jarvis/CharacterValues.native.sock","dependencies":[]},
+    {"name":"endocrine","native_binary":"../JARVISNativeRuntime/endocrine/libjarvis_endocrine.a","python_endpoint":"/var/run/jarvis/endocrine.python.sock","native_endpoint":"/var/run/jarvis/endocrine.native.sock","dependencies":[]},
+    {"name":"endocannabinoid","native_binary":"../JARVISNativeRuntime/endocrine/libjarvis_endocrine.a","python_endpoint":"/var/run/jarvis/endocannabinoid.python.sock","native_endpoint":"/var/run/jarvis/endocannabinoid.native.sock","dependencies":["endocrine"]},
+    {"name":"pheromind","native_binary":"../JARVISNativeRuntime/pheromind/libjarvis_pheromind.a","python_endpoint":"/var/run/jarvis/pheromind.python.sock","native_endpoint":"/var/run/jarvis/pheromind.native.sock","dependencies":["endocrine","endocannabinoid"]},
+    {"name":"swarm","native_binary":"../JARVISNativeRuntime/swarm/libjarvis_swarm.a","python_endpoint":"/var/run/jarvis/swarm.python.sock","native_endpoint":"/var/run/jarvis/swarm.native.sock","dependencies":["pheromind"]},
+    {"name":"HDC","native_binary":"../JARVISNativeRuntime/hdc/libjarvis_hdc.a","python_endpoint":"/var/run/jarvis/HDC.python.sock","native_endpoint":"/var/run/jarvis/HDC.native.sock","dependencies":[]},
+    {"name":"BeliefStore","native_binary":"../JARVISNativeRuntime/holograph/beliefstore/libjarvis_beliefstore.a","python_endpoint":"/var/run/jarvis/BeliefStore.python.sock","native_endpoint":"/var/run/jarvis/BeliefStore.native.sock","dependencies":["HDC"]},
+    {"name":"HMEM","native_binary":"../JARVISNativeRuntime/holograph/hmem/libjarvis_hmem.a","python_endpoint":"/var/run/jarvis/HMEM.python.sock","native_endpoint":"/var/run/jarvis/HMEM.native.sock","dependencies":["BeliefStore"]},
+    {"name":"SAGE","native_binary":"../JARVISNativeRuntime/holograph/sage/libjarvis_sage.a","python_endpoint":"/var/run/jarvis/SAGE.python.sock","native_endpoint":"/var/run/jarvis/SAGE.native.sock","dependencies":["BeliefStore"]},
+    {"name":"CUSUM","native_binary":"../JARVISNativeRuntime/monitoring/cusum/libjarvis_cusum.a","python_endpoint":"/var/run/jarvis/CUSUM.python.sock","native_endpoint":"/var/run/jarvis/CUSUM.native.sock","dependencies":["endocrine"]}
+  ]
+}

@@ -1,0 +1,457 @@
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.462771,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.458818,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994366,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.975527,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966259,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992871,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974680,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991979,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974390,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.960847,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987727,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994164,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.985935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.982424,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992718,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.986378,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981771,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981672,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991135,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987399,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989508,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.995296,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.957637,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.971609,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966429,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996755,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991250,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.993146,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978745,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951479,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991261,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951716,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989075,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.979790,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996469,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977907,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.976214,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984432,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977991,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991640,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.944334,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992644,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987263,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.953689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.959694,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.980255,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978033,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983476,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.943625,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694360,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.719587,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.758014,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.728031,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714708,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.641574,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.386287,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.672380,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.725438,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701620,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.657743,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.387320,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.581166,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.691874,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.790645,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665217,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665255,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.608034,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.754305,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.693698,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.645457,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.667096,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.384023,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.586112,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.685859,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.784978,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.795671,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.630919,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722367,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722607,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.704193,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.380904,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.713744,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.698285,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701674,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.707198,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.612471,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.723658,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.772845,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665371,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.759835,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.661769,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.676732,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.715461,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.757462,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.359638,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640764,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714760,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.619778,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.697049,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.746011,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.770864,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.627202,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.639916,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.674542,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694378,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.644897,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.662805,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.577358,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.443800,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.462771,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.458818,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994366,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.975527,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966259,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992871,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974680,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991979,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974390,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.960847,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987727,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994164,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.985935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.982424,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992718,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.986378,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981771,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981672,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991135,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987399,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989508,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.995296,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.957637,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.971609,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966429,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996755,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991250,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.993146,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978745,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951479,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991261,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951716,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989075,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.979790,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996469,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977907,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.976214,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984432,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977991,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991640,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.944334,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992644,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987263,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.953689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.959694,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.980255,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978033,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983476,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.943625,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694360,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.719587,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.758014,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.728031,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714708,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.641574,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.386287,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.672380,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.725438,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701620,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.657743,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.387320,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.581166,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.691874,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.790645,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665217,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665255,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.608034,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.754305,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.693698,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.645457,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.667096,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.384023,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.586112,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.685859,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.784978,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.795671,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.630919,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722367,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722607,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.704193,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.380904,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.713744,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.698285,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701674,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.707198,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.612471,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.723658,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.772845,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665371,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.759835,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.661769,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.676732,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.715461,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.757462,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.359638,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640764,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714760,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.619778,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.697049,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.746011,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.770864,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.627202,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.639916,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.674542,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694378,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.644897,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.662805,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.577358,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.443800,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"uuid-N","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640563,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_AMBIGUOUS","speaker_uuid":"SPEAKER_AMBIGUOUS","confidence":1.000000,"detail":"two enrolled voices were too close to call"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.462771,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.458818,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994366,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.975527,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966259,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992871,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974680,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991979,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974390,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.960847,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987727,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994164,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.985935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.982424,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992718,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.986378,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981771,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981672,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991135,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987399,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989508,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.995296,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.957637,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.971609,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966429,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996755,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991250,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.993146,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978745,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951479,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991261,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951716,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989075,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.979790,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996469,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977907,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.976214,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984432,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977991,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991640,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.944334,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992644,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987263,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.953689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.959694,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.980255,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978033,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983476,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.943625,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694360,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.719587,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.758014,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.728031,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714708,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.641574,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.386287,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.672380,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.725438,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701620,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.657743,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.387320,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.581166,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.691874,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.790645,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665217,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665255,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.608034,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.754305,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.693698,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.645457,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.667096,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.384023,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.586112,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.685859,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.784978,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.795671,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.630919,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722367,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722607,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.704193,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.380904,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.713744,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.698285,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701674,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.707198,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.612471,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.723658,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.772845,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665371,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.759835,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.661769,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.676732,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.715461,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.757462,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.359638,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640764,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714760,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.619778,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.697049,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.746011,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.770864,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.627202,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.639916,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.674542,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694378,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.644897,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.662805,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.577358,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.443800,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"uuid-N","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640563,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_AMBIGUOUS","speaker_uuid":"SPEAKER_AMBIGUOUS","confidence":1.000000,"detail":"two enrolled voices were too close to call"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.462771,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.458818,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994366,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.975527,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966259,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992871,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974680,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991979,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.974390,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.960847,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987727,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.994164,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.985935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.982424,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992718,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.986378,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981771,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.981672,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991135,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987399,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989508,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.995296,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.957637,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983935,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.971609,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.966429,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996755,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991250,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.993146,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978745,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951479,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991261,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.951716,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.989075,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.979790,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.996469,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977907,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.976214,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.984432,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.977991,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.991640,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.944334,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.992644,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.987263,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.953689,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.959694,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.980255,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.978033,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.983476,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"OPERATOR","confidence":0.943625,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694360,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.719587,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.758014,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.728031,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714708,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.641574,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.386287,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.672380,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.725438,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701620,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.657743,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.387320,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.581166,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.691874,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.790645,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665217,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665255,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.608034,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.754305,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.693698,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.645457,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.667096,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.384023,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.586112,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.685859,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.784978,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.795671,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.630919,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722367,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.722607,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.704193,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.380904,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.713744,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.698285,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.701674,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.707198,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.612471,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.723658,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.772845,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.665371,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.759835,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.661769,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.676732,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.715461,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.757462,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.359638,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640764,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.714760,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.619778,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.697049,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.746011,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.770864,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.627202,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.639916,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.674542,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.694378,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.644897,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.662805,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.577358,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.443800,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_RECOGNIZED","speaker_uuid":"uuid-N","confidence":1.000000,"detail":"JARVIS recognized the speaker and the fresh voice challenge passed"}
+{"event_kind":"SPEAKER_UNKNOWN","speaker_uuid":"SPEAKER_UNKNOWN","confidence":0.640563,"detail":"JARVIS did not recognize that voice"}
+{"event_kind":"SPEAKER_AMBIGUOUS","speaker_uuid":"SPEAKER_AMBIGUOUS","confidence":1.000000,"detail":"two enrolled voices were too close to call"}

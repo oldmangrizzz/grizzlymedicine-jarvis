@@ -1,9 +1,10 @@
 name: JARVISCompanionApps
 
 options:
-  bundleIdPrefix: org.grizzlymedicine.jarvis
+  bundleIdPrefix: org.gmri.jarvis
   deploymentTarget:
     iOS: "17.0"
+    macOS: "14.0"
     watchOS: "10.0"
   transitivelyLinkDependencies: true
 
@@ -15,11 +16,69 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "17"
+    CURRENT_PROJECT_VERSION: "20"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: T5AFHQ4L9C
 
 targets:
+  JARVISMacCockpit:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: JARVISMacCockpit
+        excludes:
+          - NativeRuntimeHTTPService.swift
+      - path: JARVISMacCockpitService
+        excludes:
+          - NativeRuntimeHTTPServiceReceipt.swift
+      - path: JARVISNativeRuntime
+        excludes:
+          - JARVISNativeRuntimeReceipt.cpp
+      - path: JARVISCompanionApp/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.gmri.jarvis.cockpit
+        PRODUCT_NAME: JARVIS
+        INFOPLIST_FILE: JARVISMacCockpit/Info.plist
+        CODE_SIGN_ENTITLEMENTS: JARVISMacCockpit/JARVISMacCockpit.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_OBJC_BRIDGING_HEADER: JARVISMacCockpit/JARVISMacCockpit-Bridging-Header.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/JARVISNativeRuntime"
+        CLANG_CXX_LANGUAGE_STANDARD: gnu++20
+
+  JARVISNativeRuntimeReceipt:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: JARVISNativeRuntime/JARVISNativeRuntime.cpp
+      - path: JARVISNativeRuntime/JARVISNativeRuntime.h
+      - path: JARVISNativeRuntime/JARVISNativeRuntimeReceipt.cpp
+    settings:
+      base:
+        PRODUCT_NAME: JARVISNativeRuntimeReceipt
+        CLANG_CXX_LANGUAGE_STANDARD: gnu++20
+
+  JARVISNativeHTTPServiceReceipt:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: JARVISMacCockpitService
+      - path: JARVISMacCockpit/NativeRuntimeBridge.swift
+      - path: JARVISMacCockpit/NativeJSONValue.swift
+      - path: JARVISMacCockpit/NativeModelClient.swift
+      - path: JARVISMacCockpit/NativeVoiceCapture.swift
+      - path: JARVISNativeRuntime/JARVISNativeRuntime.cpp
+      - path: JARVISNativeRuntime/JARVISNativeRuntime.h
+    settings:
+      base:
+        PRODUCT_NAME: JARVISNativeHTTPServiceReceipt
+        SWIFT_OBJC_BRIDGING_HEADER: JARVISMacCockpit/JARVISMacCockpit-Bridging-Header.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/JARVISNativeRuntime"
+        CLANG_CXX_LANGUAGE_STANDARD: gnu++20
+
   JARVISCompanionApp:
     type: application
     platform: iOS
@@ -53,19 +112,43 @@ targets:
     platform: watchOS
     deploymentTarget: "10.0"
     sources:
-      - path: JARVISWatchApp
+      - path: JARVISWatchCompanion
     dependencies:
-      - package: JARVISCompanion
-        product: JARVISCompanionCore
+      - target: JARVISWatchCompanionComplication
+        embed: true
+        link: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ai.realjarvis.phone.watchkitapp
         PRODUCT_NAME: JARVIS Watch
-        INFOPLIST_FILE: JARVISWatchApp/Info.plist
-        CODE_SIGN_ENTITLEMENTS: JARVISWatchApp/JARVISWatchApp.entitlements
+        INFOPLIST_FILE: JARVISWatchCompanion/Info.plist
+        CODE_SIGN_ENTITLEMENTS: JARVISWatchCompanion/JARVISWatchCompanion.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "4"
+        SUPPORTED_PLATFORMS: watchos watchsimulator
       configs:
         Release:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
-          PROVISIONING_PROFILE_SPECIFIER: JARVIS AppStore HealthKit ai.realjarvis.phone.watchkitapp
+          PROVISIONING_PROFILE_SPECIFIER: JARVIS AppStore Watch ai.realjarvis.phone.watchkitapp
+
+  JARVISWatchCompanionComplication:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: JARVISWatchCompanionComplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.realjarvis.phone.watchkitapp.complication
+        PRODUCT_NAME: JARVIS Status
+        INFOPLIST_FILE: JARVISWatchCompanionComplication/Info.plist
+        CODE_SIGN_ENTITLEMENTS: JARVISWatchCompanionComplication/JARVISWatchCompanionComplication.entitlements
+        SKIP_INSTALL: true
+        TARGETED_DEVICE_FAMILY: "4"
+        SUPPORTED_PLATFORMS: watchos watchsimulator
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER: JARVIS AppStore Watch Complication ai.realjarvis.phone.watchkitapp.complication

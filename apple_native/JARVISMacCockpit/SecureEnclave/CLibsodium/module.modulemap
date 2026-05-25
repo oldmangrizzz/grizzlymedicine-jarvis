@@ -1,0 +1,5 @@
+module CLibsodium [system] {
+    header "/opt/homebrew/include/sodium.h"
+    link "sodium"
+    export *
+}

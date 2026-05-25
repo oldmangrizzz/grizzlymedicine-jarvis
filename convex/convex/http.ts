@@ -23,7 +23,98 @@ const parseJson = async (request: Request) => {
   return JSON.parse(text);
 };
 
-const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const nativeRuntimeConfig = () => {
+  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
+  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
+  const runtimeKind = (process.env.JARVIS_RUNTIME_KIND ?? "").trim().toLowerCase();
+  if (!runtimeURL || !companionToken || runtimeKind !== "native") {
+    throw new Error("native JARVIS runtime unavailable");
+  }
+  return { runtimeURL, companionToken };
+};
+
+const forbiddenVoiceBackendPattern = /(nsspeech|avspeech|speechsynthesis|web speech|system voice|\bsay\b|tts_pocket|python|jarvis_bridge\.py)/i;
+
+const voiceUnavailable = (reason: string, missing: string[] = []) => ({
+  ok: false,
+  code: "voice_unavailable",
+  error: "voice_unavailable",
+  reason,
+  spoken: false,
+  backend: "none",
+  backend_kind: "native_jarvis_voice",
+  content_type: "",
+  audio_base64: "",
+  synthesis_seconds: 0,
+  missing,
+  fallback_policy: "none",
+  wrong_voice_fallback_allowed: false,
+  system_voice_fallback_allowed: false,
+  native_system_voice_allowed: false,
+  python_tts_allowed: false,
+  hard_voice_invariant: "jarvis_voice_or_no_voice",
+});
+
+const nativeVoicePolicy = () => {
+  const runtimeKind = (process.env.JARVIS_RUNTIME_KIND ?? "").trim().toLowerCase();
+  const backend = (process.env.JARVIS_NATIVE_VOICE_BACKEND ?? "").trim();
+  const voice = (process.env.JARVIS_NATIVE_VOICE_ID ?? process.env.JARVIS_NATIVE_VOICE ?? "").trim();
+  const confirmed = (process.env.JARVIS_NATIVE_VOICE_CONFIRMED ?? "").trim() === "1";
+  const lowerBackend = backend.toLowerCase();
+  const missing: string[] = [];
+  if (runtimeKind !== "native") {
+    missing.push("native_runtime_kind");
+  }
+  if (!backend) {
+    missing.push("native_voice_backend");
+  } else if (!lowerBackend.includes("native") || !lowerBackend.includes("jarvis") || forbiddenVoiceBackendPattern.test(backend)) {
+    missing.push("native_jarvis_voice_backend");
+  }
+  if (!voice) {
+    missing.push("native_jarvis_voice_id");
+  }
+  if (!confirmed) {
+    missing.push("native_jarvis_voice_confirmed");
+  }
+  return { available: missing.length === 0, backend, voice, missing };
+};
+
+const assertNativeSpeechPayload = (payload: unknown) => {
+  if (typeof payload !== "object" || payload === null) {
+    throw new Error("voice policy violation: malformed speech payload");
+  }
+  const speech = payload as Record<string, unknown>;
+  const backendText = [
+    speech.backend,
+    speech.backend_kind,
+    speech.preferred_backend,
+    speech.voice,
+    speech.fallback_policy,
+  ].map((value) => String(value ?? "")).join(" ");
+  if (forbiddenVoiceBackendPattern.test(backendText)) {
+    throw new Error("voice policy violation: forbidden voice fallback backend");
+  }
+  if (speech.wrong_voice_fallback_allowed === true ||
+      speech.system_voice_fallback_allowed === true ||
+      speech.native_system_voice_allowed === true ||
+      speech.python_tts_allowed === true) {
+    throw new Error("voice policy violation: fallback is enabled");
+  }
+  if (speech.spoken === true) {
+    const audio = String(speech.audio_base64 ?? "");
+    const contentType = String(speech.content_type ?? "");
+    const backend = String(speech.backend ?? "");
+    if (speech.ok !== true || !audio || !contentType.startsWith("audio/")) {
+      throw new Error("voice policy violation: fake spoken=true without native audio");
+    }
+    const lowerBackend = backend.toLowerCase();
+    if (!lowerBackend.includes("native") || !lowerBackend.includes("jarvis")) {
+      throw new Error("voice policy violation: spoken audio was not a native JARVIS voice backend");
+    }
+  }
+  return speech;
+};
+
 const allowedAudioContentTypes = new Set(["audio/mp4", "audio/m4a", "audio/wav", "audio/x-m4a", "audio/aac"]);
 
 const assertAudioPayload = (audioBase64: string, contentType: string) => {
@@ -47,6 +138,9 @@ const assertAudioPayload = (audioBase64: string, contentType: string) => {
     throw new Error("audio too large");
   }
 };
+
+const stringArray = (value: unknown) =>
+  Array.isArray(value) ? value.map((item) => String(item)) : [];
 
 const route = (
   path: string,
@@ -76,16 +170,33 @@ route("/app/pair", (ctx, body) => ctx.runMutation(api.companion.claimPairingSess
   deviceId: String(body.deviceId ?? ""),
   label: body.label == null ? undefined : String(body.label),
   platform: body.platform == null ? undefined : String(body.platform),
+  personId: body.person_id == null && body.personId == null ? undefined : String(body.person_id ?? body.personId),
+  memoryScopeId: body.memory_scope_id == null && body.memoryScopeId == null ? undefined : String(body.memory_scope_id ?? body.memoryScopeId),
+  role: body.role == null ? undefined : String(body.role),
 }));
 
 route("/app/register", (ctx, body) => ctx.runMutation(api.companion.registerDevice, {
   deviceId: String(body.deviceId ?? ""),
   label: body.label == null ? undefined : String(body.label),
   platform: body.platform == null ? undefined : String(body.platform),
+  personId: body.person_id == null && body.personId == null ? undefined : String(body.person_id ?? body.personId),
+  memoryScopeId: body.memory_scope_id == null && body.memoryScopeId == null ? undefined : String(body.memory_scope_id ?? body.memoryScopeId),
+  role: body.role == null ? undefined : String(body.role),
 }));
 
 route("/app/status", (ctx, body) => ctx.runQuery(api.companion.status, {
   deviceToken: String(body.deviceToken ?? ""),
+}));
+
+route("/app/dream", (ctx, body) => ctx.runQuery(api.companion.dreamStatus, {
+  deviceToken: String(body.deviceToken ?? ""),
+}));
+
+route("/app/dream/mark", (ctx, body) => ctx.runMutation(api.companion.markDream, {
+  deviceToken: String(body.deviceToken ?? ""),
+  kind: String(body.kind ?? "micro"),
+  summary: body.summary == null ? undefined : String(body.summary),
+  source: body.source == null ? undefined : String(body.source),
 }));
 
 route("/app/event", (ctx, body) => ctx.runMutation(api.companion.publishAmbientEvent, {
@@ -98,6 +209,28 @@ route("/app/event", (ctx, body) => ctx.runMutation(api.companion.publishAmbientE
   memoryScopeId: body.memoryScopeId == null ? undefined : String(body.memoryScopeId),
   payload: body.payload ?? {},
   dream: body.dream,
+}));
+
+route("/app/onboarding-evidence", (ctx, body) => ctx.runMutation(api.companion.publishOnboardingEvidence, {
+  deviceToken: String(body.deviceToken ?? ""),
+  recordId: String(body.record_id ?? body.recordId ?? ""),
+  kind: String(body.kind ?? ""),
+  source: String(body.source ?? "ios_companion_onboarding"),
+  timestamp: Number(body.timestamp ?? Date.now() / 1000),
+  personId: body.person_id == null && body.personId == null
+    ? undefined
+    : String(body.person_id ?? body.personId),
+  memoryScopeId: body.memory_scope_id == null && body.memoryScopeId == null
+    ? undefined
+    : String(body.memory_scope_id ?? body.memoryScopeId),
+  consentBasis: body.consent_basis == null && body.consentBasis == null
+    ? undefined
+    : String(body.consent_basis ?? body.consentBasis),
+  payloadDigestSHA256: String(body.payload_digest_sha256 ?? body.payloadDigestSHA256 ?? ""),
+  payloadSummary: String(body.payload_summary ?? body.payloadSummary ?? ""),
+  payload: body.payload ?? {},
+  actor: body.actor == null ? undefined : String(body.actor),
+  provenance: body.provenance,
 }));
 
 route("/app/turn", (ctx, body) => ctx.runMutation(api.companion.requestTurn, {
@@ -121,74 +254,15 @@ route("/app/realtime-turn", async (ctx, body) => {
   if (!text) {
     throw new Error("no text");
   }
-
-  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
-  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
-  if (runtimeURL && companionToken) {
-    const response = await fetch(`${runtimeURL}/companion/turn`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "accept": "application/json",
-        "x-jarvis-companion-token": companionToken,
-      },
-      body: JSON.stringify({ text }),
-    });
-    const responseText = await response.text();
-    let payload: unknown = {};
-    if (responseText.trim()) {
-      payload = JSON.parse(responseText);
-    }
-    if (!response.ok) {
-      const message = typeof payload === "object" && payload !== null && "error" in payload
-        ? String((payload as { error?: unknown }).error)
-        : `runtime HTTP ${response.status}`;
-      throw new Error(message);
-    }
-    return payload;
-  }
-
-  const requestId = `realtime-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  await ctx.runMutation(api.companion.requestTurn, {
+  await ctx.runMutation(api.companion.recordCompanionActivity, {
     deviceToken,
-    requestId,
-    deviceId: String(body.deviceId ?? ""),
-    requestedBy: "ios_companion_realtime",
-    text,
-    createdAt: Date.now() / 1000,
+    deviceId: body.deviceId == null ? undefined : String(body.deviceId),
+    event: "operator_turn",
   });
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < 90_000) {
-    const request = await ctx.runQuery(api.companion.controlRequest, { deviceToken, requestId });
-    if (request?.status === "done") {
-      return request.output ?? { ok: true, reply: "" };
-    }
-    if (request?.status === "error") {
-      throw new Error(request.error ?? "runtime error");
-    }
-    if (request?.status === "refused") {
-      throw new Error(request.reason ?? "runtime refused command");
-    }
-    await sleep(250);
-  }
-  throw new Error("runtime timed out before JARVIS answered");
-});
 
-route("/app/speech", async (ctx, body) => {
-  const deviceToken = String(body.deviceToken ?? "");
-  await ctx.runQuery(api.companion.status, { deviceToken });
-  const text = String(body.text ?? "").trim();
-  if (!text) {
-    throw new Error("no text");
-  }
+  const { runtimeURL, companionToken } = nativeRuntimeConfig();
 
-  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
-  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
-  if (!runtimeURL || !companionToken) {
-    throw new Error("JARVIS voice runtime unavailable");
-  }
-
-  const response = await fetch(`${runtimeURL}/companion/speech`, {
+  const response = await fetch(`${runtimeURL}/companion/turn`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -211,6 +285,70 @@ route("/app/speech", async (ctx, body) => {
   return payload;
 });
 
+route("/app/speech", async (ctx, body) => {
+  const deviceToken = String(body.deviceToken ?? "");
+  await ctx.runQuery(api.companion.status, { deviceToken });
+  const text = String(body.text ?? "").trim();
+  if (!text) {
+    throw new Error("no text");
+  }
+
+  const voicePolicy = nativeVoicePolicy();
+  if (!voicePolicy.available) {
+    return voiceUnavailable(
+      "Native JARVIS voice backend is not configured; returning silence instead of a wrong voice.",
+      voicePolicy.missing,
+    );
+  }
+
+  const { runtimeURL, companionToken } = nativeRuntimeConfig();
+
+  const response = await fetch(`${runtimeURL}/companion/speech`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "accept": "application/json",
+      "x-jarvis-companion-token": companionToken,
+    },
+    body: JSON.stringify({
+      text,
+      voice_policy: {
+        require_jarvis_voice: true,
+        require_native_backend: true,
+        forbid_python_tts: true,
+        forbid_system_voice: true,
+        fallback_policy: "none",
+      },
+    }),
+  });
+  const responseText = await response.text();
+  let payload: unknown = {};
+  if (responseText.trim()) {
+    payload = JSON.parse(responseText);
+  }
+  if (!response.ok) {
+    if (typeof payload === "object" && payload !== null) {
+      const code = String((payload as { code?: unknown; error?: unknown }).code ?? (payload as { error?: unknown }).error ?? "");
+      if (code === "voice_unavailable") {
+        return {
+          ...voiceUnavailable("Native JARVIS voice service returned voice_unavailable.", []),
+          ...(payload as Record<string, unknown>),
+          spoken: false,
+        };
+      }
+    }
+    const message = typeof payload === "object" && payload !== null && "error" in payload
+      ? String((payload as { error?: unknown }).error)
+      : `runtime HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  const speech = assertNativeSpeechPayload(payload);
+  if (speech.ok === false || speech.spoken === false) {
+    return { ...speech, spoken: false };
+  }
+  return speech;
+});
+
 route("/app/transcribe", async (ctx, body) => {
   const deviceToken = String(body.deviceToken ?? "");
   await ctx.runQuery(api.companion.status, { deviceToken });
@@ -218,11 +356,7 @@ route("/app/transcribe", async (ctx, body) => {
   const contentType = String(body.content_type ?? body.contentType ?? "audio/mp4").trim().toLowerCase();
   assertAudioPayload(audioBase64, contentType);
 
-  const runtimeURL = (process.env.JARVIS_RUNTIME_PUBLIC_URL ?? "").trim().replace(/\/$/, "");
-  const companionToken = (process.env.JARVIS_RUNTIME_COMPANION_TOKEN ?? "").trim();
-  if (!runtimeURL || !companionToken) {
-    throw new Error("JARVIS voice runtime unavailable");
-  }
+  const { runtimeURL, companionToken } = nativeRuntimeConfig();
 
   const response = await fetch(`${runtimeURL}/companion/transcribe`, {
     method: "POST",
@@ -249,5 +383,30 @@ route("/app/transcribe", async (ctx, body) => {
   }
   return payload;
 });
+
+route("/app/voice-enrollment", (ctx, body) => ctx.runMutation(api.companion.recordVoiceEnrollmentStatus, {
+  deviceToken: String(body.deviceToken ?? ""),
+  personId: String(body.person_id ?? body.personId ?? ""),
+  memoryScopeId: body.memory_scope_id == null && body.memoryScopeId == null
+    ? undefined
+    : String(body.memory_scope_id ?? body.memoryScopeId),
+  status: String(body.status ?? ""),
+  sampleCount: Number(body.sample_count ?? body.sampleCount ?? 0),
+  sampleDigestsSHA256: stringArray(body.sample_digests_sha256 ?? body.sampleDigestsSHA256),
+  backend: body.backend == null ? undefined : String(body.backend),
+  handoffId: body.handoff_id == null && body.handoffId == null
+    ? undefined
+    : String(body.handoff_id ?? body.handoffId),
+  modelId: body.model_id == null && body.modelId == null
+    ? undefined
+    : String(body.model_id ?? body.modelId),
+  blockedReason: body.blocked_reason == null && body.blockedReason == null
+    ? undefined
+    : String(body.blocked_reason ?? body.blockedReason),
+  storagePolicy: body.storage_policy ?? body.storagePolicy ?? {},
+  revokedAt: body.revoked_at == null && body.revokedAt == null
+    ? undefined
+    : Number(body.revoked_at ?? body.revokedAt),
+}));
 
 export default http;

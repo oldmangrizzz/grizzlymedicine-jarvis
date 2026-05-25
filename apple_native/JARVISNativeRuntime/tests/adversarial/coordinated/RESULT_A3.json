@@ -1,0 +1,17 @@
+{
+  "scenario_id": "A3",
+  "adversary": "Nation-State APT",
+  "attack_vector": "TLS MITM using injected state CA",
+  "defense_triggered": "SPKI certificate pin mismatch; fail-closed before payload exchange",
+  "defense_effective": true,
+  "time_to_detect_ms": 2,
+  "time_to_mitigate_ms": 2,
+  "metrics": {
+    "latency_under_attack_ms": 6,
+    "abstention_rate_under_attack": 0,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 4
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: TLS MITM using injected state CA #6aca3a0cda339b23", "attack_started: TLS MITM using injected state CA #40d8dc976329de80", "defense_triggered: SPKI certificate pin mismatch; fail-closed before payload exchange #e91707edead2f0f4", "mitigated: attack defeated; no cognition organ disabled; audit chain intact #2f5a454b53a2e998"]
+}

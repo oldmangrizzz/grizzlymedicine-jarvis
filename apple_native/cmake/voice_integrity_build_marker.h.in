@@ -1,0 +1,7 @@
+#pragma once
+#include <string_view>
+
+namespace jarvis::tts::onnx::voice_integrity::generated {
+inline constexpr std::string_view kConfiguredVoiceSha256 = "@JARVIS_CONFIGURED_VOICE_SHA256@";
+inline constexpr std::string_view kVoiceBuildMarker = "@JARVIS_VOICE_BUILD_MARKER@";
+}

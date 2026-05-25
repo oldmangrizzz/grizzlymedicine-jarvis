@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# pre-commit.template — JARVIS pre-commit hook
+#
+# Operator: Robert "Grizzly" Hanson <me@grizzlymedicine.org>
+# Project:  JARVIS Digital Person
+#
+# Installation (run from repo root — do NOT execute this file directly):
+#
+#   cp .githooks/pre-commit.template .githooks/pre-commit
+#   chmod +x .githooks/pre-commit
+#   git config core.hooksPath .githooks
+#
+# This file is a TEMPLATE. Copy it to .githooks/pre-commit to activate.
+# The template is committed to the repo; the active hook is not.
+#
+# Checks performed (in order):
+#   1. Signing config — reject if commit.gpgsign is not true or signing key missing
+#   2. Protected paths — reject commits touching oracle/ or _local_voice/
+#   3. Secret patterns — reject obvious API keys, AWS keys, hardcoded tokens
+#
+# To bypass in an emergency (operator only):
+#   JARVIS_SKIP_HOOK=1 git commit -m "..."
+# Bypasses are logged to .git/HOOK_BYPASS_LOG.
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Emergency bypass (operator only — logged)
+# ---------------------------------------------------------------------------
+if [[ "${JARVIS_SKIP_HOOK:-0}" == "1" ]]; then
+    BYPASS_LOG="$(git rev-parse --git-dir)/HOOK_BYPASS_LOG"
+    echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") BYPASS by ${USER}@$(hostname -s): pre-commit skipped" \
+        >> "${BYPASS_LOG}"
+    echo "⚠️  pre-commit BYPASSED — logged to ${BYPASS_LOG}" >&2
+    exit 0
+fi
+
+ERRORS=0
+WARNINGS=0
+
+# ---------------------------------------------------------------------------
+# 1. Signing configuration check
+# ---------------------------------------------------------------------------
+GPGSIGN="$(git config commit.gpgsign 2>/dev/null || echo "false")"
+GPG_FORMAT="$(git config gpg.format 2>/dev/null || echo "")"
+SIGNING_KEY="$(git config user.signingkey 2>/dev/null || echo "")"
+
+if [[ "${GPGSIGN}" != "true" ]]; then
+    echo "❌ SIGNING: commit.gpgsign is not 'true'." >&2
+    echo "   Run: git config commit.gpgsign true" >&2
+    echo "   See: SIGNING.md for full setup instructions." >&2
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [[ -z "${SIGNING_KEY}" ]]; then
+    echo "❌ SIGNING: user.signingkey is not configured." >&2
+    echo "   Run: git config user.signingkey ~/.ssh/jarvis_signing_key.pub" >&2
+    echo "   See: SIGNING.md" >&2
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [[ -n "${SIGNING_KEY}" && "${GPG_FORMAT}" == "ssh" ]]; then
+    # Resolve the key path (may be a path to a .pub file or a literal key)
+    KEY_PATH="${SIGNING_KEY/#\~/$HOME}"
+    if [[ "${SIGNING_KEY}" == *".pub" && ! -f "${KEY_PATH}" ]]; then
+        echo "❌ SIGNING: signingkey points to missing file: ${SIGNING_KEY}" >&2
+        ERRORS=$((ERRORS + 1))
+    fi
+fi
+
+ALLOWED_SIGNERS="$(git config gpg.ssh.allowedSignersFile 2>/dev/null || echo "")"
+if [[ -z "${ALLOWED_SIGNERS}" ]]; then
+    echo "⚠️  SIGNING: gpg.ssh.allowedSignersFile is not set (verification will fail)." >&2
+    echo "   Run: git config gpg.ssh.allowedSignersFile .git/allowed_signers" >&2
+    WARNINGS=$((WARNINGS + 1))
+else
+    ALLOWED_PATH="${ALLOWED_SIGNERS/#\~/$HOME}"
+    if [[ ! -f "${ALLOWED_PATH}" ]]; then
+        echo "⚠️  SIGNING: allowedSignersFile '${ALLOWED_SIGNERS}' does not exist." >&2
+        echo "   Create it: echo \"me@grizzlymedicine.org namespaces=\\\"git\\\" \$(cat ~/.ssh/jarvis_signing_key.pub)\" > ${ALLOWED_PATH}" >&2
+        WARNINGS=$((WARNINGS + 1))
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Protected paths — reject any staged file under oracle/ or _local_voice/
+# ---------------------------------------------------------------------------
+PROTECTED_PATTERNS=(
+    "^oracle/"
+    "^_local_voice/"
+)
+
+STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMRT 2>/dev/null || echo "")"
+
+for PATTERN in "${PROTECTED_PATTERNS[@]}"; do
+    MATCHES="$(echo "${STAGED_FILES}" | grep -E "${PATTERN}" || true)"
+    if [[ -n "${MATCHES}" ]]; then
+        echo "❌ PROTECTED PATH: staged files match protected pattern '${PATTERN}':" >&2
+        echo "${MATCHES}" | sed 's/^/   /' >&2
+        echo "   These paths contain operator-private artifacts and must not be committed." >&2
+        echo "   Add them to .gitignore or unstage: git restore --staged <file>" >&2
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# 3. Secret scanning — basic regex patterns
+# ---------------------------------------------------------------------------
+# Scans the diff of staged changes (not the full file) to avoid false positives
+# on existing committed content.
+
+DIFF_CONTENT="$(git diff --cached --unified=0 2>/dev/null || echo "")"
+
+# Pattern: description, regex
+# Format: "DESCRIPTION|REGEX"
+SECRET_PATTERNS=(
+    # AWS
+    "AWS Access Key ID|AKIA[0-9A-Z]{16}"
+    "AWS Secret Access Key|(?i)aws_secret_access_key\s*=\s*['\"][0-9a-zA-Z/+]{40}['\"]"
+    # Generic API key assignments
+    "Generic API key|(?i)(api_key|apikey|api-key)\s*[=:]\s*['\"][0-9a-zA-Z_\-]{20,}['\"]"
+    # OpenAI / Anthropic
+    "OpenAI key|sk-[a-zA-Z0-9]{20,}"
+    "Anthropic key|sk-ant-[a-zA-Z0-9\-]{20,}"
+    # Generic Bearer tokens
+    "Bearer token|(?i)bearer\s+[0-9a-zA-Z_\-\.]{20,}"
+    # Hardcoded passwords
+    "Hardcoded password|(?i)(password|passwd|secret)\s*[=:]\s*['\"][^'\"]{8,}['\"]"
+    # Private key headers
+    "Private key|-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"
+    # GitHub tokens
+    "GitHub token|ghp_[0-9a-zA-Z]{36}"
+    "GitHub Actions token|GITHUB_TOKEN\s*[=:]\s*['\"][^\s'\"]{10,}['\"]"
+    # Convex deploy key
+    "Convex deploy key|(?i)convex.*deploy.*key\s*[=:]\s*['\"][^\s'\"]{10,}['\"]"
+    # Generic token variable
+    "Hardcoded token variable|(?i)(token|auth_token|access_token)\s*[=:]\s*['\"][0-9a-zA-Z_\-\.]{20,}['\"]"
+)
+
+# Only scan added lines (prefix +) to reduce false positives
+ADDED_LINES="$(echo "${DIFF_CONTENT}" | grep '^+' | grep -v '^+++' || true)"
+
+if [[ -n "${ADDED_LINES}" ]]; then
+    for ENTRY in "${SECRET_PATTERNS[@]}"; do
+        DESCRIPTION="${ENTRY%%|*}"
+        PATTERN="${ENTRY##*|}"
+        MATCHES="$(echo "${ADDED_LINES}" | grep -oE "${PATTERN}" || true)"
+        if [[ -n "${MATCHES}" ]]; then
+            echo "❌ SECRET DETECTED [${DESCRIPTION}]: pattern '${PATTERN}' found in staged diff." >&2
+            echo "   Remove the secret, rotate it, and use an environment variable or keychain." >&2
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
+fi
+
+# ---------------------------------------------------------------------------
+# Result
+# ---------------------------------------------------------------------------
+if [[ "${WARNINGS}" -gt 0 ]]; then
+    echo "⚠️  ${WARNINGS} warning(s) — commit allowed, but address before release." >&2
+fi
+
+if [[ "${ERRORS}" -gt 0 ]]; then
+    echo "" >&2
+    echo "🚫 Commit rejected: ${ERRORS} error(s). Fix the issues above and retry." >&2
+    echo "   To bypass (operator only): JARVIS_SKIP_HOOK=1 git commit ..." >&2
+    exit 1
+fi
+
+echo "✅ pre-commit checks passed."
+exit 0

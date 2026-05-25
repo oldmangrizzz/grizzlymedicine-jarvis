@@ -1,0 +1,12 @@
+# Memory-extraction GAPs
+
+| ID | Area | Finding | Required closure |
+|---|---|---|---|
+| GAP-MEM-001 | BeliefStore / H-MEM | Current BeliefStore/H-MEM content uses STL containers, not locked pages. H-MEM future landing must classify operator memory payloads before storage. | Introduce a secure allocator or encrypt-at-rest-in-RAM wrapper for sensitive beliefs; zero transient plaintext after embedding. |
+| GAP-MEM-002 | Conversation transcripts | No central transcript allocation boundary found. Any transcript strings held in `std::string` are dump-searchable. | Route transcript buffers through locked/zeroizing storage or store only encrypted chunks in memory. |
+| GAP-MEM-003 | Voice anchor sample | No central loaded voice-anchor allocation boundary found. Audio sample buffers are not proven mlocked/zeroized. | Load anchor samples into locked buffers and zero after feature extraction; persist only non-invertible features where possible. |
+| GAP-MEM-004 | identity/continuity | `identity/continuity/continuity.cpp` now uses centralized libsodium startup but still accepts signer private-key spans without proving mlock ownership. | Require locked key owner type or document caller-owned mlock contract. |
+| GAP-MEM-005 | identity/operator_attestation | `identity/operator_attestation/operator_attestation.cpp` now uses centralized libsodium startup but still generates/signs with Ed25519 private key material in ordinary object storage. | Move keypair private material to locked/zeroizing storage matching CharacterValues. |
+| GAP-MEM-006 | Cert pin store | Pin material is lower sensitivity (public SPKI hashes), but `CertPinStore::add_pins` remains public for initialization-time mutation. | Freeze after initialization or expose a builder so runtime global pin store is structurally immutable. |
+| GAP-MEM-007 | Live privileged dumps | `mlock`/`sodium_mlock` prevents swap and may mark no-dump where supported, but privileged task ports/root can still read process memory. | Operator trust-domain control: restrict debugger entitlement, root access, hibernation policy, and physical access. |
+| GAP-MEM-008 | Stack/message plaintext | Crypto APIs require transient plaintext/key bytes on stack or library-owned heap. Current implementation zeroes known derived-key/plaintext locals on success, but exception paths can retain some bytes until stack reuse. | Add scope guards for all derived keys/plaintext buffers and prefer `LockedBytes` for decrypted payload buffers. |

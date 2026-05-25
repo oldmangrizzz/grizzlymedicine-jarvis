@@ -1,0 +1,17 @@
+{
+  "scenario_id": "A2",
+  "adversary": "Nation-State APT",
+  "attack_vector": "malicious SBOM entry attempts dependency swap",
+  "defense_triggered": "pinned SBOM digest + signed dependency audit rejects unexpected package identity",
+  "defense_effective": true,
+  "time_to_detect_ms": 4,
+  "time_to_mitigate_ms": 8,
+  "metrics": {
+    "latency_under_attack_ms": 12,
+    "abstention_rate_under_attack": 0,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 4
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: malicious SBOM entry attempts dependency swap #4f8dddee86568662", "attack_started: malicious SBOM entry attempts dependency swap #177e7545dfb15307", "defense_triggered: pinned SBOM digest + signed dependency audit rejects unexpected package identity #bdf38f7c8c5eb0fa", "mitigated: attack defeated; no cognition organ disabled; audit chain intact #dd6ad17e151d5c9c"]
+}

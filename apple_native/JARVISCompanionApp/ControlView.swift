@@ -14,7 +14,7 @@ struct ControlView: View {
         NavigationStack {
             ZStack {
                 LinearGradient(
-                    colors: [Color.black, accent.color.opacity(0.14), accent.color.opacity(0.07)],
+                    colors: [GMRITheme.color.background, accent.color.opacity(0.14), accent.color.opacity(0.07)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -57,7 +57,7 @@ struct ControlView: View {
                         .font(.system(size: 52, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [.white, accent.color.opacity(0.82)],
+                                colors: [GMRITheme.color.neutral, accent.color.opacity(0.82)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -67,13 +67,13 @@ struct ControlView: View {
                 StatePill(
                     title: appState.isPaired ? "Ready" : "Connecting",
                     systemImage: appState.isPaired ? "checkmark.seal.fill" : "wifi.exclamationmark",
-                    tint: appState.isPaired ? .green : .orange
+                    tint: appState.isPaired ? GMRITheme.color.success : GMRITheme.color.warning
                 )
             }
 
             Text("Tap the highlight circle. Speak normally. Tap it again when you are done.")
                 .font(.callout)
-                .foregroundStyle(.white.opacity(0.74))
+                .foregroundStyle(GMRITheme.color.neutral.opacity(0.74))
         }
         .padding(.top, 8)
     }
@@ -92,12 +92,12 @@ struct ControlView: View {
                 Text(voicePrompt)
                     .font(.headline)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GMRITheme.color.neutral)
 
                 Text("Ask for a website, video, music, directions, emergency info, or anything JARVIS should handle.")
                     .font(.caption)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.white.opacity(0.58))
+                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.58))
 
                 if !voice.transcript.isEmpty {
                     TranscriptBlock(title: "You", text: voice.transcript, tint: accent.color)
@@ -122,10 +122,10 @@ struct ControlView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Choose your highlight color")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GMRITheme.color.neutral)
                 Text("Say \"JARVIS, my color is green\" or tap a color. This becomes your personal visual cue here and later in glasses mode.")
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.72))
                 AccentChoiceGrid { hue in
                     accent.choose(hue)
                     Task {
@@ -147,8 +147,10 @@ struct ControlView: View {
                 .foregroundStyle(accent.color)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                SignalCard(title: "Connection", value: appState.connectionStatus, systemImage: "cloud.fill", tint: appState.isPaired ? .green : .orange)
+                SignalCard(title: "Connection", value: appState.connectionStatus, systemImage: "cloud.fill", tint: appState.isPaired ? GMRITheme.color.success : GMRITheme.color.warning)
                 SignalCard(title: "JARVIS", value: appState.isCommandInFlight ? "Answering now" : "Ready", systemImage: "sparkles", tint: accent.color)
+                SignalCard(title: "Voice path", value: appState.voicePathStatus, systemImage: appState.voicePathStatus.localizedCaseInsensitiveContains("playing") ? "speaker.wave.2.fill" : "speaker.slash.fill", tint: appState.voicePathStatus.localizedCaseInsensitiveContains("playing") ? GMRITheme.color.success : GMRITheme.color.warning)
+                SignalCard(title: "Dream readiness", value: appState.dreamReadinessStatus, systemImage: "moon.stars.fill", tint: GMRITheme.color.info)
             }
 
             if !appState.lastCommand.isEmpty {
@@ -156,11 +158,11 @@ struct ControlView: View {
             }
 
             if !appState.lastDeviceAction.isEmpty {
-                TranscriptBlock(title: "Device", text: appState.lastDeviceAction, tint: .purple)
+                TranscriptBlock(title: "Device", text: appState.lastDeviceAction, tint: GMRITheme.color.info)
             }
 
             if !appState.lastReply.isEmpty {
-                TranscriptBlock(title: "JARVIS", text: appState.lastReply, tint: .green)
+                TranscriptBlock(title: "JARVIS", text: appState.lastReply, tint: GMRITheme.color.success)
             }
 
             if !appState.lastError.isEmpty {
@@ -195,10 +197,10 @@ struct ControlView: View {
             Label("Can't talk? Type instead.", systemImage: "keyboard")
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(GMRITheme.color.neutral.opacity(0.78))
         }
         .padding(16)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(GMRITheme.color.neutral.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .tint(accent.color)
     }
 
@@ -207,10 +209,10 @@ struct ControlView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Emergency info", systemImage: "heart.text.square.fill")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GMRITheme.color.neutral)
                 Text(health.snapshot.statusLine)
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.76))
+                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.76))
                 HStack {
                     Button {
                         Task {
@@ -245,10 +247,10 @@ struct ControlView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Label("Connecting to JARVIS", systemImage: "wifi.exclamationmark")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GMRITheme.color.neutral)
                 Text("This should happen by itself. If it does not, tap Try again.")
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.72))
                 Button {
                     Task { await appState.registerDevice() }
                 } label: {
@@ -388,7 +390,7 @@ final class VoiceCommandViewModel: ObservableObject {
             guard size <= maxRecordingBytes else {
                 throw VoiceCommandError.recordingTooLarge
             }
-            return VoiceRecording(data: try Data(contentsOf: url), contentType: "audio/mp4")
+            return VoiceRecording(data: try Data(contentsOf: url), contentType: "audio/m4a")
         } catch {
             errorText = "Voice capture failed: \(error.localizedDescription)"
             return nil
@@ -415,7 +417,7 @@ final class VoiceCommandViewModel: ObservableObject {
 
     private func configureAudioSession() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, mode: .measurement, options: [.allowBluetoothHFP])
+        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.allowBluetoothHFP, .defaultToSpeaker])
         try session.setActive(true, options: .notifyOthersOnDeactivation)
     }
 
@@ -479,12 +481,12 @@ private struct VoiceOrb: View {
                 .shadow(color: orbTint.opacity(0.65), radius: isListening ? 30 : 18)
 
             Circle()
-                .stroke(.white.opacity(0.28), lineWidth: 1)
+                .stroke(GMRITheme.color.neutral.opacity(0.28), lineWidth: 1)
                 .frame(width: 210, height: 210)
 
             Image(systemName: isThinking ? "sparkles" : (isListening ? "waveform" : "mic.fill"))
                 .font(.system(size: 58, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(GMRITheme.color.neutral)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -499,12 +501,12 @@ private struct VoiceOrb: View {
 
     private var orbColors: [Color] {
         if isThinking {
-            return [accent.opacity(0.95), .white.opacity(0.22), .black.opacity(0.15)]
+            return [accent.opacity(0.95), GMRITheme.color.neutral.opacity(0.22), GMRITheme.color.background.opacity(0.15)]
         }
         if isListening {
-            return [accent.opacity(0.95), accent.opacity(0.58), .black.opacity(0.20)]
+            return [accent.opacity(0.95), accent.opacity(0.58), GMRITheme.color.background.opacity(0.20)]
         }
-        return [accent.opacity(0.92), accent.opacity(0.38), .black.opacity(0.24)]
+        return [accent.opacity(0.92), accent.opacity(0.38), GMRITheme.color.background.opacity(0.24)]
     }
 }
 
@@ -515,10 +517,10 @@ private struct GlassPanel<Content: View>: View {
         content
             .padding(18)
             .frame(maxWidth: .infinity)
-            .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(GMRITheme.color.neutral.opacity(0.10), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(.white.opacity(0.16), lineWidth: 1)
+                    .stroke(GMRITheme.color.neutral.opacity(0.16), lineWidth: 1)
             )
     }
 }
@@ -536,7 +538,7 @@ private struct TranscriptBlock: View {
                 .foregroundStyle(tint)
             Text(text)
                 .font(.body)
-                .foregroundStyle(.white)
+                .foregroundStyle(GMRITheme.color.neutral)
                 .textSelection(.enabled)
         }
         .padding(14)
@@ -558,16 +560,16 @@ private struct SignalCard: View {
             Text(title)
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundStyle(.white.opacity(0.74))
+                .foregroundStyle(GMRITheme.color.neutral.opacity(0.74))
             Text(value)
                 .font(.caption)
-                .foregroundStyle(.white)
+                .foregroundStyle(GMRITheme.color.neutral)
                 .lineLimit(3)
                 .minimumScaleFactor(0.8)
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(GMRITheme.color.neutral.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -595,13 +597,13 @@ private struct CapabilityChip: View {
     var body: some View {
         Label(title, systemImage: systemImage)
             .font(.caption2.weight(.bold))
-            .foregroundStyle(.white.opacity(0.82))
+            .foregroundStyle(GMRITheme.color.neutral.opacity(0.82))
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
-            .background(.white.opacity(0.08), in: Capsule())
+            .background(GMRITheme.color.neutral.opacity(0.08), in: Capsule())
             .overlay(
                 Capsule()
                     .stroke(accent.color.opacity(0.16), lineWidth: 1)
@@ -629,10 +631,10 @@ private struct AccentChoiceGrid: View {
                         Text(hue.label)
                             .font(.caption2.weight(.semibold))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GMRITheme.color.neutral)
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
-                    .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(GMRITheme.color.neutral.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .stroke(hue.color.opacity(0.35), lineWidth: 1)
@@ -650,10 +652,10 @@ private struct RecoveryBlock: View {
     var body: some View {
         Label(text, systemImage: "exclamationmark.triangle.fill")
             .font(.callout)
-            .foregroundStyle(.orange)
+            .foregroundStyle(GMRITheme.color.warning)
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(GMRITheme.color.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .textSelection(.enabled)
     }
 }

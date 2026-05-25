@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CompanionRootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appState = CompanionAppState()
     @StateObject private var accent = CompanionAccentTheme()
     @StateObject private var watchBridge = PhoneWatchBridge()
@@ -17,7 +18,7 @@ struct CompanionRootView: View {
                 .tabItem { Label("People", systemImage: "person.2") }
 
             VoiceRegistrationView()
-                .tabItem { Label("My Voice", systemImage: "person.wave.2") }
+                .tabItem { Label("Voices", systemImage: "person.wave.2") }
 
             HelpView()
                 .tabItem { Label("Help", systemImage: "questionmark.circle") }
@@ -25,17 +26,33 @@ struct CompanionRootView: View {
         .environmentObject(appState)
         .environmentObject(accent)
         .tint(accent.color)
-        .toolbarBackground(.black.opacity(0.85), for: .tabBar)
+        .toolbarBackground(GMRITheme.color.background.opacity(0.85), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .onAppear {
             watchBridge.activate(appState: appState)
             watchBridge.sendAccent(accent.selected)
+            Task { await appState.publishPhoneState(active: true, reason: "root_appear") }
         }
         .onChange(of: accent.selected) { _, selected in
             watchBridge.sendAccent(selected)
         }
+        .onChange(of: scenePhase) { _, phase in
+            Task {
+                switch phase {
+                case .active:
+                    await appState.publishPhoneState(active: true, reason: "scene_active")
+                case .inactive:
+                    await appState.publishPhoneState(active: false, reason: "scene_inactive")
+                case .background:
+                    await appState.publishPhoneState(active: false, reason: "scene_background")
+                @unknown default:
+                    await appState.publishPhoneState(active: false, reason: "scene_unknown")
+                }
+            }
+        }
         .task {
             await appState.checkConnection()
+            watchBridge.sendStatusSnapshot()
         }
     }
 }
@@ -49,7 +66,7 @@ private struct HelpView: View {
         NavigationStack {
             ZStack {
                 LinearGradient(
-                    colors: [.black, accent.color.opacity(0.16), accent.color.opacity(0.08)],
+                    colors: [GMRITheme.color.background, accent.color.opacity(0.16), accent.color.opacity(0.08)],
                     startPoint: .top,
                     endPoint: .bottomTrailing
                 )
@@ -66,17 +83,17 @@ private struct HelpView: View {
                                     .foregroundStyle(accent.color)
                                 Text("If something feels stuck, press the button below.")
                                     .font(.largeTitle.weight(.semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(GMRITheme.color.neutral)
                                 Text("JARVIS connects in the background. You should not need codes, tokens, or IP addresses.")
                                     .font(.callout)
-                                    .foregroundStyle(.white.opacity(0.70))
+                                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.70))
                             }
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
                             Label(appState.connectionStatus, systemImage: appState.isPaired ? "checkmark.seal.fill" : "wifi.exclamationmark")
                                 .font(.headline)
-                                .foregroundStyle(appState.isPaired ? .green : .orange)
+                                .foregroundStyle(appState.isPaired ? GMRITheme.color.success : GMRITheme.color.warning)
                             Button {
                                 Task { await appState.registerDevice() }
                             } label: {
@@ -104,12 +121,12 @@ private struct HelpView: View {
                             } label: {
                                 Text("Advanced")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white.opacity(0.72))
+                                    .foregroundStyle(GMRITheme.color.neutral.opacity(0.72))
                             }
                             .tint(accent.color)
                         }
                         .padding(18)
-                        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .background(GMRITheme.color.neutral.opacity(0.10), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
                                 .stroke(accent.color.opacity(0.20), lineWidth: 1)
@@ -122,16 +139,19 @@ private struct HelpView: View {
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(accent.color)
                             Text(appState.connectionStatus)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(GMRITheme.color.neutral)
+                            Text(appState.dreamReadinessStatus)
+                                .font(.caption)
+                                .foregroundStyle(GMRITheme.color.neutral.opacity(0.72))
                             if !appState.lastError.isEmpty {
                                 Text(appState.lastError)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(GMRITheme.color.warning)
                                     .textSelection(.enabled)
                             }
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .background(GMRITheme.color.neutral.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
                     .padding(20)
                 }
@@ -156,7 +176,7 @@ private struct AccentPickerCard: View {
                 .foregroundStyle(accent.color)
             Text("Pick the color JARVIS uses for you. You can also say, \"JARVIS, my color is purple.\"")
                 .font(.callout)
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(GMRITheme.color.neutral.opacity(0.72))
 
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(CompanionAccentHue.allCases) { hue in
@@ -172,11 +192,11 @@ private struct AccentPickerCard: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(GMRITheme.color.neutral)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity)
-                        .background(.white.opacity(accent.selected == hue ? 0.18 : 0.08), in: Capsule())
+                        .background(GMRITheme.color.neutral.opacity(accent.selected == hue ? 0.18 : 0.08), in: Capsule())
                         .overlay(
                             Capsule()
                                 .stroke(hue.color.opacity(accent.selected == hue ? 0.70 : 0.28), lineWidth: 1)
@@ -188,6 +208,6 @@ private struct AccentPickerCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(GMRITheme.color.neutral.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

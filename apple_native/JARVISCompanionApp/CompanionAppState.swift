@@ -14,6 +14,9 @@ final class CompanionAppState: ObservableObject {
     @Published private(set) var isPaired: Bool = false
     @Published private(set) var isConnecting: Bool = false
     @Published private(set) var isCommandInFlight: Bool = false
+    @Published private(set) var dreamStatus: DreamStatus?
+    @Published private(set) var dreamReadinessStatus: String = "Dream readiness not checked"
+    @Published private(set) var voicePathStatus: String = "Voice path unchecked"
 
     private let tokenStore: KeychainCompanionTokenStore
     private let defaults: UserDefaults
@@ -96,6 +99,7 @@ final class CompanionAppState: ObservableObject {
             if let reply = status.latestTurn?.payload?.objectValue?["reply"]?.stringValue, !reply.isEmpty {
                 lastReply = reply
             }
+            updateDreamStatus(status.dreamReadiness)
             lastError = ""
         } catch {
             if error.invalidatesStoredDeviceToken {
@@ -218,6 +222,8 @@ final class CompanionAppState: ObservableObject {
             source: .iPhone,
             deviceID: deviceID(),
             kind: "device_action",
+            active: true,
+            interactionMode: "device_action",
             confidence: action.succeeded ? 1.0 : 0.0,
             notes: "\(action.title): \(action.detail)",
             extra: [
@@ -227,7 +233,8 @@ final class CompanionAppState: ObservableObject {
             ]
         )
         do {
-            _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
+            let response = try await makeCloudClient().send(event: event, deviceID: deviceID())
+            updateDreamStatus(response.dream)
         } catch {
             lastError = "Device action ran locally; cloud context update failed: \(error.localizedDescription)"
         }
@@ -242,25 +249,78 @@ final class CompanionAppState: ObservableObject {
             source: .iPhone,
             deviceID: deviceID(),
             kind: "health_context",
+            active: true,
+            interactionMode: "health_context",
             confidence: snapshot.authorized ? 1.0 : 0.0,
             notes: reason,
             extra: snapshot.json
         )
         do {
-            _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
+            let response = try await makeCloudClient().send(event: event, deviceID: deviceID())
+            updateDreamStatus(response.dream)
         } catch {
             lastError = "Health context stayed local; cloud update failed: \(error.localizedDescription)"
         }
     }
 
     func send(event: CompanionEvent) async {
+        await send(event: event, updateConnectionStatus: true)
+    }
+
+    var watchProxySnapshot: [String: String] {
+        let distressTerms = [connectionStatus, lastDeviceAction, lastReply, lastError, dreamReadinessStatus]
+            .joined(separator: " ")
+            .localizedCaseInsensitiveContains("distress")
+        let active = isCommandInFlight || connectionStatus.localizedCaseInsensitiveContains("thinking") || !lastCommand.isEmpty
+        let state = distressTerms ? "distress" : (active ? "active" : "idle")
+        return [
+            "jarvis_state": state,
+            "jarvis_status_line": connectionStatus,
+            "jarvis_dream_line": dreamReadinessStatus,
+        ]
+    }
+
+    func publishPhoneState(active: Bool, reason: String) async {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let batteryLevel = UIDevice.current.batteryLevel
+        let battery = batteryLevel >= 0 ? Double(batteryLevel * 100.0) : nil
+        let charging: Bool?
+        switch UIDevice.current.batteryState {
+        case .charging, .full:
+            charging = true
+        case .unplugged:
+            charging = false
+        case .unknown:
+            charging = nil
+        @unknown default:
+            charging = nil
+        }
+        let event = CompanionEvent(
+            source: .iPhone,
+            deviceID: deviceID(),
+            kind: "phone_state",
+            timestamp: Date().timeIntervalSince1970,
+            charging: charging,
+            battery: battery,
+            active: active,
+            interactionMode: active ? "companion_foreground" : "companion_idle",
+            confidence: 0.8,
+            notes: reason
+        )
+        await send(event: event, updateConnectionStatus: false)
+    }
+
+    private func send(event: CompanionEvent, updateConnectionStatus: Bool) async {
         await ensureRegistered()
         guard isPaired else {
             return
         }
         do {
-            _ = try await makeCloudClient().send(event: event, deviceID: deviceID())
-            connectionStatus = "Sent \(event.kind) to JARVIS Cloud."
+            let response = try await makeCloudClient().send(event: event, deviceID: deviceID())
+            if updateConnectionStatus {
+                connectionStatus = "Sent \(event.kind) to JARVIS Cloud."
+            }
+            updateDreamStatus(response.dream)
             lastError = ""
         } catch {
             lastError = "Event send failed: \(error.localizedDescription)"
@@ -281,6 +341,14 @@ final class CompanionAppState: ObservableObject {
         return !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private func updateDreamStatus(_ status: DreamStatus?) {
+        guard let status else {
+            return
+        }
+        dreamStatus = status
+        dreamReadinessStatus = status.readinessLine
+    }
+
     private func speak(_ text: String) async {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else {
@@ -294,7 +362,14 @@ final class CompanionAppState: ObservableObject {
 
         do {
             let response = try await makeCloudClient().speech(text: clean, deviceID: deviceID())
-            guard let data = Data(base64Encoded: response.audioBase64) else {
+            try validateSpeechResponse(response)
+            guard response.ok, response.spoken == true else {
+                voicePathStatus = "Voice unavailable — silent"
+                lastError = "JARVIS voice unavailable: \(response.unavailabilityText)"
+                return
+            }
+            guard let audioBase64 = response.audioBase64,
+                  let data = Data(base64Encoded: audioBase64) else {
                 lastError = "JARVIS voice returned invalid audio."
                 return
             }
@@ -306,9 +381,43 @@ final class CompanionAppState: ObservableObject {
             voicePlayer = player
             player.prepareToPlay()
             player.play()
+            voicePathStatus = "JARVIS native voice playing"
         } catch {
+            voicePathStatus = "Voice unavailable — silent"
             lastError = "JARVIS voice unavailable: \(error.localizedDescription)"
         }
+    }
+
+    private func validateSpeechResponse(_ response: CloudSpeechResponse) throws {
+        if response.wrongVoiceFallbackAllowed == true ||
+            response.systemVoiceFallbackAllowed == true ||
+            response.nativeSystemVoiceAllowed == true ||
+            response.pythonTTSAllowed == true {
+            throw CompanionVoiceError.voicePolicyViolation
+        }
+        let backend = [response.backend, response.backendKind].compactMap { $0 }.joined(separator: " ")
+        if backendLooksForbidden(backend) {
+            throw CompanionVoiceError.voicePolicyViolation
+        }
+        if response.spoken == true {
+            let audio = response.audioBase64 ?? ""
+            let contentType = response.contentType ?? ""
+            guard response.ok, !audio.isEmpty, contentType.hasPrefix("audio/") else {
+                throw CompanionVoiceError.fakeSpokenSuccess
+            }
+        }
+    }
+
+    private func backendLooksForbidden(_ value: String) -> Bool {
+        let lower = value.lowercased()
+        return lower.contains("nsspeech") ||
+            lower.contains("avspeech") ||
+            lower.contains("speechsynthesis") ||
+            lower.contains("system voice") ||
+            lower.contains("tts_pocket") ||
+            lower.contains("jarvis_bridge.py") ||
+            lower.contains("python") ||
+            lower == "say"
     }
 }
 
@@ -328,6 +437,8 @@ private enum CompanionVoiceError: LocalizedError {
     case cloudUnavailable
     case emptyAudio
     case emptyTranscript
+    case fakeSpokenSuccess
+    case voicePolicyViolation
 
     var errorDescription: String? {
         switch self {
@@ -339,6 +450,10 @@ private enum CompanionVoiceError: LocalizedError {
             return "No voice recording was captured."
         case .emptyTranscript:
             return "JARVIS did not hear words in that recording."
+        case .fakeSpokenSuccess:
+            return "Speech response claimed spoken=true without native JARVIS audio."
+        case .voicePolicyViolation:
+            return "Speech response violated JARVIS voice-or-silence policy."
         }
     }
 }
@@ -352,6 +467,10 @@ private extension CloudStatusResponse {
             }
         }
         return "Connected to JARVIS Cloud."
+    }
+
+    var dreamReadiness: DreamStatus? {
+        dream?.payload?.decoded(DreamStatus.self)
     }
 }
 
@@ -374,5 +493,43 @@ private extension JSONValue {
             return value
         }
         return nil
+    }
+
+    func decoded<T: Decodable>(_: T.Type) -> T? {
+        guard let data = try? JSONEncoder().encode(self) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+}
+
+private extension DreamStatus {
+    var readinessLine: String {
+        if deepReady {
+            return "Dream readiness: deep ready; idle \(idleDescription)."
+        }
+        if microReady {
+            return "Dream readiness: micro ready; idle \(idleDescription)."
+        }
+        if !activeSignals.isEmpty {
+            return "Dream readiness: active signals observed."
+        }
+        if quietEnough {
+            return "Dream readiness: quiet signals observed; idle \(idleDescription)."
+        }
+        return "Dream readiness: waiting for observable idle context."
+    }
+
+    private var idleDescription: String {
+        guard let idleSeconds else {
+            return "unknown"
+        }
+        if idleSeconds >= 3600 {
+            return "\(Int(idleSeconds / 3600))h"
+        }
+        if idleSeconds >= 60 {
+            return "\(Int(idleSeconds / 60))m"
+        }
+        return "\(Int(idleSeconds))s"
     }
 }

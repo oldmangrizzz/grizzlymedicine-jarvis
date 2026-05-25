@@ -1,0 +1,27 @@
+{
+  "type": "Results",
+  "channel_index": [0, 1],
+  "duration": 0.72,
+  "start": 0.0,
+  "is_final": false,
+  "speech_final": false,
+  "channel": {
+    "alternatives": [
+      {
+        "transcript": "ready",
+        "confidence": 0.88,
+        "words": [
+          {
+            "word": "ready",
+            "punctuated_word": "Ready",
+            "start": 0.08,
+            "end": 0.64,
+            "confidence": 0.88,
+            "speaker": 0,
+            "speaker_confidence": 0.97
+          }
+        ]
+      }
+    ]
+  }
+}

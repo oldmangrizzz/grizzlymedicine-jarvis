@@ -13,6 +13,32 @@ public struct DreamStatus: Codable, Equatable, Sendable {
     public var lastTransitionDreamAt: Double?
     public var decisionBoundary: String
 
+    public init(
+        microReady: Bool,
+        deepReady: Bool,
+        quietEnough: Bool,
+        deepOverdue: Bool,
+        idleSeconds: Double?,
+        activeSignals: [String],
+        quietSignals: [String],
+        lastMicroDreamAt: Double?,
+        lastDeepDreamAt: Double?,
+        lastTransitionDreamAt: Double?,
+        decisionBoundary: String
+    ) {
+        self.microReady = microReady
+        self.deepReady = deepReady
+        self.quietEnough = quietEnough
+        self.deepOverdue = deepOverdue
+        self.idleSeconds = idleSeconds
+        self.activeSignals = activeSignals
+        self.quietSignals = quietSignals
+        self.lastMicroDreamAt = lastMicroDreamAt
+        self.lastDeepDreamAt = lastDeepDreamAt
+        self.lastTransitionDreamAt = lastTransitionDreamAt
+        self.decisionBoundary = decisionBoundary
+    }
+
     enum CodingKeys: String, CodingKey {
         case microReady = "micro_ready"
         case deepReady = "deep_ready"

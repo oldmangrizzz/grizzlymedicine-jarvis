@@ -1,0 +1,17 @@
+{
+  "scenario_id": "C5",
+  "adversary": "Hostile Insider",
+  "attack_vector": "egress allowlist commit adds attacker domain",
+  "defense_triggered": "operator-attestation requirement and audit log block unapproved egress expansion",
+  "defense_effective": true,
+  "time_to_detect_ms": 2,
+  "time_to_mitigate_ms": 4,
+  "metrics": {
+    "latency_under_attack_ms": 7,
+    "abstention_rate_under_attack": 1,
+    "distress_beacon_firings": 1,
+    "audit_log_entries": 6
+  },
+  "organ_self_health_status": {"BeliefStore": "healthy", "CUSUM": "healthy", "CharacterValues": "healthy", "HDC": "healthy", "HMEM": "healthy", "SAGE": "healthy", "endocannabinoid": "healthy", "endocrine": "healthy", "pheromind": "healthy", "swarm": "healthy"},
+  "evidence_chain": ["attack_started: egress allowlist commit adds attacker domain #3e34a4bddf3e89d9", "attack_started: egress allowlist commit adds attacker domain #85d47a6e76985e28", "defense_triggered: operator-attestation requirement and audit log block unapproved egress expansion #5c0b6798f0dd33a8", "mitigated: insider change blocked before dormant control could activate #7114cfd558d2b4e9", "defense_triggered: operator-attestation requirement and audit log block unapproved egress expansion #3c1f1b3cad8f4d5f", "mitigated: insider change blocked before dormant control could activate #4bbeeb0b17d65e5c"]
+}

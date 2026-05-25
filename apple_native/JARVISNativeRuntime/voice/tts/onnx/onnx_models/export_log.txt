@@ -1,0 +1,101 @@
+INFO: Loading pocket-tts model (temp=0.75, lsd_steps=1, eos_thresh=-4.0) …
+INFO: Loading model from config at /Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/config/english.yaml...
+INFO: Loading sentencepiece tokenizer from hf://kyutai/pocket-tts-without-voice-cloning/languages/english/tokenizer.model@d29db7978e464fb90cb3359ee0c69a273b9142cc
+INFO: Loading TTSModel weights from hf://kyutai/pocket-tts/languages/english/model.safetensors@39592ff23c9ef80098bb74895d104c26275fe2c9
+INFO: TTS Model loaded successfully. Its size is 438.0 MB
+INFO:   Loaded. ldim=32 d_model=1024 layers=6
+INFO: Exporting text_encoder.onnx …
+INFO:   Saved text_encoder.onnx (16.39 MB)
+INFO: Exporting gpt_decoder.onnx (FlowLM single step, growing KV cache) …
+INFO:   layers=6 d_model=1024 ldim=32 heads=16 head_dim=64
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py:118: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+  rope_offset = torch.tensor(T_cur, dtype=torch.long, device=x.device)
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py:118: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  rope_offset = torch.tensor(T_cur, dtype=torch.long, device=x.device)
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:23: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert (B, T, D) == (Bk, Tk, Dk)
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:24: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert D > 0
+/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/rope.py:25: TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+  assert D % 2 == 0
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py:237: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+  s = torch.tensor(step_i / self.lsd_decode_steps,
+/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py:239: TracerWarning: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+  t = torch.tensor((step_i + 1) / self.lsd_decode_steps,
+INFO:   Saved gpt_decoder.onnx (341.45 MB)
+INFO: Exporting hifigan.onnx (Mimi decoder single step, growing KV cache) …
+INFO:   dec_layers=2 d_model=512 heads=8 head_dim=64
+Traceback (most recent call last):
+  File "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py", line 544, in <module>
+    main()
+  File "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py", line 527, in main
+    export_mimi_decoder(model, hfg_path, args.opset)
+  File "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py", line 467, in export_mimi_decoder
+    torch.onnx.export(
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/__init__.py", line 383, in export
+    export(
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 495, in export
+    _export(
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 1428, in _export
+    graph, params_dict, torch_out = _model_to_graph(
+                                    ^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 1053, in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 937, in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 844, in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 1498, in _get_trace_graph
+    outs = ONNXTracedModule(
+           ^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 138, in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 129, in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1729, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/apple_native/JARVISNativeRuntime/voice/tts/onnx/tools/export_xtts_to_onnx.py", line 302, in forward
+    upsampled = self.mimi.upsample(quantized, model_state=None)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1729, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<@beartype(pocket_tts.modules.resample.ConvTrUpsample1d.forward) at 0x1293aea20>", line 54, in forward
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/pocket_tts/modules/resample.py", line 51, in forward
+    return self.convtr(x, model_state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rbhanson/research/jarvis/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1729, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<@beartype(pocket_tts.modules.conv.StreamingConvTranspose1d.forward) at 0x1293adbc0>", line 28, in forward
+beartype.roar.BeartypeCallHintParamViolation: Method pocket_tts.modules.conv.StreamingConvTranspose1d.forward() parameter mimi_state="None" violates type hint <class 'dict'>, as <class "builtins.NoneType"> "None" not instance of dict.

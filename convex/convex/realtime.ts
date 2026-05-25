@@ -1,5 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  cleanAmbientEventArgs,
+  deriveDreamStatus,
+  markDream as markDreamState,
+  publishDerivedDreamStatus,
+} from "./_dream";
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -108,8 +114,34 @@ export const publishAmbientEvent = mutation({
   },
   handler: async (ctx, a) => {
     requireToken(a.clientToken);
-    const id = await ctx.db.insert("ambientEvents", a);
-    return { ok: true, id };
+    const id = await ctx.db.insert("ambientEvents", cleanAmbientEventArgs(a));
+    const dream = await publishDerivedDreamStatus(ctx, "realtime_ambient_event");
+    return { ok: true, id, dream };
+  },
+});
+
+export const dreamStatus = query({
+  args: tokenArgs,
+  handler: async (ctx, a) => {
+    requireToken(a.clientToken);
+    return await deriveDreamStatus(ctx);
+  },
+});
+
+export const markDream = mutation({
+  args: {
+    ...tokenArgs,
+    kind: v.string(),
+    summary: v.optional(v.string()),
+    source: v.optional(v.string()),
+  },
+  handler: async (ctx, a) => {
+    requireToken(a.clientToken);
+    return await markDreamState(ctx, {
+      kind: a.kind,
+      summary: a.summary,
+      source: a.source ?? "realtime",
+    });
   },
 });
 
@@ -288,20 +320,38 @@ export const publishOnboardingEvidence = mutation({
     personId: v.optional(v.string()),
     memoryScopeId: v.optional(v.string()),
     consentBasis: v.optional(v.string()),
+    deviceId: v.optional(v.string()),
+    actor: v.optional(v.string()),
+    provenance: v.optional(v.any()),
     payloadDigestSHA256: v.string(),
     payloadSummary: v.string(),
     payload: v.any(),
   },
   handler: async (ctx, a) => {
     requireToken(a.clientToken);
+    const row = {
+      recordId: a.recordId,
+      kind: a.kind,
+      source: a.source,
+      timestamp: a.timestamp,
+      personId: a.personId,
+      memoryScopeId: a.memoryScopeId,
+      consentBasis: a.consentBasis,
+      deviceId: a.deviceId,
+      actor: a.actor,
+      provenance: a.provenance,
+      payloadDigestSHA256: a.payloadDigestSHA256,
+      payloadSummary: a.payloadSummary,
+      payload: a.payload,
+    };
     const existing = await ctx.db.query("onboardingEvidence")
       .withIndex("by_record_id", (q) => q.eq("recordId", a.recordId))
       .unique();
     if (existing) {
-      await ctx.db.replace(existing._id, a);
+      await ctx.db.replace(existing._id, row);
       return { ok: true, recordId: a.recordId, id: existing._id };
     }
-    const id = await ctx.db.insert("onboardingEvidence", a);
+    const id = await ctx.db.insert("onboardingEvidence", row);
     return { ok: true, recordId: a.recordId, id };
   },
 });

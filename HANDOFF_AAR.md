@@ -6,6 +6,8 @@
 
 This report states what is built, what is verified, what remains open, and the exact surfaces that must not be broken. The operator's medical/accessibility constraint is real: do not hand him code-sorting tasks or vague "interpret this error" instructions. Provide mechanical steps or do the work.
 
+**Native-beta audit note:** the Python/Tauri bridge described below is legacy/reference evidence, not the beta cockpit acceptance path. The beta-critical cockpit target is `apple_native/JARVISMacCockpit` backed by `apple_native/JARVISNativeRuntime`; Python, Rust/Tauri, Web Speech, and browser/system voice paths must not be treated as shipping beta runtime dependencies.
+
 ---
 
 ## 1. One-line status
