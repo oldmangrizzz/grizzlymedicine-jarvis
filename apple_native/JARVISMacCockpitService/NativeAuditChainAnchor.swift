@@ -247,11 +247,22 @@ enum NativeAuditChainAnchor {
 
     private static func loadAuxCertificateData(env: [String: String]) throws -> Data {
         let path = resolveCertificatePath(env: env)
-        guard FileManager.default.fileExists(atPath: path) else {
-            throw NativeAuditChainAnchorError.auxCertificateMissing(path: path)
-        }
+        // R11l α.2 F-KD02/03/04: route through SecureFileRead. realpath +
+        // per-component openat(O_NOFOLLOW) walk + parent dir mode 0700 +
+        // uid==operator verify + leaf mode 0600 + uid==operator + regular
+        // file. Replaces the prior FileManager.fileExists + Data(contentsOf:)
+        // anti-pattern which followed symlinks and never verified the parent
+        // directory. ENOENT anywhere in the walk surfaces as auxCertificate-
+        // Missing (same fail-closed semantics as before).
         do {
-            return try Data(contentsOf: URL(fileURLWithPath: path))
+            return try readSection7Anchored(path: path)
+        } catch let err as SecureFileReadError {
+            if case .absent = err.reason {
+                throw NativeAuditChainAnchorError.auxCertificateMissing(path: path)
+            }
+            throw NativeAuditChainAnchorError.auxCertificateMalformed(
+                path: path, reason: err.description
+            )
         } catch {
             throw NativeAuditChainAnchorError.auxCertificateMalformed(
                 path: path, reason: "unreadable: \(error.localizedDescription)"

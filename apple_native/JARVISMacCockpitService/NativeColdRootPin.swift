@@ -75,135 +75,117 @@ enum NativeColdRootPin {
             return kcData
         }
 
-        // 2) File pin lookup — §7 discipline (R11f F-D02 + F-D03).
+        // 2) File pin lookup — §7 discipline (R11f F-D02 + F-D03, extended in
+        // R11l α.2 F-KD03 + F-KD04).
         //
-        // Prior to R11f the pin file was loaded via Data(contentsOf:) which
-        // followed symlinks and did not check mode/uid. An attacker with
-        // write access to ~/.jarvis/identity/ could plant a symlink at
-        // cold_root_public.key pointing at an attacker-controlled keyfile —
-        // defeating the entire F-C01 trust anchor. R11f closes both gaps:
-        //   - open(... O_NOFOLLOW | O_CLOEXEC) refuses symlinks at the fd
+        // R11f closed the leaf-only gaps:
+        //   - open(... O_NOFOLLOW | O_CLOEXEC) refuses leaf symlinks at the fd
         //   - fstat enforces regular-file + uid==getuid() + mode==0600
-        // Identical pattern to OperatorPresence (F-C05) but the audit event
-        // and error case carry CRITICAL severity because failure here means
-        // the trust root is missing.
+        //
+        // R11l α.2 extends the discipline via the shared SecureFileRead helper:
+        //   - realpath() + per-component openat(O_NOFOLLOW) walk closes
+        //     F-KD04 (intermediate symlinks like ~/.jarvis -> /tmp/attacker)
+        //   - parent dir mode==0700 + uid==operator closes F-KD03
+        //     (attacker chmods identity dir to 0755 + plants 0600 leaf)
+        //   - expectedSize: 32 enforces fixed Ed25519 pubkey byte length
+        // Identical pattern now used by NativeBirthCertificateVerifier,
+        // OperatorPresence, and NativeAuditChainAnchor.
         let pinPath = resolvePinFilePath(env: env)
-        let openFlags: Int32 = O_RDONLY | O_NOFOLLOW | O_CLOEXEC
-        let fd = Darwin.open(pinPath, openFlags)
-        if fd < 0 {
-            let openErrno = errno
-            if openErrno == ENOENT {
-                // No pin file at all → fall through to fail-closed below.
-            } else if openErrno == ELOOP {
+        var policy = SecureFileReadPolicy()
+        policy.expectedSize = publicKeyByteLength
+        do {
+            let data = try readSection7Anchored(path: pinPath, policy: policy)
+            return data
+        } catch let err as SecureFileReadError {
+            switch err.reason {
+            case .absent:
+                // Fall through to fail-closed below.
+                break
+            case .symlinkRefused:
                 auditSafely("cold_root_pin_file_check_failed", fields: [
                     "path": pinPath,
                     "reason": "symlink_refused",
-                    "errno": String(openErrno),
                     "severity": "CRITICAL",
                 ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "symlink_refused (open returned ELOOP under O_NOFOLLOW)"
+                    reason: "symlink_refused (ELOOP under O_NOFOLLOW walk)"
                 )
-            } else {
+            case let .parentModeMismatch(actual, expected):
+                auditSafely("cold_root_pin_file_check_failed", fields: [
+                    "path": pinPath,
+                    "reason": "parent_mode_mismatch",
+                    "expected_parent_mode": String(expected, radix: 8),
+                    "actual_parent_mode": String(actual, radix: 8),
+                    "severity": "CRITICAL",
+                ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "open_errno_\(openErrno)"
+                    reason: "parent_mode_mismatch:expected=\(String(expected, radix: 8)):actual=\(String(actual, radix: 8))"
                 )
-            }
-        } else {
-            defer { Darwin.close(fd) }
-
-            var st = stat()
-            guard fstat(fd, &st) == 0 else {
-                let e = errno
+            case let .parentUIDMismatch(actual, expected):
+                auditSafely("cold_root_pin_file_check_failed", fields: [
+                    "path": pinPath,
+                    "reason": "parent_uid_mismatch",
+                    "expected_parent_uid": String(expected),
+                    "actual_parent_uid": String(actual),
+                    "severity": "CRITICAL",
+                ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "fstat_errno_\(e)"
+                    reason: "parent_uid_mismatch:expected=\(expected):actual=\(actual)"
                 )
-            }
-
-            let isRegular = (mode_t(st.st_mode) & S_IFMT) == S_IFREG
-            guard isRegular else {
-                let modeBits = mode_t(st.st_mode) & 0o777
+            case let .leafNotRegular(mode):
                 auditSafely("cold_root_pin_file_check_failed", fields: [
                     "path": pinPath,
                     "reason": "not_regular_file",
-                    "mode": String(modeBits, radix: 8),
+                    "mode": String(mode, radix: 8),
                     "severity": "CRITICAL",
                 ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "not_regular_file:mode=\(String(modeBits, radix: 8))"
+                    reason: "not_regular_file:mode=\(String(mode, radix: 8))"
                 )
-            }
-
-            let myUID = getuid()
-            guard st.st_uid == myUID else {
+            case let .leafUIDMismatch(actual, expected):
                 auditSafely("cold_root_pin_file_check_failed", fields: [
                     "path": pinPath,
                     "reason": "uid_mismatch",
-                    "expected_uid": String(myUID),
-                    "actual_uid": String(st.st_uid),
+                    "expected_uid": String(expected),
+                    "actual_uid": String(actual),
                     "severity": "CRITICAL",
                 ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "uid_mismatch:actual=\(st.st_uid):expected=\(myUID)"
+                    reason: "uid_mismatch:actual=\(actual):expected=\(expected)"
                 )
-            }
-
-            let modeBits = mode_t(st.st_mode) & 0o777
-            guard modeBits == 0o600 else {
+            case let .leafModeMismatch(actual, expected):
                 auditSafely("cold_root_pin_file_check_failed", fields: [
                     "path": pinPath,
                     "reason": "mode_mismatch",
-                    "expected_mode": "0600",
-                    "actual_mode": String(modeBits, radix: 8),
+                    "expected_mode": String(expected, radix: 8),
+                    "actual_mode": String(actual, radix: 8),
                     "severity": "CRITICAL",
                 ])
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "mode_mismatch:expected=0600:actual=\(String(modeBits, radix: 8))"
+                    reason: "mode_mismatch:expected=\(String(expected, radix: 8)):actual=\(String(actual, radix: 8))"
                 )
-            }
-
-            guard st.st_size == off_t(publicKeyByteLength) else {
+            case let .leafSizeMismatch(actual, expected):
                 throw NativeColdRootPinError.pinFileMalformed(
                     path: pinPath,
-                    reason: "size_mismatch:actual=\(st.st_size):expected=\(publicKeyByteLength)"
+                    reason: "size_mismatch:actual=\(actual):expected=\(expected)"
+                )
+            default:
+                throw NativeColdRootPinError.pinFileMalformed(
+                    path: pinPath,
+                    reason: err.description
                 )
             }
-
-            // Partial-read tolerant loop. POSIX does not guarantee a single
-            // read() returns the full requested count even when the file is
-            // small and the fd is a regular file.
-            var buffer = [UInt8](repeating: 0, count: publicKeyByteLength)
-            var totalRead = 0
-            while totalRead < publicKeyByteLength {
-                let remaining = publicKeyByteLength - totalRead
-                let advance = totalRead
-                let n: ssize_t = buffer.withUnsafeMutableBytes { mb -> ssize_t in
-                    guard let base = mb.baseAddress else { return -1 }
-                    return Darwin.read(fd, base.advanced(by: advance), remaining)
-                }
-                if n < 0 {
-                    let e = errno
-                    if e == EINTR { continue }
-                    throw NativeColdRootPinError.pinFileMalformed(
-                        path: pinPath,
-                        reason: "read_errno_\(e)"
-                    )
-                }
-                if n == 0 {
-                    throw NativeColdRootPinError.pinFileMalformed(
-                        path: pinPath,
-                        reason: "short_read:got=\(totalRead):expected=\(publicKeyByteLength)"
-                    )
-                }
-                totalRead += n
-            }
-            return Data(buffer)
+        } catch {
+            throw NativeColdRootPinError.pinFileMalformed(
+                path: pinPath,
+                reason: "unexpected: \(error.localizedDescription)"
+            )
         }
 
         // 3) Fail closed.

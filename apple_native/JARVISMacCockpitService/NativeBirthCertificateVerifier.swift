@@ -39,12 +39,28 @@ enum NativeBirthCertificateVerifier {
     static func verify(env: [String: String] = ProcessInfo.processInfo.environment) -> NativeBirthCertificateVerification {
         let url = birthCertificateURL(env: env)
         let path = url.path
-        guard FileManager.default.fileExists(atPath: path) else {
-            return NativeBirthCertificateVerification(result: .missing, path: path, reason: "birth certificate not found")
+
+        // R11l α.2 F-KD01/03/04: route through SecureFileRead. realpath +
+        // per-component openat(O_NOFOLLOW) walk + parent dir mode 0700 +
+        // uid==operator verify + leaf mode 0600 + uid==operator + regular
+        // file, then partial-read loop. Replaces the prior Data(contentsOf:,
+        // .mappedIfSafe) reader which followed symlinks at every component
+        // and never verified the parent dir. ENOENT anywhere in the walk
+        // surfaces as .missing here (same semantics as the prior
+        // FileManager.fileExists pre-check).
+        let data: Data
+        do {
+            data = try readSection7Anchored(path: path)
+        } catch let err as SecureFileReadError {
+            if case .absent = err.reason {
+                return NativeBirthCertificateVerification(result: .missing, path: path, reason: "birth certificate not found")
+            }
+            return NativeBirthCertificateVerification(result: .malformed, path: path, reason: err.description)
+        } catch {
+            return NativeBirthCertificateVerification(result: .malformed, path: path, reason: error.localizedDescription)
         }
 
         do {
-            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
             let certificate = try JSONDecoder().decode(NativeBirthCertificate.self, from: data)
             guard let signature = Data(hexString: certificate.signatureHex),
                   let publicKeyData = Data(hexString: certificate.coldRootPublicKeyHex) else {
@@ -177,7 +193,12 @@ enum NativeBirthCertificateVerifier {
         }
         let data: Data
         do {
-            data = try Data(contentsOf: url, options: [.mappedIfSafe])
+            data = try readSection7Anchored(path: path)
+        } catch let err as SecureFileReadError {
+            if case .absent = err.reason {
+                throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: "birth certificate not found")
+            }
+            throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: err.description)
         } catch {
             throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: error.localizedDescription)
         }
@@ -214,7 +235,12 @@ enum NativeBirthCertificateVerifier {
         }
         let data: Data
         do {
-            data = try Data(contentsOf: url, options: [.mappedIfSafe])
+            data = try readSection7Anchored(path: path)
+        } catch let err as SecureFileReadError {
+            if case .absent = err.reason {
+                throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: "birth certificate not found")
+            }
+            throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: err.description)
         } catch {
             throw NativeBirthCertificateVerifierError.unreadable(path: path, reason: error.localizedDescription)
         }
@@ -400,16 +426,27 @@ enum NativeBirthCertificateVerifier {
             ])
             return .reject(reason: "SBOM cold-root signature does not verify against sbom_sha256_hex")
         }
-        // Verify on-disk SBOM hashes match.
+        // R11l α.2 F-KD01/03/04: route SBOM read through SecureFileRead.
+        // SBOM canonically lives at ~/.jarvis/identity/sbom.txt; mode is
+        // not ceremony-controlled (hash binding handles content tamper),
+        // so requireLeafMode is nil. Parent 0700 + uid==operator still
+        // enforced (same threat model as the BC leaf).
         let sbomPath = resolveSBOMPath(env: env)
-        guard FileManager.default.fileExists(atPath: sbomPath) else {
-            auditSafely("birth_certificate_sbom_file_missing", fields: [
-                "path": sbomPath,
-                "severity": "WARN",
-            ])
-            return .reject(reason: "SBOM file missing at \(sbomPath) but BC carries sbom_sha256_hex")
-        }
-        guard let sbomData = try? Data(contentsOf: URL(fileURLWithPath: sbomPath)) else {
+        var sbomPolicy = SecureFileReadPolicy()
+        sbomPolicy.requireLeafMode = nil
+        let sbomData: Data
+        do {
+            sbomData = try readSection7Anchored(path: sbomPath, policy: sbomPolicy)
+        } catch let err as SecureFileReadError {
+            if case .absent = err.reason {
+                auditSafely("birth_certificate_sbom_file_missing", fields: [
+                    "path": sbomPath,
+                    "severity": "WARN",
+                ])
+                return .reject(reason: "SBOM file missing at \(sbomPath) but BC carries sbom_sha256_hex")
+            }
+            return .reject(reason: "SBOM file at \(sbomPath) unreadable: \(err.description)")
+        } catch {
             return .reject(reason: "SBOM file at \(sbomPath) unreadable")
         }
         let actual = SHA256.hash(data: sbomData)

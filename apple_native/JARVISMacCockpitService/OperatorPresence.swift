@@ -157,19 +157,16 @@ enum OperatorPresence {
                 emitAudit: false
             )
         }
-        let flags: Int32 = O_RDONLY | O_NOFOLLOW | O_CLOEXEC
-        let fd = open(resolved, flags)
-        guard fd >= 0 else { return nil }
-        defer { close(fd) }
-        var st = stat()
-        guard fstat(fd, &st) == 0 else { return nil }
-        let modeBits = mode_t(st.st_mode) & 0o777
-        let isRegular = (mode_t(st.st_mode) & S_IFMT) == S_IFREG
-        guard isRegular, st.st_uid == getuid(), modeBits == 0o600 else { return nil }
-        var buffer = [UInt8](repeating: 0, count: 17)
-        let n = buffer.withUnsafeMutableBytes { read(fd, $0.baseAddress, 17) }
-        guard n == 16 else { return nil }
-        return Data(bytes: buffer, count: 16)
+        // R11l α.2 F-KD03/F-KD04: route through SecureFileRead. Fixed 16-byte
+        // salt; parent dir 0700 + uid==operator; leaf 0600 + uid==operator.
+        // Replaces prior leaf-only open(O_NOFOLLOW)+fstat pattern which did
+        // not verify parent dir or walk intermediate components.
+        var policy = SecureFileReadPolicy()
+        policy.expectedSize = 16
+        guard let data = try? readSection7Anchored(path: resolved, policy: policy) else {
+            return nil
+        }
+        return data
     }
 
     // MARK: - Internal: shared §7-discipline reader
@@ -192,38 +189,50 @@ enum OperatorPresence {
             emitAudit: true
         )
 
-        let flags: Int32 = O_RDONLY | O_NOFOLLOW | O_CLOEXEC
-        let fd = open(path, flags)
-        guard fd >= 0 else { return nil }
-        defer { close(fd) }
-
-        var st = stat()
-        guard fstat(fd, &st) == 0 else {
-            auditFstatFailure(path: path, reason: "fstat_errno_\(errno)")
+        // R11l α.2 F-KD03/F-KD04: route through SecureFileRead. realpath +
+        // per-component openat(O_NOFOLLOW) walk + parent dir mode 0700 +
+        // uid==operator (F-KD03) + leaf 0600 + uid==operator + regular file
+        // (preserves prior F-C05 leaf-level checks) + maxBytes+1 cap.
+        // Preserves the legacy operator_presence_mode_check_failed audit
+        // event tag so F-C05 telemetry continues to fire.
+        var policy = SecureFileReadPolicy()
+        policy.maxSize = maxBytes + 1
+        let raw: Data
+        do {
+            raw = try readSection7Anchored(path: path, policy: policy)
+        } catch let err as SecureFileReadError {
+            switch err.reason {
+            case .absent:
+                return nil
+            case let .leafNotRegular(mode):
+                auditFstatFailure(path: path, reason: "not_regular_file:mode=\(String(mode, radix: 8))")
+                return nil
+            case let .leafUIDMismatch(actual, expected):
+                auditFstatFailure(path: path, reason: "uid_mismatch:expected=\(expected):actual=\(actual)")
+                return nil
+            case let .leafModeMismatch(actual, expected):
+                auditFstatFailure(path: path, reason: "mode_mismatch:expected=\(String(expected, radix: 8)):actual=\(String(actual, radix: 8))")
+                return nil
+            case let .parentModeMismatch(actual, expected):
+                auditFstatFailure(path: path, reason: "parent_mode_mismatch:expected=\(String(expected, radix: 8)):actual=\(String(actual, radix: 8))")
+                return nil
+            case let .parentUIDMismatch(actual, expected):
+                auditFstatFailure(path: path, reason: "parent_uid_mismatch:expected=\(expected):actual=\(actual)")
+                return nil
+            case .symlinkRefused:
+                auditFstatFailure(path: path, reason: "symlink_refused")
+                return nil
+            case let .fstatLeaf(e), let .fstatParent(e):
+                auditFstatFailure(path: path, reason: "fstat_errno_\(e)")
+                return nil
+            default:
+                return nil
+            }
+        } catch {
             return nil
         }
-        let modeBits = mode_t(st.st_mode) & 0o777
-        let isRegular = (mode_t(st.st_mode) & S_IFMT) == S_IFREG
-        let myUID = getuid()
-        guard isRegular else {
-            auditFstatFailure(path: path, reason: "not_regular_file:mode=\(String(modeBits, radix: 8))")
-            return nil
-        }
-        guard st.st_uid == myUID else {
-            auditFstatFailure(path: path, reason: "uid_mismatch:expected=\(myUID):actual=\(st.st_uid)")
-            return nil
-        }
-        guard modeBits == 0o600 else {
-            auditFstatFailure(path: path, reason: "mode_mismatch:expected=0600:actual=\(String(modeBits, radix: 8))")
-            return nil
-        }
-
-        var buffer = [UInt8](repeating: 0, count: maxBytes + 1)
-        let n = buffer.withUnsafeMutableBytes { read(fd, $0.baseAddress, maxBytes + 1) }
-        guard n > 0 else { return nil }
-        guard n <= maxBytes else { return nil }
-
-        let raw = Data(bytes: buffer, count: n)
+        guard !raw.isEmpty else { return nil }
+        guard raw.count <= maxBytes else { return nil }
         guard let utf8 = String(data: raw, encoding: .utf8) else { return nil }
         let trimmed = utf8.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }

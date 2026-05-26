@@ -111,6 +111,18 @@ final class APTRedTeamTests: XCTestCase {
         return path
     }
 
+    /// Write a birth-certificate fixture at the canonical path with mode 0600,
+    /// matching the F-KD03 leaf-mode requirement enforced by the §7 reader
+    /// helper (`readSection7Anchored`). Production ceremony writes BC via
+    /// `writeBlobAtomically0600`; fixtures must mirror that mode or the reader
+    /// refuses with `leaf_mode_mismatch`.
+    @discardableResult
+    private func writeBCFixture(_ data: Data, at path: String) throws -> String {
+        try data.write(to: URL(fileURLWithPath: path))
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
+        return path
+    }
+
     /// Returns this Mac's IOPlatformUUID, the value the BC verifier requires
     /// `machineUUID` to match. Fixture BCs must carry this exact value.
     private func currentMachineUUID() -> String {
@@ -334,7 +346,7 @@ final class APTRedTeamTests: XCTestCase {
 
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify(env: ProcessInfo.processInfo.environment)
         XCTAssertEqual(result.result, .verified,
@@ -357,7 +369,7 @@ final class APTRedTeamTests: XCTestCase {
         let bc = mintBC(signingKey: attackerKey, inCertColdRoot: attackerPub,
                         machineUUID: currentMachineUUID(),
                         voiceAnchorSHA: String(repeating: "f", count: 64))
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify(env: ProcessInfo.processInfo.environment)
         XCTAssertEqual(result.result, .invalidSignature,
@@ -379,7 +391,7 @@ final class APTRedTeamTests: XCTestCase {
         let key = Curve25519.Signing.PrivateKey()
         let bc = mintBC(signingKey: key, inCertColdRoot: key.publicKey.rawRepresentation,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify(env: ProcessInfo.processInfo.environment)
         XCTAssertEqual(result.result, .malformed,
@@ -414,7 +426,7 @@ final class APTRedTeamTests: XCTestCase {
 
         let bc = mintBC(signingKey: kKc, inCertColdRoot: kKcPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify(env: ProcessInfo.processInfo.environment)
         XCTAssertEqual(result.result, .verified,
@@ -558,7 +570,7 @@ final class APTRedTeamTests: XCTestCase {
         let bc = mintBC(signingKey: coldRoot,
                         inCertColdRoot: coldRoot.publicKey.rawRepresentation,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         _ = NativeBirthCertificateVerifier.verify(env: ProcessInfo.processInfo.environment)
 
@@ -583,7 +595,7 @@ final class APTRedTeamTests: XCTestCase {
         let bc = mintBC(signingKey: coldRoot,
                         inCertColdRoot: coldRoot.publicKey.rawRepresentation,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         // Three verify() calls — should produce exactly ONE
         // insecure_path_override_active for JARVIS_COLD_ROOT_PIN_FILE.
@@ -1460,7 +1472,7 @@ extension APTRedTeamTests {
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID(),
                         witnesses: [w1, w2])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
@@ -1494,7 +1506,7 @@ extension APTRedTeamTests {
                         machineUUID: currentMachineUUID(),
                         witnesses: [badWitness],
                         witnessSignaturesOverrideValid: false)
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1520,7 +1532,7 @@ extension APTRedTeamTests {
         // Existing fixture path: no witnesses array at all.
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
@@ -1550,7 +1562,7 @@ extension APTRedTeamTests {
         // First load: no witnesses → verified.
         let bc0 = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                          machineUUID: currentMachineUUID())
-        try bc0.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc0, at: f.bcPath)
         XCTAssertEqual(NativeBirthCertificateVerifier.verify().result, .verified)
 
         // Second load: with one witness, all other fields identical.
@@ -1564,7 +1576,7 @@ extension APTRedTeamTests {
         let bc1 = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                          machineUUID: currentMachineUUID(),
                          witnesses: [w])
-        try bc1.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc1, at: f.bcPath)
         XCTAssertEqual(NativeBirthCertificateVerifier.verify().result, .verified,
                        "adding witnesses must not invalidate the cold-root signature — canonical excludes witnesses")
     }
@@ -1603,7 +1615,7 @@ extension APTRedTeamTests {
         ws[0] = entry
         json["witnesses"] = ws
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1770,7 +1782,7 @@ extension APTRedTeamTests {
         }
         json.removeValue(forKey: "witnesses")
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1799,7 +1811,7 @@ extension APTRedTeamTests {
         }
         json.removeValue(forKey: "cold_root_ots_receipt_b64")
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1828,7 +1840,7 @@ extension APTRedTeamTests {
         }
         json.removeValue(forKey: "sbom_sha256_hex")
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1858,7 +1870,7 @@ extension APTRedTeamTests {
         }
         json.removeValue(forKey: "sbom_cold_root_signature_hex")
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -1881,7 +1893,7 @@ extension APTRedTeamTests {
         // payloadVersion: nil → v=1 path. No binding fields injected.
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
@@ -1905,7 +1917,7 @@ extension APTRedTeamTests {
                         witnesses: [],
                         payloadVersion: 2)
         // Verify clean first.
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let pre = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(pre.result, .verified, "clean v=2 BC must verify; got \(pre)")
 
@@ -1932,7 +1944,7 @@ extension APTRedTeamTests {
             "attestation_timestamp": 1_716_900_000,
         ]]
         bc = try JSONSerialization.data(withJSONObject: json, options: [.sortedKeys])
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
 
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
@@ -2172,7 +2184,7 @@ extension APTRedTeamTests {
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID(),
                         otsReceiptB64: fakeOTS)
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
                        "BC with valid OTS receipt must verify; got \(result.reason)")
@@ -2189,7 +2201,7 @@ extension APTRedTeamTests {
         try writePinFile(coldRootPub, at: f.pinFilePath)
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
                        "BC without OTS receipt must still verify (additive compat)")
@@ -2219,7 +2231,7 @@ extension APTRedTeamTests {
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID(),
                         otsReceiptB64: "@@@@not-base64@@@@")
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
                        "malformed OTS must not brick the cockpit")
@@ -2262,7 +2274,7 @@ extension APTRedTeamTests {
                         machineUUID: currentMachineUUID(),
                         sbomHashHex: sbomHashHex,
                         sbomSignatureHex: sbomSigHex)
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
                        "BC with valid SBOM must verify; got \(result.reason)")
@@ -2283,7 +2295,7 @@ extension APTRedTeamTests {
         try writePinFile(coldRootPub, at: f.pinFilePath)
         let bc = mintBC(signingKey: coldRoot, inCertColdRoot: coldRootPub,
                         machineUUID: currentMachineUUID())
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .verified,
                        "BC without SBOM must still verify (additive compat)")
@@ -2326,7 +2338,7 @@ extension APTRedTeamTests {
                         machineUUID: currentMachineUUID(),
                         sbomHashHex: sbomHashHex,
                         sbomSignatureHex: sbomSigHex)
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
                        "tampered SBOM file must reject; got \(result.reason)")
@@ -2350,7 +2362,7 @@ extension APTRedTeamTests {
                         machineUUID: currentMachineUUID(),
                         sbomHashHex: String(repeating: "a", count: 64),
                         sbomSignatureHex: nil)
-        try bc.write(to: URL(fileURLWithPath: f.bcPath))
+        try writeBCFixture(bc, at: f.bcPath)
         let result = NativeBirthCertificateVerifier.verify()
         XCTAssertEqual(result.result, .invalidSignature,
                        "asymmetric SBOM fields must reject")
@@ -2442,6 +2454,246 @@ extension APTRedTeamTests {
         for helper in ["class FdGuard", "openNoFollowReadOnly", "readAllFromFdStrict"] {
             XCTAssertTrue(src.contains(helper),
                           "F-KD08: helper \(helper) must be defined in JARVISNativeRuntime.cpp")
+        }
+    }
+
+    // MARK: - F-KD01 / F-KD02 / F-KD03 / F-KD04  (R11l α.2 — Swift §7 fs discipline)
+    //
+    // Patches route every §7 Swift reader through the shared helper
+    // `readSection7Anchored` defined in SecureFileRead.swift. That helper
+    // performs realpath()-then-walk-with-O_NOFOLLOW (F-KD04) over each path
+    // component, fstats the resulting parent dirfd for mode/uid (F-KD03),
+    // and opens the leaf via openat(parentFd, ..., O_RDONLY|O_NOFOLLOW|
+    // O_CLOEXEC) with leaf fstat enforcement. The tests below pin the
+    // structural shape so a future refactor cannot silently re-introduce
+    // a `Data(contentsOf:, options: .mappedIfSafe)` reader (the anti-
+    // pattern surfaced in R11k findings F-KD01..F-KD04).
+
+    /// Walk parents from #file to locate a sibling Swift source by relative path.
+    private func locateRepoSource(_ relPath: String, limit: Int = 10) -> URL? {
+        var dir = URL(fileURLWithPath: #file).deletingLastPathComponent()
+        for _ in 0..<limit {
+            let candidate = dir.appendingPathComponent(relPath)
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+            let parent = dir.deletingLastPathComponent()
+            if parent.path == dir.path { break }
+            dir = parent
+        }
+        return nil
+    }
+
+    /// Balanced-brace extractor — returns the function body delimited by
+    /// the first `{` after the named function signature and its matching
+    /// `}`. Mirrors the extractor used by testFFKD08.
+    private func balancedBraceBody(of fnName: String, in src: String) -> String? {
+        guard let sigRange = src.range(of: fnName + "(") else { return nil }
+        guard let openBrace = src.range(of: "{", range: sigRange.upperBound..<src.endIndex) else {
+            return nil
+        }
+        var depth = 1
+        var i = openBrace.upperBound
+        while i < src.endIndex && depth > 0 {
+            let c = src[i]
+            if c == "{" { depth += 1 }
+            else if c == "}" { depth -= 1 }
+            i = src.index(after: i)
+        }
+        guard depth == 0 else { return nil }
+        return String(src[openBrace.upperBound..<src.index(before: i)])
+    }
+
+    /// Strip Swift `// ...` line comments and `/* ... */` block comments
+    /// from a source fragment. Negative gates run against this stripped
+    /// form so that comments documenting *what was replaced* (e.g.
+    /// "Replaces the prior `Data(contentsOf:, .mappedIfSafe)` reader")
+    /// do not falsely trigger the gate.
+    private func stripSwiftComments(_ s: String) -> String {
+        var out = ""
+        out.reserveCapacity(s.count)
+        var i = s.startIndex
+        let end = s.endIndex
+        while i < end {
+            let c = s[i]
+            let next = s.index(after: i)
+            if c == "/" && next < end && s[next] == "/" {
+                while i < end && s[i] != "\n" { i = s.index(after: i) }
+            } else if c == "/" && next < end && s[next] == "*" {
+                i = s.index(after: next)
+                while i < end {
+                    if s[i] == "*" {
+                        let j = s.index(after: i)
+                        if j < end && s[j] == "/" {
+                            i = s.index(after: j)
+                            break
+                        }
+                    }
+                    i = s.index(after: i)
+                }
+            } else {
+                out.append(c)
+                i = next
+            }
+        }
+        return out
+    }
+
+    /// F-KD01 (HIGH) — Swift BC verifier: every reader site must route
+    /// through `readSection7Anchored`; `Data(contentsOf:` + `.mappedIfSafe`
+    /// must not survive in patched function bodies.
+    func testFFKD01_BCVerifier_uses_fd_based_pattern_no_DataContentsOf() throws {
+        guard let url = locateRepoSource("apple_native/JARVISMacCockpitService/NativeBirthCertificateVerifier.swift") else {
+            XCTFail("F-KD01: could not locate NativeBirthCertificateVerifier.swift from #file=\(#file)")
+            return
+        }
+        let src = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(src.contains("F-KD01"),
+                      "F-KD01 patch marker must remain in source so future refactors don't silently re-open the symlink/TOCTOU window")
+
+        let readers = [
+            "static func verify",
+            "static func verifiedVoiceAnchorHash",
+            "static func verifiedColdRootPublicKeyHex",
+            "private static func verifySBOM",
+        ]
+        for fn in readers {
+            guard let rawBody = balancedBraceBody(of: fn, in: src) else {
+                XCTFail("F-KD01: could not locate body of \(fn) in NativeBirthCertificateVerifier.swift")
+                continue
+            }
+            let b = stripSwiftComments(rawBody)
+            // Positive gate: helper is called.
+            XCTAssertTrue(b.contains("readSection7Anchored"),
+                          "F-KD01: \(fn) body must read §7 files via readSection7Anchored helper")
+            // Negative gates: the anti-patterns from R11k F-KD01.
+            XCTAssertFalse(b.contains("Data(contentsOf:"),
+                           "F-KD01: \(fn) body must not call Data(contentsOf:) — that follows final-component symlinks via Foundation")
+            XCTAssertFalse(b.contains(".mappedIfSafe"),
+                           "F-KD01: \(fn) body must not use .mappedIfSafe — the SBOM-hash-binds-content invariant requires fd-anchored reads")
+            XCTAssertFalse(b.contains("FileHandle(forReadingFrom:"),
+                           "F-KD01: \(fn) body must not use FileHandle(forReadingFrom:) — same symlink-follow hazard as Data(contentsOf:)")
+        }
+    }
+
+    /// F-KD02 (HIGH) — NativeAuditChainAnchor.loadAuxCertificateData
+    /// must route through `readSection7Anchored`.
+    func testFFKD02_loadAuxCertificateData_uses_fd_based_pattern() throws {
+        guard let url = locateRepoSource("apple_native/JARVISMacCockpitService/NativeAuditChainAnchor.swift") else {
+            XCTFail("F-KD02: could not locate NativeAuditChainAnchor.swift from #file=\(#file)")
+            return
+        }
+        let src = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(src.contains("F-KD02"),
+                      "F-KD02 patch marker must remain in source so future refactors don't silently re-open the symlink/TOCTOU window")
+
+        guard let rawBody = balancedBraceBody(of: "func loadAuxCertificateData", in: src) else {
+            XCTFail("F-KD02: could not locate body of loadAuxCertificateData in NativeAuditChainAnchor.swift")
+            return
+        }
+        let b = stripSwiftComments(rawBody)
+        XCTAssertTrue(b.contains("readSection7Anchored"),
+                      "F-KD02: loadAuxCertificateData body must read §7 file via readSection7Anchored helper")
+        XCTAssertFalse(b.contains("Data(contentsOf:"),
+                       "F-KD02: loadAuxCertificateData body must not call Data(contentsOf:)")
+        XCTAssertFalse(b.contains(".mappedIfSafe"),
+                       "F-KD02: loadAuxCertificateData body must not use .mappedIfSafe")
+        XCTAssertFalse(b.contains("FileHandle(forReadingFrom:"),
+                       "F-KD02: loadAuxCertificateData body must not use FileHandle(forReadingFrom:)")
+    }
+
+    /// F-KD03 (HIGH) — every §7 reader must verify the containing
+    /// directory's mode (0700) + uid (operator) before opening the leaf.
+    /// Verification lives in `SecureFileRead.swift`'s
+    /// `openSection7Anchored`; patched readers must funnel through it.
+    func testFFKD03_parent_directory_verified_in_section7_readers() throws {
+        guard let helperURL = locateRepoSource("apple_native/JARVISMacCockpit/SecureFileRead.swift") else {
+            XCTFail("F-KD03: could not locate SecureFileRead.swift from #file=\(#file)")
+            return
+        }
+        let helperSrc = try String(contentsOf: helperURL, encoding: .utf8)
+
+        XCTAssertTrue(helperSrc.contains("F-KD03"),
+                      "F-KD03 patch marker must remain in SecureFileRead.swift")
+
+        // The helper itself must encode the parent-dir mode + uid invariant.
+        XCTAssertTrue(helperSrc.contains("requireParentMode"),
+                      "F-KD03: SecureFileReadPolicy must expose requireParentMode (parent-dir mode check)")
+        XCTAssertTrue(helperSrc.contains("requireParentUID"),
+                      "F-KD03: SecureFileReadPolicy must expose requireParentUID (parent-dir uid check)")
+        XCTAssertTrue(helperSrc.contains("fstat("),
+                      "F-KD03: helper must fstat(parentFd) — not lstat(path) — to enforce parent-dir invariants TOCTOU-safely")
+        XCTAssertTrue(helperSrc.contains("S_IFDIR") || helperSrc.contains("isDirectory"),
+                      "F-KD03: helper must verify the resolved parent is actually a directory inode")
+
+        // Each runtime §7 reader file must call into the helper.
+        let runtimeReaders: [(rel: String, finding: String)] = [
+            ("apple_native/JARVISMacCockpitService/NativeBirthCertificateVerifier.swift", "F-KD01"),
+            ("apple_native/JARVISMacCockpitService/NativeAuditChainAnchor.swift",        "F-KD02"),
+            ("apple_native/JARVISMacCockpitService/NativeColdRootPin.swift",             "F-KD03"),
+            ("apple_native/JARVISMacCockpitService/OperatorPresence.swift",              "F-KD03"),
+        ]
+        for (rel, finding) in runtimeReaders {
+            guard let url = locateRepoSource(rel) else {
+                XCTFail("F-KD03: could not locate \(rel)")
+                continue
+            }
+            let src = try String(contentsOf: url, encoding: .utf8)
+            XCTAssertTrue(src.contains("readSection7Anchored") || src.contains("openSection7Anchored"),
+                          "F-KD03/\(finding): \(rel) must invoke the shared §7 reader helper so the parent-dir verify cannot be bypassed")
+        }
+    }
+
+    /// F-KD04 (HIGH) — every §7 reader must walk path components via
+    /// openat(O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC) rather than relying on
+    /// O_NOFOLLOW at the leaf only. realpath() canonicalises legitimate
+    /// pre-existing symlinks (e.g. /var → /private/var); the subsequent
+    /// component walk then rejects any newly-injected symlink.
+    func testFFKD04_section7_readers_use_per_component_openat_walk() throws {
+        guard let helperURL = locateRepoSource("apple_native/JARVISMacCockpit/SecureFileRead.swift") else {
+            XCTFail("F-KD04: could not locate SecureFileRead.swift from #file=\(#file)")
+            return
+        }
+        let helperSrc = try String(contentsOf: helperURL, encoding: .utf8)
+
+        XCTAssertTrue(helperSrc.contains("F-KD04"),
+                      "F-KD04 patch marker must remain in SecureFileRead.swift")
+
+        // Positive structural gates: helper performs realpath + openat walk.
+        XCTAssertTrue(helperSrc.contains("realpath("),
+                      "F-KD04: helper must realpath() the parent path to canonicalise legitimate pre-existing symlinks before walking")
+        XCTAssertTrue(helperSrc.contains("openat("),
+                      "F-KD04: helper must walk components via openat() rather than absolute open()")
+        XCTAssertTrue(helperSrc.contains("O_NOFOLLOW"),
+                      "F-KD04: helper must pass O_NOFOLLOW at every walk step so an injected symlink raises ELOOP")
+        XCTAssertTrue(helperSrc.contains("O_DIRECTORY"),
+                      "F-KD04: helper must pass O_DIRECTORY when opening intermediate components")
+        XCTAssertTrue(helperSrc.contains("O_CLOEXEC"),
+                      "F-KD04: helper must pass O_CLOEXEC so dirfds don't leak across exec()")
+        XCTAssertTrue(helperSrc.contains("openSection7Anchored") && helperSrc.contains("readSection7Anchored"),
+                      "F-KD04: helper must expose both openSection7Anchored (handle) and readSection7Anchored (Data) entry points")
+
+        // Negative gate: no patched runtime reader may bypass the helper
+        // with a bare `Data(contentsOf:` or `FileHandle(forReadingFrom:`.
+        let patched: [String] = [
+            "apple_native/JARVISMacCockpitService/NativeBirthCertificateVerifier.swift",
+            "apple_native/JARVISMacCockpitService/NativeAuditChainAnchor.swift",
+            "apple_native/JARVISMacCockpitService/NativeColdRootPin.swift",
+            "apple_native/JARVISMacCockpitService/OperatorPresence.swift",
+        ]
+        for rel in patched {
+            guard let url = locateRepoSource(rel) else {
+                XCTFail("F-KD04: could not locate \(rel)")
+                continue
+            }
+            let rawSrc = try String(contentsOf: url, encoding: .utf8)
+            let src = stripSwiftComments(rawSrc)
+            XCTAssertFalse(src.contains(".mappedIfSafe"),
+                           "F-KD04: \(rel) must not use .mappedIfSafe — that bypasses the helper's component walk")
+            XCTAssertFalse(src.contains("Data(contentsOf:"),
+                           "F-KD04: \(rel) must not call Data(contentsOf:) — leaf O_NOFOLLOW alone leaves intermediate symlinks followed")
         }
     }
 }
