@@ -2357,6 +2357,93 @@ extension APTRedTeamTests {
         XCTAssertTrue(result.reason.contains("asymmetric"),
                       "reject reason should mention asymmetric fields; got \(result.reason)")
     }
+
+    // MARK: - F-KD08 voice anchor TOCTOU (R11l α.1)
+
+    /// F-KD08: every `~/.jarvis/`-touching reader must use the fd-based
+    /// open(O_NOFOLLOW) + fstat(fd) + read(fd) pattern. The pre-R11l code
+    /// path-rechecked between symlink_status / lstat / readFileStrict,
+    /// giving an attacker a window to swap the inode under us.
+    ///
+    /// This is a source-level pin (cf. test_F_E32_*_present_in_source).
+    /// The behavioural happy-path is the rest of the APT + cockpit suite
+    /// staying green — every NativeRuntimeBridge() call routes through
+    /// the three readers patched here.
+    func testFFKD08_VoiceAnchorTOCTOU_readers_use_fd_based_pattern() throws {
+        var dir = URL(fileURLWithPath: #file).deletingLastPathComponent()
+        var srcURL: URL?
+        for _ in 0..<10 {
+            let candidate = dir.appendingPathComponent(
+                "JARVISNativeRuntime/JARVISNativeRuntime.cpp"
+            )
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                srcURL = candidate
+                break
+            }
+            let parent = dir.deletingLastPathComponent()
+            if parent.path == dir.path { break }
+            dir = parent
+        }
+        guard let url = srcURL else {
+            XCTFail("F-KD08: could not locate JARVISNativeRuntime.cpp from #file=\(#file)")
+            return
+        }
+        let src = try String(contentsOf: url, encoding: .utf8)
+
+        XCTAssertTrue(src.contains("F-KD08"),
+                      "F-KD08 patch marker must remain in source so future refactors don't silently re-open the TOCTOU window")
+
+        // Balanced-brace extractor: returns the function body (between the
+        // first `{` after the signature line and its matching `}`).
+        func body(of fn: String) -> String? {
+            guard let sigRange = src.range(of: fn + "(") else { return nil }
+            // Find first `{` after the closing `)` of the signature.
+            guard let openBrace = src.range(of: "{", range: sigRange.upperBound..<src.endIndex) else {
+                return nil
+            }
+            var depth = 1
+            var i = openBrace.upperBound
+            while i < src.endIndex && depth > 0 {
+                let c = src[i]
+                if c == "{" { depth += 1 }
+                else if c == "}" { depth -= 1 }
+                i = src.index(after: i)
+            }
+            guard depth == 0 else { return nil }
+            return String(src[openBrace.upperBound..<src.index(before: i)])
+        }
+
+        let readers = ["readVoiceModelAnchor", "readPersistedVoiceAnchor", "birthCertificateVoiceHashIfPresent"]
+        for fn in readers {
+            guard let b = body(of: fn) else {
+                XCTFail("F-KD08: could not locate body of \(fn)")
+                continue
+            }
+            // Positive gates: fd-based pattern present.
+            XCTAssertTrue(b.contains("openNoFollowReadOnly"),
+                          "F-KD08: \(fn) body must call openNoFollowReadOnly")
+            XCTAssertTrue(b.contains("fstat("),
+                          "F-KD08: \(fn) body must fstat(fd) — not lstat(path)")
+            XCTAssertTrue(b.contains("readAllFromFdStrict"),
+                          "F-KD08: \(fn) body must read via readAllFromFdStrict (no second path lookup)")
+
+            // Negative gates: no path-recheck.
+            XCTAssertFalse(b.contains("std::filesystem::exists("),
+                           "F-KD08: \(fn) body must not call std::filesystem::exists — that is the TOCTOU pattern eliminated by α.1")
+            XCTAssertFalse(b.contains("std::filesystem::symlink_status("),
+                           "F-KD08: \(fn) body must not call std::filesystem::symlink_status — fstat(fd) supersedes it")
+            XCTAssertFalse(b.contains("::lstat("),
+                           "F-KD08: \(fn) body must not call ::lstat(path) — fstat(fd) supersedes it")
+            XCTAssertFalse(b.contains("readFileStrict("),
+                           "F-KD08: \(fn) body must not call readFileStrict — that re-opens the path post-check")
+        }
+
+        // The new fd-based helpers must be defined.
+        for helper in ["class FdGuard", "openNoFollowReadOnly", "readAllFromFdStrict"] {
+            XCTAssertTrue(src.contains(helper),
+                          "F-KD08: helper \(helper) must be defined in JARVISNativeRuntime.cpp")
+        }
+    }
 }
 
 private extension String {

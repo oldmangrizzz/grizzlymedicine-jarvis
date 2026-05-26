@@ -191,6 +191,74 @@ std::string readFileStrict(const std::filesystem::path &path) {
     return out.str();
 }
 
+// F-KD08: TOCTOU-resistant fd-based reader. RAII wrapper around a POSIX
+// file descriptor so we can open()+fstat()+read() the *same inode* without
+// any second path lookup between checks. O_NOFOLLOW rejects symlinks at
+// the final component (intermediate-dir symlinks are F-KD04 scope).
+class FdGuard {
+public:
+    FdGuard() = default;
+    explicit FdGuard(int f) : fd_(f) {}
+    FdGuard(const FdGuard &) = delete;
+    FdGuard &operator=(const FdGuard &) = delete;
+    FdGuard(FdGuard &&o) noexcept : fd_(o.fd_) { o.fd_ = -1; }
+    FdGuard &operator=(FdGuard &&o) noexcept {
+        if (this != &o) { reset(); fd_ = o.fd_; o.fd_ = -1; }
+        return *this;
+    }
+    ~FdGuard() { reset(); }
+    int get() const { return fd_; }
+    bool valid() const { return fd_ >= 0; }
+    void reset() {
+        if (fd_ >= 0) {
+            const int saved = errno;
+            ::close(fd_);
+            errno = saved;
+            fd_ = -1;
+        }
+    }
+private:
+    int fd_{-1};
+};
+
+// Open the final-component target of `path` for reading without following
+// any symlink there. Returns an invalid FdGuard with errno preserved on
+// failure (caller decides how to react — ENOENT typically means "absent",
+// ELOOP/EMLINK means "hostile symlink").
+FdGuard openNoFollowReadOnly(const std::filesystem::path &path) {
+    while (true) {
+        const int fd = ::open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        if (fd >= 0) {
+            return FdGuard(fd);
+        }
+        if (errno == EINTR) {
+            continue;
+        }
+        return FdGuard();
+    }
+}
+
+// Drain a fd to EOF. Fires the voice_state read tripwire on failure so
+// existing observability around readFileStrict is preserved.
+std::string readAllFromFdStrict(int fd, const std::filesystem::path &path) {
+    std::string out;
+    std::array<char, 64 * 1024> buf{};
+    while (true) {
+        const ssize_t n = ::read(fd, buf.data(), buf.size());
+        if (n < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            auditVoiceStateTripwireFired("read_failed", basenameOnly(path), std::string(64, '0'), basenameOnly(path));
+            throw std::runtime_error("JARVIS voice tripwire: failed while reading " + basenameOnly(path));
+        }
+        if (n == 0) {
+            return out;
+        }
+        out.append(buf.data(), static_cast<std::size_t>(n));
+    }
+}
+
 bool isHexSHA256(const std::string &value) {
     return value.size() == 64 && std::all_of(value.begin(), value.end(), [](unsigned char c) {
         return std::isxdigit(c) != 0;
@@ -420,11 +488,28 @@ std::vector<std::filesystem::path> birthCertificateCandidates() {
 
 std::string birthCertificateVoiceHashIfPresent(std::filesystem::path &source) {
     for (const auto &candidate : birthCertificateCandidates()) {
-        std::error_code ec;
-        if (!std::filesystem::exists(candidate, ec) || ec) {
-            continue;
+        // F-KD08: open with O_NOFOLLOW directly instead of exists()+readFileStrict;
+        // eliminates the path-recheck race and rejects final-component symlinks.
+        FdGuard fd = openNoFollowReadOnly(candidate);
+        if (!fd.valid()) {
+            if (errno == ENOENT || errno == ENOTDIR) {
+                continue;
+            }
+            if (errno == ELOOP || errno == EMLINK) {
+                throw std::runtime_error("JARVIS voice tripwire: birth certificate path is a symlink " + basenameOnly(candidate));
+            }
+            auditVoiceStateTripwireFired("open_failed", errnoContext(candidate), std::string(64, '0'), basenameOnly(candidate));
+            throw std::runtime_error("JARVIS voice tripwire: cannot open " + basenameOnly(candidate));
         }
-        const std::string json = readFileStrict(candidate);
+        struct stat st;
+        if (::fstat(fd.get(), &st) != 0) {
+            auditVoiceStateTripwireFired("open_failed", errnoContext(candidate), std::string(64, '0'), basenameOnly(candidate));
+            throw std::runtime_error("JARVIS voice tripwire: cannot fstat " + basenameOnly(candidate));
+        }
+        if (!S_ISREG(st.st_mode)) {
+            throw std::runtime_error("JARVIS voice tripwire: birth certificate path is not a regular file");
+        }
+        const std::string json = readAllFromFdStrict(fd.get(), candidate);
         std::string hash = lowerHex(jsonStringField(json, "operatorVoiceAnchorSHA256Hex"));
         if (!isHexSHA256(hash)) {
             throw std::runtime_error("JARVIS voice tripwire: invalid operatorVoiceAnchorSHA256Hex in " + basenameOnly(candidate));
@@ -437,15 +522,27 @@ std::string birthCertificateVoiceHashIfPresent(std::filesystem::path &source) {
 }
 
 std::string readPersistedVoiceAnchor(const std::filesystem::path &path) {
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec) || ec) {
-        return "";
+    // F-KD08: open+fstat+read on the same fd. No path-rechecked stat/read pair.
+    FdGuard fd = openNoFollowReadOnly(path);
+    if (!fd.valid()) {
+        if (errno == ENOENT || errno == ENOTDIR) {
+            return "";
+        }
+        if (errno == ELOOP || errno == EMLINK) {
+            throw std::runtime_error("JARVIS voice tripwire: voice anchor path is not a regular file");
+        }
+        auditVoiceStateTripwireFired("open_failed", errnoContext(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot open " + basenameOnly(path));
     }
-    const auto status = std::filesystem::symlink_status(path, ec);
-    if (ec || std::filesystem::is_symlink(status)) {
+    struct stat st;
+    if (::fstat(fd.get(), &st) != 0) {
+        auditVoiceStateTripwireFired("open_failed", errnoContext(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot fstat voice anchor");
+    }
+    if (!S_ISREG(st.st_mode)) {
         throw std::runtime_error("JARVIS voice tripwire: voice anchor path is not a regular file");
     }
-    std::string value = lowerHex(trimCopy(readFileStrict(path)));
+    std::string value = lowerHex(trimCopy(readAllFromFdStrict(fd.get(), path)));
     if (!isHexSHA256(value)) {
         throw std::runtime_error("JARVIS voice tripwire: persisted voice anchor is not a SHA-256 hex digest");
     }
@@ -658,19 +755,31 @@ std::string voiceModelAnchorJSON(const VoiceModelAnchor &anchor) {
 }
 
 VoiceModelAnchor readVoiceModelAnchor(const std::filesystem::path &path) {
-    std::error_code ec;
-    if (!std::filesystem::exists(path, ec) || ec) {
-        return {};
-    }
-    const auto status = std::filesystem::symlink_status(path, ec);
-    if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status)) {
-        auditVoiceModelsTripwireFired("anchor", ec ? "lstat_failed" : (std::filesystem::is_symlink(status) ? "symlink" : "missing"), ec ? ecContext(path, ec) : basenameOnly(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
-        throw std::runtime_error("JARVIS voice tripwire: voice model anchor path is not a regular file");
+    // F-KD08: single-open, fd-anchored read. open(O_NOFOLLOW) + fstat(fd) +
+    // read(fd) all operate on the same inode resolved exactly once. No path
+    // is consulted again between checks, so the attacker has no race window
+    // to swap the inode for a hostile one between mode/uid validation and
+    // payload consumption.
+    FdGuard fd = openNoFollowReadOnly(path);
+    if (!fd.valid()) {
+        if (errno == ENOENT || errno == ENOTDIR) {
+            return {};
+        }
+        if (errno == ELOOP || errno == EMLINK) {
+            auditVoiceModelsTripwireFired("anchor", "symlink", basenameOnly(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+            throw std::runtime_error("JARVIS voice tripwire: voice model anchor path is not a regular file");
+        }
+        auditVoiceModelsTripwireFired("anchor", "lstat_failed", errnoContext(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot open voice model anchor");
     }
     struct stat st;
-    if (::lstat(path.c_str(), &st) != 0) {
+    if (::fstat(fd.get(), &st) != 0) {
         auditVoiceModelsTripwireFired("anchor", "lstat_failed", errnoContext(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
-        throw std::runtime_error("JARVIS voice tripwire: cannot lstat voice model anchor");
+        throw std::runtime_error("JARVIS voice tripwire: cannot fstat voice model anchor");
+    }
+    if (!S_ISREG(st.st_mode)) {
+        auditVoiceModelsTripwireFired("anchor", "missing", basenameOnly(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: voice model anchor path is not a regular file");
     }
     if ((st.st_mode & 07777) != 0600) {
         auditVoiceModelsTripwireFired("anchor", "anchor_mode", octalMode(st.st_mode), "0600", "voice_models_anchor", basenameOnly(path));
@@ -680,7 +789,7 @@ VoiceModelAnchor readVoiceModelAnchor(const std::filesystem::path &path) {
         auditVoiceModelsTripwireFired("anchor", "anchor_uid", std::to_string(st.st_uid), std::to_string(::getuid()), "voice_models_anchor", basenameOnly(path));
         throw std::runtime_error("JARVIS voice tripwire: voice model anchor has incorrect owner");
     }
-    const std::string json = readFileStrict(path);
+    const std::string json = readAllFromFdStrict(fd.get(), path);
     VoiceModelAnchor anchor{
         lowerHex(jsonStringField(json, "flow_decoder_sha256")),
         lowerHex(jsonStringField(json, "mimi_decoder_sha256")),
