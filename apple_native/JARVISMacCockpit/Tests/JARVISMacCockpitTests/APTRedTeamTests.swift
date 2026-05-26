@@ -32,6 +32,7 @@
 //     a. world-readable operator.txt falls back, audit fires
 
 import CryptoKit
+import Darwin
 import Foundation
 import XCTest
 @testable import JARVISMacCockpit
@@ -87,7 +88,26 @@ final class APTRedTeamTests: XCTestCase {
         unsetenv("JARVIS_BIRTH_CERT_PATH")
         unsetenv("JARVIS_COLD_ROOT_PIN_FILE")
         unsetenv("JARVIS_COLD_ROOT_KEYCHAIN_SUFFIX")
+        // R11l α.3 B.1: audit files are armed with UF_APPEND which blocks
+        // unlink on macOS (EPERM). Recursively clear flags before removal so
+        // the fixture tree can be reaped between tests.
+        clearChflagsRecursive(at: f.root)
         try? FileManager.default.removeItem(at: f.root)
+    }
+
+    /// Recursively walks `url` and clears all chflags. Test-only helper to
+    /// unblock unlink on UF_APPEND-armed audit files (F-KE03 / α.3 B.1).
+    private func clearChflagsRecursive(at url: URL) {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles],
+            errorHandler: { _, _ in true }
+        ) else { return }
+        var paths: [String] = [url.path]
+        for case let child as URL in enumerator { paths.append(child.path) }
+        for p in paths { _ = chflags(p, 0) }
     }
 
     /// Read every audit line from the fixture's audit dir; returns parsed JSON.
@@ -685,6 +705,10 @@ final class APTRedTeamTests: XCTestCase {
         let raw = try String(contentsOfFile: auditFile, encoding: .utf8)
         let tampered = raw.replacingOccurrences(of: "\"beta\"", with: "\"BETA\"")
         XCTAssertNotEqual(raw, tampered, "tamper must actually change file")
+        // R11l α.3 B.1: clear UF_APPEND to simulate the in-threat-model attacker
+        // who has uid=operator and can clear an owner-clearable flag. Documents
+        // honestly that UF_APPEND is defense-in-depth, NOT primary control.
+        _ = chflags(auditFile, 0)
         try tampered.write(toFile: auditFile, atomically: true, encoding: String.Encoding.utf8)
 
         let badResult = runProcess(executable: toolPath, args: [auditFile])
@@ -875,6 +899,8 @@ final class APTRedTeamTests: XCTestCase {
         var rewrittenChain = Data()
         rewrittenChain.append(rewrittenLine)
         rewrittenChain.append(0x0A)
+        // R11l α.3 B.1: clear UF_APPEND before attacker-simulated rewrite (see C03_c).
+        _ = chflags(auditFile, 0)
         try rewrittenChain.write(to: URL(fileURLWithPath: auditFile))
 
         let replayResult = runProcess(
@@ -2695,6 +2721,168 @@ extension APTRedTeamTests {
             XCTAssertFalse(src.contains("Data(contentsOf:"),
                            "F-KD04: \(rel) must not call Data(contentsOf:) — leaf O_NOFOLLOW alone leaves intermediate symlinks followed")
         }
+    }
+
+    // ── α.3 F-KE02 / F-KE03 ──────────────────────────────────────────────
+    //
+    // Source-level + behavioral tests for audit-chain integrity and
+    // UF_APPEND defense-in-depth in SecureFileWrite.swift +
+    // AuditChainVerify.swift. See α.3 gate doc for full threat-model note;
+    // recap: UF_APPEND is owner-clearable defense-in-depth, primary integrity
+    // is the hash-chain walk. SF_APPEND in-threat-model coverage = α.3.1.
+
+    /// F-KE03: both audit writers MUST call fchflags(…, …) with UF_APPEND
+    /// after the post-write fsync to arm the append-only flag.
+    func testFFKE03_audit_writers_set_UF_APPEND_after_create() throws {
+        let rel = "apple_native/JARVISMacCockpit/SecureFileWrite.swift"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03: could not locate \(rel)"); return
+        }
+        let rawSrc = try String(contentsOf: url, encoding: .utf8)
+        let src = stripSwiftComments(rawSrc)
+        let bounded = balancedBraceBody(of: "func appendBoundedAuditRecord", in: src) ?? ""
+        let chained = balancedBraceBody(of: "func appendChainedAuditRecord", in: src) ?? ""
+        XCTAssertFalse(bounded.isEmpty, "F-KE03: could not extract appendBoundedAuditRecord body")
+        XCTAssertFalse(chained.isEmpty, "F-KE03: could not extract appendChainedAuditRecord body")
+        for (name, body) in [("appendBoundedAuditRecord", bounded), ("appendChainedAuditRecord", chained)] {
+            XCTAssertTrue(body.contains("Darwin.fchflags(fdFile"),
+                          "F-KE03: \(name) must call fchflags(fdFile, …) to arm UF_APPEND post-fsync")
+            XCTAssertTrue(body.contains("UInt32(UF_APPEND)"),
+                          "F-KE03: \(name) must OR UF_APPEND into the new flags value")
+        }
+    }
+
+    /// F-KE03: both audit writers MUST fstat the file on open and check
+    /// st_flags & UF_APPEND as a defense-in-depth tripwire.
+    func testFFKE03_audit_writers_verify_UF_APPEND_on_open() throws {
+        let rel = "apple_native/JARVISMacCockpit/SecureFileWrite.swift"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03: could not locate \(rel)"); return
+        }
+        let rawSrc = try String(contentsOf: url, encoding: .utf8)
+        let src = stripSwiftComments(rawSrc)
+        let bounded = balancedBraceBody(of: "func appendBoundedAuditRecord", in: src) ?? ""
+        let chained = balancedBraceBody(of: "func appendChainedAuditRecord", in: src) ?? ""
+        for (name, body) in [("appendBoundedAuditRecord", bounded), ("appendChainedAuditRecord", chained)] {
+            XCTAssertTrue(body.contains("Darwin.fstat(fdFile"),
+                          "F-KE03: \(name) must fstat(fdFile) on open to inspect st_flags")
+            XCTAssertTrue(body.contains("st_flags & UInt32(UF_APPEND)"),
+                          "F-KE03: \(name) must test st_flags & UF_APPEND on the open fstat result")
+            XCTAssertTrue(body.contains("audit_uf_append_missing"),
+                          "F-KE03: \(name) must emit the audit_uf_append_missing tripwire when UF_APPEND was cleared on pre-existing file")
+        }
+    }
+
+    /// F-KE03: writer opens MUST NOT use O_TRUNC. The chain's append-only
+    /// discipline is incompatible with truncation at open.
+    func testFFKE03_audit_writers_use_O_APPEND_no_O_TRUNC() throws {
+        let rel = "apple_native/JARVISMacCockpit/SecureFileWrite.swift"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03: could not locate \(rel)"); return
+        }
+        let rawSrc = try String(contentsOf: url, encoding: .utf8)
+        let src = stripSwiftComments(rawSrc)
+        let bounded = balancedBraceBody(of: "func appendBoundedAuditRecord", in: src) ?? ""
+        let chained = balancedBraceBody(of: "func appendChainedAuditRecord", in: src) ?? ""
+        for (name, body) in [("appendBoundedAuditRecord", bounded), ("appendChainedAuditRecord", chained)] {
+            XCTAssertTrue(body.contains("O_APPEND"),
+                          "F-KE03: \(name) must open with O_APPEND")
+            XCTAssertFalse(body.contains("O_TRUNC"),
+                           "F-KE03: \(name) MUST NOT pass O_TRUNC — would zero the chain on every reopen")
+        }
+    }
+
+    /// F-KE02: behavioral — empty data + requireNonEmpty=true must throw .empty
+    /// with the `audit_chain_truncate_detected` tag.
+    func testFFKE02_verifyAuditChain_rejects_empty_when_required() {
+        XCTAssertThrowsError(try AuditChainVerify.verify(Data(), requireNonEmpty: true)) { err in
+            guard let e = err as? AuditChainVerifyError else {
+                XCTFail("expected AuditChainVerifyError, got \(err)"); return
+            }
+            guard case .empty = e else {
+                XCTFail("expected .empty, got \(e)"); return
+            }
+            XCTAssertEqual(e.auditEventTag, "audit_chain_truncate_detected")
+        }
+        // And requireNonEmpty=false on empty returns nil (legitimate fresh-creation).
+        XCTAssertNil(try? AuditChainVerify.verify(Data(), requireNonEmpty: false) as Any?)
+    }
+
+    /// F-KE02: behavioral — a chain whose first record has a non-genesis
+    /// prev_sha must be rejected.
+    func testFFKE02_verifyAuditChain_rejects_corrupted_genesis() {
+        // Build a single record with a non-zero prev_sha — fake hash but
+        // self-consistent sha so we exercise the genesis check, not the sha
+        // recompute check.
+        let badPrev = String(repeating: "f", count: 64)
+        let payload: [String: Any] = ["event": "x", "ts": 1, "prev_sha": badPrev, "seq": 1]
+        let preSha = try! JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+        let sha = SHA256.hash(data: preSha).map { String(format: "%02x", $0) }.joined()
+        var record = payload
+        record["sha"] = sha
+        var line = try! JSONSerialization.data(withJSONObject: record, options: [.sortedKeys])
+        line.append(0x0A)
+
+        XCTAssertThrowsError(try AuditChainVerify.verify(line, requireNonEmpty: false)) { err in
+            guard let e = err as? AuditChainVerifyError else {
+                XCTFail("expected AuditChainVerifyError"); return
+            }
+            guard case .genesisPrevShaMismatch = e else {
+                XCTFail("expected .genesisPrevShaMismatch, got \(e)"); return
+            }
+            XCTAssertEqual(e.auditEventTag, "audit_chain_genesis_corrupted")
+        }
+    }
+
+    /// F-KE02: behavioral — a chain with a broken intermediate link (record
+    /// N's prev_sha != record N-1's sha) must be rejected.
+    func testFFKE02_verifyAuditChain_rejects_broken_link() {
+        func buildRecord(prevSha: String, seq: Int) -> Data {
+            let payload: [String: Any] = ["event": "x", "ts": 1, "prev_sha": prevSha, "seq": seq]
+            let pre = try! JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+            let sha = SHA256.hash(data: pre).map { String(format: "%02x", $0) }.joined()
+            var rec = payload
+            rec["sha"] = sha
+            return try! JSONSerialization.data(withJSONObject: rec, options: [.sortedKeys])
+        }
+
+        let r1 = buildRecord(prevSha: AuditChainVerify.chainGenesisPrevSha, seq: 1)
+        // Broken link: r2.prev_sha is all "a" instead of r1.sha.
+        let r2 = buildRecord(prevSha: String(repeating: "a", count: 64), seq: 2)
+        var data = Data()
+        data.append(r1); data.append(0x0A)
+        data.append(r2); data.append(0x0A)
+
+        XCTAssertThrowsError(try AuditChainVerify.verify(data, requireNonEmpty: false)) { err in
+            guard let e = err as? AuditChainVerifyError else {
+                XCTFail("expected AuditChainVerifyError"); return
+            }
+            guard case .prevShaMismatch = e else {
+                XCTFail("expected .prevShaMismatch, got \(e)"); return
+            }
+            XCTAssertEqual(e.auditEventTag, "audit_chain_broken_link")
+        }
+    }
+
+    /// F-KE02: source pin — appendChainedAuditRecord MUST call
+    /// AuditChainVerify.verify under LOCK_EX before computing the next record.
+    func testFFKE02_appendChainedAuditRecord_uses_verifyAuditChain() throws {
+        let rel = "apple_native/JARVISMacCockpit/SecureFileWrite.swift"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE02: could not locate \(rel)"); return
+        }
+        let rawSrc = try String(contentsOf: url, encoding: .utf8)
+        let src = stripSwiftComments(rawSrc)
+        let body = balancedBraceBody(of: "func appendChainedAuditRecord", in: src) ?? ""
+        XCTAssertFalse(body.isEmpty, "F-KE02: could not extract appendChainedAuditRecord body")
+        XCTAssertTrue(body.contains("AuditChainVerify.verify"),
+                      "F-KE02: appendChainedAuditRecord must call AuditChainVerify.verify under LOCK_EX")
+        XCTAssertTrue(body.contains("chainIntegrity"),
+                      "F-KE02: appendChainedAuditRecord must translate AuditChainVerifyError to NativeSecurityAuditError.chainIntegrity")
+        // Negative gate: must NOT fall back to the old fixed-window tail-scrape
+        // pattern that trusted the last-line sha without verifying records 1..N-1.
+        XCTAssertFalse(body.contains("lastIndex(of: 0x0A)"),
+                       "F-KE02: trailing-newline tail-scrape pattern must be removed — superseded by AuditChainVerify.verify full-chain walk")
     }
 }
 

@@ -12,6 +12,13 @@ enum NativeSecurityAuditError: Error, CustomStringConvertible, LocalizedError {
     case writeFile(path: String, errno: Int32)
     case fsyncFile(path: String, errno: Int32)
     case fsyncDir(path: String, errno: Int32)
+    /// R11l α.3 F-KE02: chain integrity verification failed under LOCK_EX
+    /// prior to append. Carries the underlying AuditChainVerifyError so
+    /// callers can emit the correct audit tag (.auditEventTag on the inner).
+    case chainIntegrity(path: String, reason: AuditChainVerifyError)
+    /// R11l α.3 F-KE03: fstat or chflags syscall failure during UF_APPEND
+    /// arming. Defense-in-depth surface — see SecureFileWrite header note.
+    case ufAppend(path: String, op: String, errno: Int32)
 
     var errorDescription: String? { description }
 
@@ -31,6 +38,10 @@ enum NativeSecurityAuditError: Error, CustomStringConvertible, LocalizedError {
             "fsync(file) \(p): errno=\(e)"
         case let .fsyncDir(p, e):
             "fsync(dir) \(p): errno=\(e)"
+        case let .chainIntegrity(p, r):
+            "audit chain integrity failure \(p): \(r) [tag=\(r.auditEventTag)]"
+        case let .ufAppend(p, op, e):
+            "UF_APPEND \(op)(\(p)): errno=\(e)"
         }
     }
 }
@@ -83,6 +94,29 @@ func appendBoundedAuditRecord(parentDir: URL, file: String, record: Data) throws
     }
     defer { Darwin.close(fdFile) }                      // Step 9a: close fd_file (second, LIFO)
 
+    // Step 2b: F-KE03 / α.3 B.1 — UF_APPEND defense-in-depth verify on open.
+    // THREAT MODEL NOTE: UF_APPEND is owner-settable + owner-clearable per
+    // chflags(2). uid=operator attacker can clear it just as easily as we
+    // set it. This is NOT primary control; primary integrity is the F-KE02
+    // hash-chain verify in appendChainedAuditRecord. SF_APPEND (root-only,
+    // attacker-resistant) requires privileged helper — deferred to α.3.1.
+    // We still verify here because adjacent threats (other-UID processes,
+    // accidental corruption, bug-class tamper) ARE blocked by UF_APPEND,
+    // and a missing flag on a pre-existing file is a tripwire signal.
+    var stOnOpen = Darwin.stat()
+    if Darwin.fstat(fdFile, &stOnOpen) != 0 {
+        throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fstat", errno: errno)
+    }
+    let wasArmedOnOpenBounded = (stOnOpen.st_flags & UInt32(UF_APPEND)) != 0
+    if stOnOpen.st_size > 0 && !wasArmedOnOpenBounded {
+        // Tripwire — write to stderr, NOT through NativeSecurityAudit (would
+        // recurse). Don't refuse: refusing would create a DoS surface where
+        // anyone who can clear the flag blocks all audit.
+        FileHandle.standardError.write(Data(
+            "audit_uf_append_missing: \(filePath) (re-arming post-write)\n".utf8
+        ))
+    }
+
     // Step 3: acquire exclusive advisory lock; retry only on EINTR.
     // Note: bare 'flock(_:_:)' to avoid Swift resolving 'Darwin.flock' as the
     // struct type (struct flock from fcntl.h) rather than the flock(2) function.
@@ -121,6 +155,24 @@ func appendBoundedAuditRecord(parentDir: URL, file: String, record: Data) throws
     // Step 7: fsync the directory so a newly-created file's directory entry is durable.
     if Darwin.fsync(fdDir) != 0 {
         throw NativeSecurityAuditError.fsyncDir(path: parentDir.path, errno: errno)
+    }
+
+    // Step 7b: F-KE03 / α.3 B.1 — arm UF_APPEND post-fsync.
+    // Idempotent — already-set flag is a no-op (caught by the fstat check).
+    // ENOTSUP tolerated for non-flag-supporting filesystems (rare on APFS;
+    // possible on smbfs/nfs/synthetic FUSE mounts). Any other errno surfaces.
+    var stPostWriteBounded = Darwin.stat()
+    if Darwin.fstat(fdFile, &stPostWriteBounded) != 0 {
+        throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fstat", errno: errno)
+    }
+    if (stPostWriteBounded.st_flags & UInt32(UF_APPEND)) == 0 {
+        let newFlags = stPostWriteBounded.st_flags | UInt32(UF_APPEND)
+        if Darwin.fchflags(fdFile, newFlags) != 0 {
+            let e = errno
+            if e != ENOTSUP {
+                throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fchflags", errno: e)
+            }
+        }
     }
 
     // Steps 8-9 execute via the defer stack (LIFO): LOCK_UN -> close(fdFile) -> close(fdDir).
@@ -174,6 +226,21 @@ func appendChainedAuditRecord(
     }
     defer { Darwin.close(fdFile) }
 
+    // F-KE03 / α.3 B.1 — UF_APPEND defense-in-depth verify on open (chained).
+    // Mirrors the bounded variant's threat-model note: UF_APPEND is owner-
+    // settable + owner-clearable; primary integrity is the F-KE02 chain-walk
+    // performed below under LOCK_EX. See SecureFileWrite.swift header / α.3.1.
+    var stOnOpen = Darwin.stat()
+    if Darwin.fstat(fdFile, &stOnOpen) != 0 {
+        throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fstat", errno: errno)
+    }
+    let wasArmedOnOpenChained = (stOnOpen.st_flags & UInt32(UF_APPEND)) != 0
+    if stOnOpen.st_size > 0 && !wasArmedOnOpenChained {
+        FileHandle.standardError.write(Data(
+            "audit_uf_append_missing: \(filePath) (re-arming post-write)\n".utf8
+        ))
+    }
+
     while flock(fdFile, LOCK_EX) != 0 {
         let e = errno
         guard e == EINTR else {
@@ -182,35 +249,58 @@ func appendChainedAuditRecord(
     }
     defer { _ = flock(fdFile, LOCK_UN) }
 
-    // Step 3: read tail under LOCK_EX. Use pread so the (implicit) file
-    // position is untouched — combined with O_APPEND every subsequent write
-    // still goes to EOF.
+    // R11l α.3 F-KE02: read FULL chain under LOCK_EX and verify integrity
+    // before computing the next record. The prior tail-scrape (a fixed-window
+    // pread of the last 1024 bytes) trusted record-N's reported sha/seq
+    // without verifying records 1..N-1. An attacker at uid=operator could
+    // truncate the chain to a forged single line whose sha self-consistent;
+    // the writer would then build on that forged tail.
+    //
+    // Mitigation: read the entire file, run AuditChainVerify.verify, and use
+    // the verified tail. requireNonEmpty=false here — legitimate first-write
+    // on a freshly O_CREAT'd file produces size 0 which is not a truncate.
+    // Callers who know the chain MUST be non-empty (boot-time post-anchor
+    // verifier) should call AuditChainVerify.verify directly with
+    // requireNonEmpty=true.
+    //
+    // Performance: linear in chain size; audit chain is bounded by operator
+    // policy + rotation. tailScanWindow parameter retained for API stability
+    // but no longer used as a scan window — kept as a no-op for future use
+    // (e.g., chunked verification).
+    _ = tailScanWindow
     let size = Darwin.lseek(fdFile, 0, SEEK_END)
     var priorTail: Data? = nil
     if size > 0 {
-        let scanLen = min(off_t(tailScanWindow), size)
-        let startOffset = size - scanLen
-        var buf = [UInt8](repeating: 0, count: Int(scanLen))
+        var buf = [UInt8](repeating: 0, count: Int(size))
         let nRead = buf.withUnsafeMutableBytes { mb -> ssize_t in
             guard let base = mb.baseAddress else { return -1 }
-            return Darwin.pread(fdFile, base, Int(scanLen), startOffset)
+            return Darwin.pread(fdFile, base, Int(size), 0)
         }
         guard nRead >= 0 else {
             throw NativeSecurityAuditError.writeFile(path: filePath, errno: errno)
         }
-        // Find the last complete line. Trailing newline expected.
-        var slice = Array(buf.prefix(Int(nRead)))
-        if slice.last == 0x0A { slice.removeLast() }
-        if let lastNL = slice.lastIndex(of: 0x0A) {
-            priorTail = Data(slice[(lastNL + 1)...])
-        } else if startOffset == 0 {
-            // File contains a single line with no trailing newline yet, or the
-            // window covers the entire file — treat the whole buffer as tail.
-            priorTail = Data(slice)
-        } else {
-            // Window did not span back to a newline. Caller must enlarge
-            // tailScanWindow; this would indicate a malformed file.
-            throw NativeSecurityAuditError.writeFile(path: filePath, errno: EPROTO)
+        if Int64(nRead) != Int64(size) {
+            throw NativeSecurityAuditError.writeFile(path: filePath, errno: EIO)
+        }
+        let contents = Data(buf.prefix(Int(nRead)))
+
+        // verifyAuditChain throws AuditChainVerifyError on any tamper. We
+        // translate to NativeSecurityAuditError.chainIntegrity to preserve
+        // this function's typed-error contract while surfacing the
+        // underlying reason for audit emission.
+        let verified: (tailSha: String, tailSeq: Int)?
+        do {
+            verified = try AuditChainVerify.verify(contents, requireNonEmpty: false)
+        } catch let e as AuditChainVerifyError {
+            throw NativeSecurityAuditError.chainIntegrity(path: filePath, reason: e)
+        }
+
+        if let tail = verified {
+            // Synthesize a minimal priorTail JSON containing only the verified
+            // sha/seq. The build closure (NativeSecurityAudit.writeLine) reads
+            // exactly these two fields to compute prev_sha + next seq.
+            let stub: [String: Any] = ["sha": tail.tailSha, "seq": tail.tailSeq]
+            priorTail = try JSONSerialization.data(withJSONObject: stub, options: [.sortedKeys])
         }
     }
 
@@ -242,5 +332,21 @@ func appendChainedAuditRecord(
     }
     if Darwin.fsync(fdDir) != 0 {
         throw NativeSecurityAuditError.fsyncDir(path: parentDir.path, errno: errno)
+    }
+
+    // F-KE03 / α.3 B.1 — arm UF_APPEND post-fsync (chained variant).
+    // Idempotent. ENOTSUP tolerated for non-flag-supporting filesystems.
+    var stPostWriteChained = Darwin.stat()
+    if Darwin.fstat(fdFile, &stPostWriteChained) != 0 {
+        throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fstat", errno: errno)
+    }
+    if (stPostWriteChained.st_flags & UInt32(UF_APPEND)) == 0 {
+        let newFlags = stPostWriteChained.st_flags | UInt32(UF_APPEND)
+        if Darwin.fchflags(fdFile, newFlags) != 0 {
+            let e = errno
+            if e != ENOTSUP {
+                throw NativeSecurityAuditError.ufAppend(path: filePath, op: "fchflags", errno: e)
+            }
+        }
     }
 }
