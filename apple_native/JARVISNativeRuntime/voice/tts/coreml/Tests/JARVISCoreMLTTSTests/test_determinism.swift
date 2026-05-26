@@ -3,6 +3,7 @@
 // Run: swift test --filter DeterminismTests
 
 import XCTest
+import CryptoKit
 import Foundation
 @testable import JARVISCoreMLTTS
 
@@ -13,10 +14,20 @@ final class DeterminismTests: XCTestCase {
 
     static var pipeline: XTTSCoreMLPipeline?
 
+    static func computeVoiceStateSHA() -> String? {
+        let url = modelDir.appendingPathComponent("voice_state.bin")
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
     override class func setUp() {
         super.setUp()
         do {
-            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir)
+            guard let sha = computeVoiceStateSHA() else {
+                print("voice_state.bin missing — skipping pipeline init")
+                return
+            }
+            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir, expectedVoiceStateSHA256Hex: sha)
         } catch {
             print("Pipeline init failed: \(error)")
         }
@@ -87,7 +98,8 @@ final class DeterminismTests: XCTestCase {
         // Verifies that running with seed=42 and temperature=0.75 produces
         // deterministic output across multiple pipeline instantiations.
         guard let pipeline1 = Self.pipeline,
-              let pipeline2 = try? XTTSCoreMLPipeline(modelDir: Self.modelDir) else {
+              let sha = Self.computeVoiceStateSHA(),
+              let pipeline2 = try? XTTSCoreMLPipeline(modelDir: Self.modelDir, expectedVoiceStateSHA256Hex: sha) else {
             // TODO(removal-cond: XTTSCoreMLPipeline initializer succeeds without runtime model conversion prerequisite)
             throw XCTSkip("CoreML pipeline not available")
         }

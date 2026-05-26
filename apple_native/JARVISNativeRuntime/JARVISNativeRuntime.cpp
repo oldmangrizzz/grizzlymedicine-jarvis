@@ -44,6 +44,36 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 std::string jsonStringField(const std::string &json, const std::string &key);
+void auditVoiceModelsTripwireFired(const std::string &model, const std::string &failure, const std::string &actual, const std::string &expected, const std::string &source, const std::string &context = "");
+void auditVoiceStateTripwireFired(const std::string &failure, const std::string &actual, const std::string &expected, const std::string &context) noexcept;
+
+std::string basenameOnly(const std::filesystem::path &path) {
+    const auto name = path.filename().string();
+    return name.empty() ? std::string("unknown") : name;
+}
+
+std::string modelNameForPath(const std::filesystem::path &path) {
+    const std::string text = path.generic_string();
+    if (text.find("flow_decoder") != std::string::npos) { return "flow_decoder"; }
+    if (text.find("mimi_decoder") != std::string::npos) { return "mimi_decoder"; }
+    if (text.find("text_encoder") != std::string::npos) { return "text_encoder"; }
+    if (text.find("voice_models_anchor") != std::string::npos) { return "anchor"; }
+    return "unknown";
+}
+
+std::string errnoContext(const std::filesystem::path &path) {
+    return basenameOnly(path) + ":errno=" + std::to_string(errno);
+}
+
+std::string ecContext(const std::filesystem::path &path, const std::error_code &ec) {
+    return basenameOnly(path) + ":ec=" + std::to_string(ec.value());
+}
+
+std::string octalMode(mode_t mode) {
+    std::ostringstream out;
+    out << std::oct << (mode & 07777);
+    return out.str();
+}
 
 double clamp01(double value) {
     return std::max(0.0, std::min(1.0, value));
@@ -128,6 +158,7 @@ std::string homeDirectoryOrThrow() {
     if (const passwd *pw = ::getpwuid(::getuid()); pw && pw->pw_dir && *pw->pw_dir) {
         return pw->pw_dir;
     }
+    auditVoiceStateTripwireFired("home_unavailable", "home_missing", std::string(64, '0'), "voice_state.bin");
     throw std::runtime_error("JARVIS voice tripwire: HOME is unavailable");
 }
 
@@ -148,12 +179,14 @@ std::filesystem::path auditRoot() {
 std::string readFileStrict(const std::filesystem::path &path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
-        throw std::runtime_error("JARVIS voice tripwire: cannot open " + path.string());
+        auditVoiceStateTripwireFired("open_failed", errnoContext(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot open " + basenameOnly(path));
     }
     std::ostringstream out;
     out << in.rdbuf();
     if (in.bad()) {
-        throw std::runtime_error("JARVIS voice tripwire: failed while reading " + path.string());
+        auditVoiceStateTripwireFired("read_failed", basenameOnly(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: failed while reading " + basenameOnly(path));
     }
     return out.str();
 }
@@ -184,14 +217,17 @@ std::string hexEncode(const std::array<unsigned char, crypto_hash_sha256_BYTES> 
 
 std::string sha256FileHexSodium(const std::filesystem::path &path) {
     if (sodium_init() < 0) {
+        auditVoiceStateTripwireFired("hash_failed", "sodium_init", std::string(64, '0'), "voice_state.bin");
         throw std::runtime_error("JARVIS voice tripwire: libsodium initialization failed");
     }
     std::ifstream in(path, std::ios::binary);
     if (!in) {
-        throw std::runtime_error("JARVIS voice tripwire: cannot open voice_state.bin at " + path.string());
+        auditVoiceStateTripwireFired("open_failed", errnoContext(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot open voice_state.bin " + basenameOnly(path));
     }
     crypto_hash_sha256_state state;
     if (crypto_hash_sha256_init(&state) != 0) {
+        auditVoiceStateTripwireFired("hash_failed", "sha_init", std::string(64, '0'), basenameOnly(path));
         throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_init failed");
     }
     std::array<unsigned char, 1024 * 1024> buffer{};
@@ -199,14 +235,140 @@ std::string sha256FileHexSodium(const std::filesystem::path &path) {
         in.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
         const auto n = in.gcount();
         if (n > 0 && crypto_hash_sha256_update(&state, buffer.data(), static_cast<unsigned long long>(n)) != 0) {
+            auditVoiceStateTripwireFired("hash_failed", "sha_update", std::string(64, '0'), basenameOnly(path));
             throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_update failed");
         }
     }
     if (in.bad()) {
-        throw std::runtime_error("JARVIS voice tripwire: failed while reading voice_state.bin at " + path.string());
+        auditVoiceStateTripwireFired("read_failed", basenameOnly(path), std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: failed while reading voice_state.bin " + basenameOnly(path));
     }
     std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
     if (crypto_hash_sha256_final(&state, digest.data()) != 0) {
+        auditVoiceStateTripwireFired("hash_failed", "sha_final", std::string(64, '0'), basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_final failed");
+    }
+    return hexEncode(digest);
+}
+
+
+std::string sha256AnyFileHexSodium(const std::filesystem::path &path) {
+    const std::string model = modelNameForPath(path);
+    if (sodium_init() < 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sodium_init", std::string(64, '0'), "package_manifest", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: libsodium initialization failed");
+    }
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "open_failed", std::string(64, '0'), "package_manifest", errnoContext(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot open model file " + basenameOnly(path));
+    }
+    crypto_hash_sha256_state state;
+    if (crypto_hash_sha256_init(&state) != 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sha_init", std::string(64, '0'), "package_manifest", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_init failed");
+    }
+    std::array<unsigned char, 1024 * 1024> buffer{};
+    while (in) {
+        in.read(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+        const auto n = in.gcount();
+        if (n > 0 && crypto_hash_sha256_update(&state, buffer.data(), static_cast<unsigned long long>(n)) != 0) {
+            auditVoiceModelsTripwireFired(model, "hash_failed", "sha_update", std::string(64, '0'), "package_manifest", basenameOnly(path));
+            throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_update failed");
+        }
+    }
+    if (in.bad()) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "read_failed", std::string(64, '0'), "package_manifest", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: failed while reading model file " + basenameOnly(path));
+    }
+    std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
+    if (crypto_hash_sha256_final(&state, digest.data()) != 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sha_final", std::string(64, '0'), "package_manifest", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_final failed");
+    }
+    return hexEncode(digest);
+}
+
+// Filenames explicitly excluded from the recursive manifest hash on BOTH C++ and Swift sides.
+// Only ".DS_Store" is listed. No wildcard matching. Any other hidden file is hashed.
+// Rationale: .DS_Store is created by macOS Finder on directory browse; it is not part of the
+// model package and causes spurious tripwire fires. Keeping the list tight (single name) prevents
+// a tamper-hiding hole via any other hidden filename.
+// Reconciliation TODO: if macOS introduces new auto-generated package-directory noise files, add
+// them here AND to kHashManifestIgnoreList in XTTSCoreMLPipeline.swift identically.
+// See: v4r-r6-hash-algo-reconcile
+static bool isHashManifestAllowlisted(const std::string &filename) {
+    static const std::array<const char *, 1> kAllowlist = {{".DS_Store"}};
+    for (const char *name : kAllowlist) {
+        if (filename == name) { return true; }
+    }
+    return false;
+}
+
+std::string sha256PackageManifestHexSodium(const std::filesystem::path &packagePath) {
+    const std::string model = modelNameForPath(packagePath);
+    if (sodium_init() < 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sodium_init", std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+        throw std::runtime_error("JARVIS voice tripwire: libsodium initialization failed");
+    }
+    std::error_code ec;
+    const auto rootStatus = std::filesystem::symlink_status(packagePath, ec);
+    if (ec || !std::filesystem::is_directory(rootStatus)) {
+        auditVoiceModelsTripwireFired(model, ec ? "lstat_failed" : "missing", ec ? ecContext(packagePath, ec) : basenameOnly(packagePath), std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+        throw std::runtime_error("JARVIS voice tripwire: model package missing at " + basenameOnly(packagePath));
+    }
+    if (std::filesystem::is_symlink(rootStatus)) {
+        auditVoiceModelsTripwireFired(model, "symlink", basenameOnly(packagePath), std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+        throw std::runtime_error("JARVIS voice tripwire: model package symlink rejected at " + basenameOnly(packagePath));
+    }
+    std::vector<std::filesystem::path> files;
+    for (std::filesystem::recursive_directory_iterator it(packagePath, std::filesystem::directory_options::none, ec), end; it != end; it.increment(ec)) {
+        if (ec) {
+            auditVoiceModelsTripwireFired(model, "enum_failed", ecContext(packagePath, ec), std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+            throw std::runtime_error("JARVIS voice tripwire: package enumeration failed at " + basenameOnly(packagePath) + ": " + ec.message());
+        }
+        const auto status = it->symlink_status(ec);
+        if (ec) {
+            auditVoiceModelsTripwireFired(model, "lstat_failed", ecContext(it->path(), ec), std::string(64, '0'), "package_manifest", basenameOnly(it->path()));
+            throw std::runtime_error("JARVIS voice tripwire: package lstat failed at " + basenameOnly(it->path()) + ": " + ec.message());
+        }
+        if (std::filesystem::is_symlink(status)) {
+            auditVoiceModelsTripwireFired(model, "symlink", basenameOnly(it->path()), std::string(64, '0'), "package_manifest", basenameOnly(it->path()));
+            throw std::runtime_error("JARVIS voice tripwire: package symlink rejected at " + basenameOnly(it->path()));
+        }
+        if (std::filesystem::is_regular_file(status)) {
+            if (!isHashManifestAllowlisted(it->path().filename().string())) {
+                files.push_back(it->path());
+            }
+        }
+    }
+    std::sort(files.begin(), files.end(), [&](const auto &lhs, const auto &rhs) {
+        return std::filesystem::relative(lhs, packagePath, ec).generic_string() < std::filesystem::relative(rhs, packagePath, ec).generic_string();
+    });
+    crypto_hash_sha256_state state;
+    if (crypto_hash_sha256_init(&state) != 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sha_init", std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+        throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_init failed");
+    }
+    const unsigned char nul = 0;
+    for (const auto &file : files) {
+        const std::string relative = std::filesystem::relative(file, packagePath, ec).generic_string();
+        if (ec) {
+            auditVoiceModelsTripwireFired(model, "lstat_failed", ecContext(file, ec), std::string(64, '0'), "package_manifest", basenameOnly(file));
+            throw std::runtime_error("JARVIS voice tripwire: package relative path failed at " + basenameOnly(file) + ": " + ec.message());
+        }
+        const std::string fileHex = sha256AnyFileHexSodium(file);
+        if (crypto_hash_sha256_update(&state, reinterpret_cast<const unsigned char *>(relative.data()), relative.size()) != 0 ||
+            crypto_hash_sha256_update(&state, &nul, 1) != 0 ||
+            crypto_hash_sha256_update(&state, reinterpret_cast<const unsigned char *>(fileHex.data()), fileHex.size()) != 0 ||
+            crypto_hash_sha256_update(&state, &nul, 1) != 0) {
+            auditVoiceModelsTripwireFired(model, "hash_failed", "sha_update", std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
+            throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_update failed");
+        }
+    }
+    std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
+    if (crypto_hash_sha256_final(&state, digest.data()) != 0) {
+        auditVoiceModelsTripwireFired(model, "hash_failed", "sha_final", std::string(64, '0'), "package_manifest", basenameOnly(packagePath));
         throw std::runtime_error("JARVIS voice tripwire: crypto_hash_sha256_final failed");
     }
     return hexEncode(digest);
@@ -265,7 +427,7 @@ std::string birthCertificateVoiceHashIfPresent(std::filesystem::path &source) {
         const std::string json = readFileStrict(candidate);
         std::string hash = lowerHex(jsonStringField(json, "operatorVoiceAnchorSHA256Hex"));
         if (!isHexSHA256(hash)) {
-            throw std::runtime_error("JARVIS voice tripwire: invalid operatorVoiceAnchorSHA256Hex in " + candidate.string());
+            throw std::runtime_error("JARVIS voice tripwire: invalid operatorVoiceAnchorSHA256Hex in " + basenameOnly(candidate));
         }
         source = candidate;
         return hash;
@@ -311,7 +473,7 @@ void writeAllOrThrow(int fd, const char *data, std::size_t size, const std::stri
 void fsyncDirOrThrow(const std::filesystem::path &dir) {
     const int fd = ::open(dir.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
     if (fd < 0) {
-        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open anchor directory " + dir.string()));
+        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open anchor directory " + basenameOnly(dir)));
     }
     const int saved = errno;
     errno = saved;
@@ -321,7 +483,7 @@ void fsyncDirOrThrow(const std::filesystem::path &dir) {
         throw std::runtime_error(message);
     }
     if (::close(fd) != 0) {
-        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close anchor directory " + dir.string()));
+        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close anchor directory " + basenameOnly(dir)));
     }
 }
 
@@ -332,7 +494,7 @@ void persistVoiceAnchorIfMissing(const std::filesystem::path &path, const std::s
     std::error_code ec;
     std::filesystem::create_directories(path.parent_path(), ec);
     if (ec) {
-        throw std::runtime_error("JARVIS voice tripwire: cannot create anchor directory " + path.parent_path().string() + ": " + ec.message());
+        throw std::runtime_error("JARVIS voice tripwire: cannot create anchor directory " + basenameOnly(path.parent_path()) + ": " + ec.message());
     }
     if (std::filesystem::exists(path, ec) && !ec) {
         return;
@@ -343,18 +505,18 @@ void persistVoiceAnchorIfMissing(const std::filesystem::path &path, const std::s
         if (errno == EEXIST) {
             throw std::runtime_error("JARVIS voice tripwire: concurrent voice anchor creation in progress");
         }
-        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: create anchor temp " + temp.string()));
+        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: create anchor temp " + basenameOnly(temp)));
     }
     bool closed = false;
     try {
         const std::string line = hash + "\n";
         writeAllOrThrow(fd, line.data(), line.size(), temp.string());
         if (::fsync(fd) != 0) {
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync anchor temp " + temp.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync anchor temp " + basenameOnly(temp)));
         }
         if (::close(fd) != 0) {
             closed = true;
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close anchor temp " + temp.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close anchor temp " + basenameOnly(temp)));
         }
         closed = true;
 #if defined(__APPLE__) && defined(RENAME_EXCL)
@@ -363,7 +525,7 @@ void persistVoiceAnchorIfMissing(const std::filesystem::path &path, const std::s
                 std::filesystem::remove(temp, ec);
                 return;
             }
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: rename anchor " + temp.string() + " -> " + path.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: rename anchor " + basenameOnly(temp) + " -> " + basenameOnly(path)));
         }
 #else
         if (::link(temp.c_str(), path.c_str()) != 0) {
@@ -371,7 +533,7 @@ void persistVoiceAnchorIfMissing(const std::filesystem::path &path, const std::s
                 std::filesystem::remove(temp, ec);
                 return;
             }
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: link anchor " + temp.string() + " -> " + path.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: link anchor " + basenameOnly(temp) + " -> " + basenameOnly(path)));
         }
         std::filesystem::remove(temp, ec);
 #endif
@@ -393,40 +555,40 @@ void appendBoundedRuntimeAudit(const std::string &record) {
     std::error_code ec;
     std::filesystem::create_directories(root, ec);
     if (ec) {
-        throw std::runtime_error("JARVIS voice tripwire: cannot create audit directory " + root.string() + ": " + ec.message());
+        throw std::runtime_error("JARVIS voice tripwire: cannot create audit directory " + basenameOnly(root) + ": " + ec.message());
     }
     const std::string file = "network_security.jsonl";
     const int dirfd = ::open(root.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
     if (dirfd < 0) {
-        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open audit directory " + root.string()));
+        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open audit directory " + basenameOnly(root)));
     }
     int fd = -1;
     try {
         fd = ::openat(dirfd, file.c_str(), O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC, static_cast<mode_t>(0600));
         if (fd < 0) {
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open audit file " + (root / file).string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: open audit file " + file));
         }
         while (::flock(fd, LOCK_EX) != 0) {
             if (errno != EINTR) {
-                throw std::runtime_error(errnoMessage("JARVIS voice tripwire: lock audit file " + (root / file).string()));
+                throw std::runtime_error(errnoMessage("JARVIS voice tripwire: lock audit file " + file));
             }
         }
         const std::string line = record + "\n";
         writeAllOrThrow(fd, line.data(), line.size(), (root / file).string());
         if (::fsync(fd) != 0) {
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync audit file " + (root / file).string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync audit file " + file));
         }
         if (::fsync(dirfd) != 0) {
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync audit directory " + root.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync audit directory " + basenameOnly(root)));
         }
         ::flock(fd, LOCK_UN);
         if (::close(fd) != 0) {
             fd = -1;
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close audit file " + (root / file).string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close audit file " + file));
         }
         fd = -1;
         if (::close(dirfd) != 0) {
-            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close audit directory " + root.string()));
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close audit directory " + basenameOnly(root)));
         }
     } catch (...) {
         if (fd >= 0) {
@@ -446,6 +608,226 @@ void auditVoiceTripwireFired(const std::string &actual, const std::string &expec
     appendBoundedRuntimeAudit(record);
 }
 
+void auditVoiceModelsAnchorEstablished(const std::string &flow, const std::string &mimi, const std::string &text) {
+    // Byte budget: keys/event/source+JSON overhead (~83) + 3*64-char SHA-256 = ~275 < PIPE_BUF 512.
+    const std::string record = std::string("{\"event\":\"voice_models_anchor_established\",\"flow_sha256\":\"") + jsonEscape(flow)
+        + "\",\"mimi_sha256\":\"" + jsonEscape(mimi)
+        + "\",\"text_sha256\":\"" + jsonEscape(text)
+        + "\",\"ts\":" + std::to_string(static_cast<long long>(unixNow())) + "}";
+    appendBoundedRuntimeAudit(record);
+}
+
+void auditVoiceModelsTripwireFired(const std::string &model, const std::string &failure, const std::string &actual, const std::string &expected, const std::string &source, const std::string &context) {
+    const std::string record = std::string("{\"actual\":\"") + jsonEscape(actual.substr(0, 96))
+        + "\",\"event\":\"voice_models_tripwire_fired\",\"expected\":\"" + jsonEscape(expected.substr(0, 96))
+        + "\",\"failure\":\"" + jsonEscape(failure)
+        + "\",\"model\":\"" + jsonEscape(model)
+        + "\",\"source\":\"" + jsonEscape(source)
+        + "\",\"context\":\"" + jsonEscape(context.substr(0, 96))
+        + "\",\"ts\":" + std::to_string(static_cast<long long>(unixNow())) + "}";
+    appendBoundedRuntimeAudit(record);
+}
+
+void auditVoiceStateTripwireFired(const std::string &failure, const std::string &actual, const std::string &expected, const std::string &context) noexcept {
+    // Byte budget: fixed JSON overhead (~140) + 3*96 bounded values + model/source/event/failure < PIPE_BUF 512.
+    const std::string record = std::string("{\"actual\":\"") + jsonEscape(actual.substr(0, 96))
+        + "\",\"event\":\"voice_state_tripwire_fired\",\"expected\":\"" + jsonEscape(expected.substr(0, 96))
+        + "\",\"failure\":\"" + jsonEscape(failure)
+        + "\",\"model\":\"voice_state.bin"
+        + "\",\"source\":\"voice_state_sha256"
+        + "\",\"context\":\"" + jsonEscape(context.substr(0, 96))
+        + "\",\"ts\":" + std::to_string(static_cast<long long>(unixNow())) + "}";
+    try {
+        appendBoundedRuntimeAudit(record);
+    } catch (...) {
+        fputs((record + "\n").c_str(), stderr);
+    }
+}
+
+struct VoiceModelAnchor {
+    std::string flow;
+    std::string mimi;
+    std::string text;
+};
+
+std::string voiceModelAnchorJSON(const VoiceModelAnchor &anchor) {
+    return std::string("{\"flow_decoder_sha256\":\"") + anchor.flow
+        + "\",\"mimi_decoder_sha256\":\"" + anchor.mimi
+        + "\",\"text_encoder_sha256\":\"" + anchor.text
+        + "\"}\n";
+}
+
+VoiceModelAnchor readVoiceModelAnchor(const std::filesystem::path &path) {
+    std::error_code ec;
+    if (!std::filesystem::exists(path, ec) || ec) {
+        return {};
+    }
+    const auto status = std::filesystem::symlink_status(path, ec);
+    if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status)) {
+        auditVoiceModelsTripwireFired("anchor", ec ? "lstat_failed" : (std::filesystem::is_symlink(status) ? "symlink" : "missing"), ec ? ecContext(path, ec) : basenameOnly(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: voice model anchor path is not a regular file");
+    }
+    struct stat st;
+    if (::lstat(path.c_str(), &st) != 0) {
+        auditVoiceModelsTripwireFired("anchor", "lstat_failed", errnoContext(path), std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: cannot lstat voice model anchor");
+    }
+    if ((st.st_mode & 07777) != 0600) {
+        auditVoiceModelsTripwireFired("anchor", "anchor_mode", octalMode(st.st_mode), "0600", "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: voice model anchor has incorrect mode (expected 0600)");
+    }
+    if (st.st_uid != ::getuid()) {
+        auditVoiceModelsTripwireFired("anchor", "anchor_uid", std::to_string(st.st_uid), std::to_string(::getuid()), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: voice model anchor has incorrect owner");
+    }
+    const std::string json = readFileStrict(path);
+    VoiceModelAnchor anchor{
+        lowerHex(jsonStringField(json, "flow_decoder_sha256")),
+        lowerHex(jsonStringField(json, "mimi_decoder_sha256")),
+        lowerHex(jsonStringField(json, "text_encoder_sha256"))
+    };
+    if (!isHexSHA256(anchor.flow) || !isHexSHA256(anchor.mimi) || !isHexSHA256(anchor.text)) {
+        auditVoiceModelsTripwireFired("anchor", "hash_failed", "invalid_digest", std::string(64, '0'), "voice_models_anchor", basenameOnly(path));
+        throw std::runtime_error("JARVIS voice tripwire: persisted voice model anchor is missing a SHA-256 hex digest");
+    }
+    return anchor;
+}
+
+void persistVoiceModelAnchorIfMissing(const std::filesystem::path &path, const VoiceModelAnchor &anchor) {
+    if (!isHexSHA256(anchor.flow) || !isHexSHA256(anchor.mimi) || !isHexSHA256(anchor.text)) {
+        throw std::runtime_error("JARVIS voice tripwire: refusing to persist invalid voice model anchor");
+    }
+    std::error_code ec;
+    std::filesystem::create_directories(path.parent_path(), ec);
+    if (ec) {
+        throw std::runtime_error("JARVIS voice tripwire: cannot create voice model anchor directory " + basenameOnly(path.parent_path()) + ": " + ec.message());
+    }
+    std::filesystem::permissions(path.parent_path(), std::filesystem::perms::owner_all, std::filesystem::perm_options::replace, ec);
+    if (std::filesystem::exists(path, ec) && !ec) {
+        return;
+    }
+    const auto temp = path.parent_path() / ("." + path.filename().string() + "." + std::to_string(::getpid()) + ".new");
+    const int fd = ::open(temp.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, static_cast<mode_t>(0600));
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            throw std::runtime_error("JARVIS voice tripwire: concurrent voice model anchor creation in progress");
+        }
+        throw std::runtime_error(errnoMessage("JARVIS voice tripwire: create voice model anchor temp " + basenameOnly(temp)));
+    }
+    bool closed = false;
+    try {
+        const std::string blob = voiceModelAnchorJSON(anchor);
+        writeAllOrThrow(fd, blob.data(), blob.size(), temp.string());
+        if (::fsync(fd) != 0) {
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: fsync voice model anchor temp " + basenameOnly(temp)));
+        }
+        if (::close(fd) != 0) {
+            closed = true;
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: close voice model anchor temp " + basenameOnly(temp)));
+        }
+        closed = true;
+#if defined(__APPLE__) && defined(RENAME_EXCL)
+        if (::renamex_np(temp.c_str(), path.c_str(), RENAME_EXCL) != 0) {
+            if (errno == EEXIST) {
+                std::filesystem::remove(temp, ec);
+                return;
+            }
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: rename voice model anchor " + basenameOnly(temp) + " -> " + basenameOnly(path)));
+        }
+#else
+        if (::link(temp.c_str(), path.c_str()) != 0) {
+            if (errno == EEXIST) {
+                std::filesystem::remove(temp, ec);
+                return;
+            }
+            throw std::runtime_error(errnoMessage("JARVIS voice tripwire: link voice model anchor " + basenameOnly(temp) + " -> " + basenameOnly(path)));
+        }
+        std::filesystem::remove(temp, ec);
+#endif
+        fsyncDirOrThrow(path.parent_path());
+    } catch (...) {
+        if (!closed) {
+            ::close(fd);
+        }
+        std::filesystem::remove(temp, ec);
+        throw;
+    }
+}
+
+VoiceModelAnchor currentVoiceModelAnchor(const std::filesystem::path &modelsRoot) {
+    // Cross-check each computed C++ hash against the Swift-written .mlmodelc.manifest cache.
+    // If they diverge, emit a §6 audit record. The manifest is NOT rewritten here; divergence
+    // means the algorithm was mismatched at some prior Swift write. The cache will self-correct
+    // on next ensureCompiledModelLocked call. See v4r-r6-hash-algo-reconcile.
+    const auto crossCheck = [&](const std::filesystem::path &pkgPath, const std::string &computedHash) {
+        const auto manifestPath = pkgPath.parent_path() / (pkgPath.stem().string() + ".mlmodelc.manifest");
+        std::error_code ec2;
+        if (!std::filesystem::exists(manifestPath, ec2) || ec2) { return; }
+        const auto mst = std::filesystem::symlink_status(manifestPath, ec2);
+        if (ec2 || !std::filesystem::is_regular_file(mst) || std::filesystem::is_symlink(mst)) { return; }
+        std::string cached;
+        try {
+            std::ifstream mf(manifestPath);
+            std::ostringstream ss;
+            ss << mf.rdbuf();
+            cached = ss.str();
+            // Strip trailing ASCII whitespace to match Swift trimmingTrailingASCIIWhitespace
+            while (!cached.empty() && (cached.back() == '\n' || cached.back() == '\r' || cached.back() == ' ')) {
+                cached.pop_back();
+            }
+        } catch (...) { return; }
+        if (cached.empty()) { return; }
+        if (cached != computedHash) {
+            auditVoiceModelsTripwireFired(
+                modelNameForPath(pkgPath), "manifest_algo_divergence",
+                computedHash, cached.substr(0, 96),
+                "manifest_cross_check", basenameOnly(pkgPath));
+        }
+    };
+
+    const auto flowHash  = lowerHex(sha256PackageManifestHexSodium(modelsRoot / "flow_decoder.mlpackage"));
+    crossCheck(modelsRoot / "flow_decoder.mlpackage", flowHash);
+    const auto mimiHash  = lowerHex(sha256PackageManifestHexSodium(modelsRoot / "mimi_decoder.mlpackage"));
+    crossCheck(modelsRoot / "mimi_decoder.mlpackage", mimiHash);
+    const auto textHash  = lowerHex(sha256PackageManifestHexSodium(modelsRoot / "text_encoder.mlpackage"));
+    crossCheck(modelsRoot / "text_encoder.mlpackage", textHash);
+    return VoiceModelAnchor{flowHash, mimiHash, textHash};
+}
+
+void verifyVoiceModelAnchorsOrThrow(const std::filesystem::path &modelsRoot) {
+    const VoiceModelAnchor actual = currentVoiceModelAnchor(modelsRoot);
+    const auto anchorPath = jarvisHomeRoot() / "identity" / "voice_models_anchor.bin";
+    VoiceModelAnchor expected;
+    try {
+        expected = readVoiceModelAnchor(anchorPath);
+    } catch (...) {
+        auditVoiceModelsTripwireFired("anchor", "hash_failed", "invalid_anchor", std::string(64, '0'), "voice_models_anchor", "voice_models_anchor.bin");
+        throw;
+    }
+    if (expected.flow.empty() && expected.mimi.empty() && expected.text.empty()) {
+        try {
+            persistVoiceModelAnchorIfMissing(anchorPath, actual);
+            auditVoiceModelsAnchorEstablished(actual.flow, actual.mimi, actual.text);
+            return;
+        } catch (...) {
+            auditVoiceModelsTripwireFired("anchor", "write_failed", "persist_failed", std::string(64, '0'), "voice_models_anchor", "voice_models_anchor.bin");
+            throw;
+        }
+    }
+    if (!constantTimeHexEqual(actual.flow, expected.flow)) {
+        auditVoiceModelsTripwireFired("flow_decoder", "mismatch", actual.flow, expected.flow, "voice_models_anchor", "flow_decoder.mlpackage");
+        throw std::runtime_error("JARVIS voice tripwire: flow_decoder.mlpackage hash mismatch; runtime startup refused");
+    }
+    if (!constantTimeHexEqual(actual.mimi, expected.mimi)) {
+        auditVoiceModelsTripwireFired("mimi_decoder", "mismatch", actual.mimi, expected.mimi, "voice_models_anchor", "mimi_decoder.mlpackage");
+        throw std::runtime_error("JARVIS voice tripwire: mimi_decoder.mlpackage hash mismatch; runtime startup refused");
+    }
+    if (!constantTimeHexEqual(actual.text, expected.text)) {
+        auditVoiceModelsTripwireFired("text_encoder", "mismatch", actual.text, expected.text, "voice_models_anchor", "text_encoder.mlpackage");
+        throw std::runtime_error("JARVIS voice tripwire: text_encoder.mlpackage hash mismatch; runtime startup refused");
+    }
+}
+
 bool cutoverVoiceHashStillStable(const std::filesystem::path &voiceStatePath) {
     jarvis::cutover::CutoverPlan plan;
     plan.organs.push_back(jarvis::cutover::OrganPlan{"voice", {}, {}, {}, {}});
@@ -460,7 +842,7 @@ void verifyVoiceTripwireOrThrow() {
     const auto voiceState = canonicalVoiceStatePath();
     if (!std::filesystem::exists(voiceState)) {
         auditVoiceTripwireFired("missing_voice_state", std::string(64, '0'), "missing_voice_state");
-        throw std::runtime_error("JARVIS voice tripwire: voice_state.bin missing at " + voiceState.string());
+        throw std::runtime_error("JARVIS voice tripwire: voice_state.bin missing: " + basenameOnly(voiceState));
     }
     const std::string actual = lowerHex(sha256FileHexSodium(voiceState));
     const auto anchorPath = jarvisHomeRoot() / "identity" / "voice_anchor.bin";
@@ -488,6 +870,7 @@ void verifyVoiceTripwireOrThrow() {
         auditVoiceTripwireFired(actual, expected, "cutover_same_boot_guard");
         throw std::runtime_error("JARVIS voice tripwire: cutover voice hash drifted during startup; runtime startup refused");
     }
+    verifyVoiceModelAnchorsOrThrow(voiceState.parent_path());
 }
 
 std::string jsonStringArray(const std::vector<std::string> &values) {

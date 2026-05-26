@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+@_spi(Bootstrap) import JARVISCoreMLTTS
 
 @MainActor
 final class NativeVoiceCapture: ObservableObject {
@@ -241,61 +242,37 @@ struct NativeSpeechClient {
         guard status.available, status.safeToSpeak, status.voiceConfirmed else {
             throw NativeSpeechError.voiceNotReady(status.reason)
         }
-        guard let apiKey = clean(env["DEEPGRAM_API_KEY"]) else {
-            throw NativeSpeechError.missingAPIKey
-        }
         let backend = configuredBackend
         guard backendLooksNativeJarvis(backend) else {
             throw NativeSpeechError.invalidBackend(backend)
         }
-        let voice = configuredVoice
-        guard voice.lowercased().hasPrefix("aura-") else {
-            throw NativeSpeechError.invalidVoice(voice)
-        }
-        guard var components = URLComponents(string: "https://api.deepgram.com/v1/speak") else {
-            throw NativeSpeechError.invalidEndpoint
-        }
-        components.queryItems = [
-            URLQueryItem(name: "model", value: voice),
-        ]
-        guard let url = components.url else {
-            throw NativeSpeechError.invalidEndpoint
-        }
-        try NativeURLAllowlist.load().validate(url, category: .voiceSpeech)
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Token \(apiKey)", forHTTPHeaderField: "authorization")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.setValue("audio/mpeg", forHTTPHeaderField: "accept")
-        request.httpBody = try JSONEncoder().encode(DeepgramSpeakRequest(text: cleanText))
-
+        let modelsRoot = try resolveCoreMLModelsRoot()
+        let expectedVoiceStateSHA = try OperatorVoiceAnchorReader.read()
         let start = Date()
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw NativeSpeechError.invalidResponse
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            let correlationID = NativeUpstreamErrorAudit.record(client: "voice_speech", url: url, status: http.statusCode, body: data)
-            throw NativeSpeechError.httpStatus(http.statusCode, correlationID)
-        }
-        guard data.count > 128 else {
-            throw NativeSpeechError.emptyAudio
-        }
-        let contentType = http.value(forHTTPHeaderField: "content-type")?
-            .split(separator: ";", maxSplits: 1)
-            .first
-            .map(String.init) ?? "audio/mpeg"
+        let pipeline = try XTTSCoreMLPipeline.sharedPipeline(
+            modelsRoot: modelsRoot,
+            expectedVoiceStateSHA256Hex: expectedVoiceStateSHA,
+            audit: { event, fields in
+                do {
+                    try NativeSecurityAudit.record(event, fields: fields)
+                } catch {
+                    fputs("JARVIS audit write failed for \(event): \(error)\n", stderr) // [audit-log: discard on I/O failure; secondary diagnostic path]
+                }
+            }
+        )
+        let result = try pipeline.synthesise(text: cleanText)
+        let data = Self.wavData(floatPCM: result.audio, sampleRate: result.sampleRate)
 
         return NativeSpeechResponse(
             ok: true,
             code: "native_voice_ready",
             error: nil,
-            reason: "Native JARVIS voice synthesized by \(backend).",
+            reason: "Native JARVIS voice synthesized by CoreML backend \(backend).",
             spoken: true,
             backend: backend,
             backendKind: "native_jarvis_voice",
-            contentType: contentType,
+            contentType: "audio/wav",
             audioBase64: data.base64EncodedString(),
             synthesisSeconds: Date().timeIntervalSince(start),
             fallbackPolicy: "none",
@@ -311,6 +288,59 @@ struct NativeSpeechClient {
     private func clean(_ value: String?) -> String? {
         let trimmed = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func resolveCoreMLModelsRoot() throws -> URL {
+        if let configured = clean(env["JARVIS_COREML_MODELS_DIR"]) {
+            return URL(fileURLWithPath: configured)
+        }
+        if let voiceStatePath = clean(env["JARVIS_VOICE_STATE_PATH"]) {
+            return URL(fileURLWithPath: voiceStatePath).deletingLastPathComponent()
+        }
+        let protectedSuffix = "JARVISNativeRuntime/voice/tts/coreml/models"
+        var candidates: [URL] = []
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        // R11j F-F24: #filePath leaks build-host absolute source path
+        // into the release binary. Dev-fallback only.
+        #if DEBUG
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("../JARVISNativeRuntime/voice/tts/coreml/models").standardizedFileURL)
+        #endif
+        for candidate in candidates where FileManager.default.fileExists(atPath: candidate.appendingPathComponent("voice_state.bin").path) {
+            return candidate.standardizedFileURL
+        }
+        return candidates[0].standardizedFileURL
+    }
+
+    private static func wavData(floatPCM: [Float], sampleRate: Int) -> Data {
+        var data = Data()
+        let channelCount: UInt16 = 1
+        let bitsPerSample: UInt16 = 16
+        let byteRate = UInt32(sampleRate) * UInt32(channelCount) * UInt32(bitsPerSample / 8)
+        let blockAlign = channelCount * (bitsPerSample / 8)
+        let pcmByteCount = UInt32(floatPCM.count * MemoryLayout<Int16>.size)
+
+        data.appendASCII("RIFF")
+        data.appendLittleEndian(UInt32(36) + pcmByteCount)
+        data.appendASCII("WAVE")
+        data.appendASCII("fmt ")
+        data.appendLittleEndian(UInt32(16))
+        data.appendLittleEndian(UInt16(1))
+        data.appendLittleEndian(channelCount)
+        data.appendLittleEndian(UInt32(sampleRate))
+        data.appendLittleEndian(byteRate)
+        data.appendLittleEndian(blockAlign)
+        data.appendLittleEndian(bitsPerSample)
+        data.appendASCII("data")
+        data.appendLittleEndian(pcmByteCount)
+
+        for sample in floatPCM {
+            let clipped = min(1.0, max(-1.0, sample))
+            let scaled = Int16(clipped * Float(Int16.max))
+            data.appendLittleEndian(scaled)
+        }
+        return data
     }
 
     private func backendLooksNativeJarvis(_ value: String) -> Bool {
@@ -403,5 +433,16 @@ enum NativeSpeechError: LocalizedError {
         case .voiceNotReady(let reason):
             return "Native JARVIS voice is not ready: \(reason)"
         }
+    }
+}
+
+private extension Data {
+    mutating func appendASCII(_ string: String) {
+        append(contentsOf: string.utf8)
+    }
+
+    mutating func appendLittleEndian<T: FixedWidthInteger>(_ value: T) {
+        var littleEndian = value.littleEndian
+        Swift.withUnsafeBytes(of: &littleEndian) { append(contentsOf: $0) }
     }
 }

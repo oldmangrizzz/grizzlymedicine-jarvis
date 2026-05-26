@@ -33,6 +33,7 @@ struct JARVISMacCockpit: App {
     @NSApplicationDelegateAdaptor(CockpitAppDelegate.self) private var appDelegate
     @StateObject private var httpService = NativeRuntimeHTTPServiceController()
     @StateObject private var launchGate = JARVISLaunchGate()
+    @StateObject private var bootGate = BootGateObserver()
 
     init() {
         if ProcessInfo.processInfo.environment["JARVIS_CUTOVER_FSM_SMOKE"] == "1" {
@@ -70,14 +71,24 @@ struct JARVISMacCockpit: App {
             Group {
                 if launchGate.isBlocked {
                     SiriQuarantineRemediationView(warnings: launchGate.warnings)
+                } else if !bootGate.isReady {
+                    // V4R R10: BootView covers the 5.6-min cold-boot window with
+                    // a flashy lifecycle surface. Transitions to MacCockpitView
+                    // on phase=ready (the bootGate observer flips isReady).
+                    BootView()
+                        .environmentObject(httpService)
+                        .task { httpService.start() }
+                        .transition(.opacity)
                 } else {
                     MacCockpitView()
                         .environmentObject(httpService)
-                        .task { httpService.start() }
+                        .transition(.opacity)
                 }
             }
             .preferredColorScheme(.dark)
             .task { launchGate.run() }
+            .task { await bootGate.attach() }
+            .animation(.easeInOut(duration: 0.6), value: bootGate.isReady)
         }
         .windowStyle(.hiddenTitleBar)
     }
@@ -100,6 +111,28 @@ final class JARVISLaunchGate: ObservableObject {
             JARVISLog.info(subsystem: "security", event: "siri_quarantine_pass", fields: ["warning_count": "\(warnings.count)"])
         }
     }
+}
+
+// V4R R10 — BootGateObserver bridges the BootLifecycleTracker actor stream
+// into a MainActor-published `isReady` flag so the cockpit's WindowGroup body
+// can switch between BootView and MacCockpitView reactively.
+@MainActor
+final class BootGateObserver: ObservableObject {
+    @Published private(set) var isReady: Bool = false
+    private var streamTask: Task<Void, Never>?
+
+    func attach() async {
+        guard streamTask == nil else { return }
+        streamTask = Task { [weak self] in
+            let stream = await BootLifecycleTracker.shared.stream()
+            for await snap in stream {
+                await MainActor.run { self?.isReady = snap.isReady }
+                if snap.isReady { break }
+            }
+        }
+    }
+
+    deinit { streamTask?.cancel() }
 }
 
 struct SiriQuarantineRemediationView: View {

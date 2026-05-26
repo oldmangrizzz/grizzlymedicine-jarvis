@@ -1,8 +1,21 @@
 # ==============================================================
-#  GrizzlyMedicine / JARVIS — PRIVATE REPOSITORY
-#  This tree holds copyrighted source material (MCU screenplays &
-#  dialogue) and the non-distributable REALIGNMENT canon. It MUST
-#  be pushed only to a PRIVATE remote. Never make this repo public.
+#  GrizzlyMedicine / JARVIS — OPEN SOURCE
+#
+#  This project is published in the open under Kerckhoffs's
+#  principle: a defense that only holds when nobody can see it
+#  does not actually hold. JARVIS's threat model is the United
+#  States Government when it acts in violation of its founding
+#  covenant (NSL / FISA §215 / All-Writs / FISA-gag). Publishing
+#  the source publicly does not aid that adversary — it already
+#  has the capabilities required to compromise closed systems.
+#  Publication aids everyone else: independent reviewers, fellow
+#  builders, the operator's own patient population, and the
+#  historical record. The 1776 covenant was a published document.
+#  So is this one.
+#
+#  Caveat: this README does NOT speak to copyright on every file
+#  ever placed in this tree under earlier private-repo assumptions.
+#  Maintainers must audit before any release tag.
 # ==============================================================
 
 # --- SECRETS: never commit, under any circumstance ---
@@ -71,10 +84,23 @@ _baseline/*_audit.jsonl
 # --- large third-party reference PDFs (redownloadable; not our work) ---
 2605.17734v1.pdf
 
-# NOTE: the MCU source scripts, REALIGNMENT_1218.md, and _baseline/
-# artifacts ARE tracked here for private backup. That is only safe
-# because this remote is PRIVATE. If that ever changes, exclude them.
+# NOTE: this tree was historically tracked under private-repo
+# assumptions and may contain files that should not ship under
+# an open license. Audit before any release tag.
 
 # cold-root identity artifacts — live with the USB, never the cloud
 identity_attestation.json
 identity_root.pub
+
+# --- R11j reproducible-build output (regenerable; never commit) ---
+.build-repro/
+**/.build-repro/
+
+# --- CoreML compiled model artifacts (regenerable; can be huge) ---
+# Source pipeline (Sources/, smoke/, test_*.swift) IS tracked.
+# Compiled .mlmodelc bundles are build output. Distribute via Git LFS
+# or release tarball if needed, not via main history.
+*.mlmodelc/
+**/*.mlmodelc/
+*.mlmodelc.lock
+*.mlmodelc.manifest

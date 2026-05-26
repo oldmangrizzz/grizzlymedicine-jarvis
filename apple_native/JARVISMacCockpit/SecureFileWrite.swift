@@ -125,3 +125,122 @@ func appendBoundedAuditRecord(parentDir: URL, file: String, record: Data) throws
 
     // Steps 8-9 execute via the defer stack (LIFO): LOCK_UN -> close(fdFile) -> close(fdDir).
 }
+
+// ── appendChainedAuditRecord ─────────────────────────────────────────────────
+// R11d F-C03: tamper-evident hash chain.
+//
+// Same syscall discipline as appendBoundedAuditRecord, but the LOCK_EX critical
+// section is widened to include reading the prior tail record so the chain
+// computation cannot race with another writer.
+//
+// Sequence:
+//   1. open dir, open file (same as bounded variant)
+//   2. flock(LOCK_EX) — covers BOTH the tail-read and the append
+//   3. seek+read the last <= 1024 bytes; extract the last complete line (the
+//      prior record, or nil if file is empty)
+//   4. build(priorTail) -> Data — caller computes prev_sha, seq, sha from the
+//      tail bytes and returns the final on-wire record (with trailing newline)
+//   5. enforce <= PIPE_BUF
+//   6. write, fsync(file), fsync(dir), unlock, close (same as bounded variant)
+//
+// Note on LOCK_SH read alternative: a separate read-tail function under LOCK_SH
+// followed by a LOCK_EX append would have a TOCTOU window where another writer
+// could append between the two locks, producing a chain that skips a record.
+// LOCK_EX from the start is the safe path. A standalone LOCK_SH reader stays
+// out of the write path — the offline verifier tool linearly scans the file
+// without any locking (audit files are append-only).
+func appendChainedAuditRecord(
+    parentDir: URL,
+    file: String,
+    tailScanWindow: Int = 1024,
+    build: (Data?) throws -> Data
+) throws {
+    let fdDir = Darwin.open(parentDir.path, O_RDONLY | O_NOFOLLOW | O_DIRECTORY | O_CLOEXEC)
+    guard fdDir >= 0 else {
+        throw NativeSecurityAuditError.openDir(path: parentDir.path, errno: errno)
+    }
+    defer { Darwin.close(fdDir) }
+
+    let filePath = "\(parentDir.path)/\(file)"
+    // O_RDWR (not O_WRONLY) so we can seek+read the tail under the same fd.
+    // O_APPEND still ensures every write atomically seeks to EOF.
+    let fdFile = Darwin.openat(
+        fdDir, file,
+        O_RDWR | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC,
+        mode_t(0o600)
+    )
+    guard fdFile >= 0 else {
+        throw NativeSecurityAuditError.openFile(path: filePath, errno: errno)
+    }
+    defer { Darwin.close(fdFile) }
+
+    while flock(fdFile, LOCK_EX) != 0 {
+        let e = errno
+        guard e == EINTR else {
+            throw NativeSecurityAuditError.lockFile(path: filePath, errno: e)
+        }
+    }
+    defer { _ = flock(fdFile, LOCK_UN) }
+
+    // Step 3: read tail under LOCK_EX. Use pread so the (implicit) file
+    // position is untouched — combined with O_APPEND every subsequent write
+    // still goes to EOF.
+    let size = Darwin.lseek(fdFile, 0, SEEK_END)
+    var priorTail: Data? = nil
+    if size > 0 {
+        let scanLen = min(off_t(tailScanWindow), size)
+        let startOffset = size - scanLen
+        var buf = [UInt8](repeating: 0, count: Int(scanLen))
+        let nRead = buf.withUnsafeMutableBytes { mb -> ssize_t in
+            guard let base = mb.baseAddress else { return -1 }
+            return Darwin.pread(fdFile, base, Int(scanLen), startOffset)
+        }
+        guard nRead >= 0 else {
+            throw NativeSecurityAuditError.writeFile(path: filePath, errno: errno)
+        }
+        // Find the last complete line. Trailing newline expected.
+        var slice = Array(buf.prefix(Int(nRead)))
+        if slice.last == 0x0A { slice.removeLast() }
+        if let lastNL = slice.lastIndex(of: 0x0A) {
+            priorTail = Data(slice[(lastNL + 1)...])
+        } else if startOffset == 0 {
+            // File contains a single line with no trailing newline yet, or the
+            // window covers the entire file — treat the whole buffer as tail.
+            priorTail = Data(slice)
+        } else {
+            // Window did not span back to a newline. Caller must enlarge
+            // tailScanWindow; this would indicate a malformed file.
+            throw NativeSecurityAuditError.writeFile(path: filePath, errno: EPROTO)
+        }
+    }
+
+    let record = try build(priorTail)
+
+    guard record.count <= 512 else {
+        throw NativeSecurityAuditError.recordTooLarge(actual: record.count)
+    }
+
+    try record.withUnsafeBytes { buf in
+        guard let base = buf.baseAddress else { return }
+        var sent = 0
+        while sent < record.count {
+            let n = Darwin.write(fdFile, base.advanced(by: sent), record.count - sent)
+            if n < 0 {
+                let e = errno
+                if e == EINTR { continue }
+                throw NativeSecurityAuditError.writeFile(path: filePath, errno: e)
+            }
+            if n == 0 {
+                throw NativeSecurityAuditError.writeFile(path: filePath, errno: EIO)
+            }
+            sent += n
+        }
+    }
+
+    if Darwin.fsync(fdFile) != 0 {
+        throw NativeSecurityAuditError.fsyncFile(path: filePath, errno: errno)
+    }
+    if Darwin.fsync(fdDir) != 0 {
+        throw NativeSecurityAuditError.fsyncDir(path: parentDir.path, errno: errno)
+    }
+}

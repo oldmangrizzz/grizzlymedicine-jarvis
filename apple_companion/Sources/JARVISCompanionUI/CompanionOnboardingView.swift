@@ -55,7 +55,9 @@ public struct CompanionOnboardingView: View {
                             Text(record.payloadSummary)
                             Text(record.payloadDigestSHA256)
                                 .font(.caption2)
+                                #if !os(watchOS)
                                 .textSelection(.enabled)
+                                #endif
                         }
                     }
                 }
@@ -101,7 +103,9 @@ private struct PersonRow: View {
 
             Text(person.memoryScopeID)
                 .font(.caption2)
+                #if !os(watchOS)
                 .textSelection(.enabled)
+                #endif
 
             Text("Voice: \(voiceStatusText(person.voiceEnrollment))")
                 .font(.caption)

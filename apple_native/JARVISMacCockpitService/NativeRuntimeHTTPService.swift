@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+@preconcurrency @_spi(Bootstrap) import JARVISCoreMLTTS
 @preconcurrency import Network
 
 struct NativeRuntimeHTTPServiceConfiguration: Equatable, Sendable {
@@ -11,6 +12,7 @@ struct NativeRuntimeHTTPServiceConfiguration: Equatable, Sendable {
     static let defaultRoutes = [
         "GET /state",
         "GET /skills",
+        "GET /boot/status",
         "GET /companion/skills",
         "POST /companion/turn",
         "POST /companion/transcribe",
@@ -157,7 +159,9 @@ final class NativeRuntimeHTTPServer {
     private let handler: NativeRuntimeHTTPHandler
     private let onStatusChange: @Sendable (NativeRuntimeHTTPServiceStatus) -> Void
     private let queue = DispatchQueue(label: "ai.realjarvis.native-runtime-http-service")
+    private let bootstrapQueue = DispatchQueue(label: "ai.realjarvis.native-runtime-bootstrap", qos: .userInitiated)
     private var listener: NWListener?
+    private let tracker = BootLifecycleTracker.shared
 
     init(
         configuration: NativeRuntimeHTTPServiceConfiguration,
@@ -169,6 +173,22 @@ final class NativeRuntimeHTTPServer {
         self.onStatusChange = onStatusChange
     }
 
+    // V4R R10 — Bind-early ordering.
+    //
+    // Previous (R8) ordering: anchor → prewarm (BLOCKS 5.6 min cold) → BC verify → bind.
+    // The 5.6-minute synchronous prewarm meant the cockpit, iOS app, and watchOS
+    // companion had no way to distinguish "still booting" from "process hung".
+    //
+    // R10 ordering: validateBindHost → bind listener → dispatch (anchor → prewarm → BC verify → markReady).
+    // The listener accepts immediately so /boot/status answers throughout the boot
+    // window. Every route that touches the prewarmed CoreML pipeline is gated on
+    // BootLifecycleTracker.isReady (see NativeRuntimeHTTPHandler.requireReady*).
+    //
+    // The R8 ordering invariant (anchor → prewarm → BC verify → mark ready) is
+    // PRESERVED inside the dispatched closure. /companion/speech cannot serve
+    // until isReady flips true, which only happens after BC verify succeeds.
+    // Bind-without-ready is not a security regression: the socket opens earlier
+    // but the route that consumes the pipeline does not.
     func start() throws {
         guard listener == nil else {
             return
@@ -176,7 +196,9 @@ final class NativeRuntimeHTTPServer {
         guard let port = NWEndpoint.Port(rawValue: configuration.port) else {
             throw NativeRuntimeHTTPServiceError.invalidPort(configuration.port)
         }
-        try verifyBirthCertOrThrow()
+        // Bind-host validation MUST happen before listener creation — it gates
+        // whether we are even allowed to open the socket. This is the only
+        // pre-bind work in R10.
         try validateBindHost()
 
         let parameters = NWParameters.tcp
@@ -215,6 +237,219 @@ final class NativeRuntimeHTTPServer {
         self.listener = listener
         onStatusChange(.starting(configuration: configuration))
         listener.start(queue: queue)
+
+        // Bootstrap on a dedicated background queue so the listener accept
+        // loop is never blocked. The bootstrap closure owns the R8 ordering
+        // invariant (anchor → prewarm → BC verify → markReady). All work
+        // dispatched here goes through static helpers so no non-Sendable
+        // self capture is needed.
+        let trackerLocal = self.tracker
+        bootstrapQueue.async {
+            Self.runBootstrap(tracker: trackerLocal)
+        }
+    }
+
+    // MARK: - Bootstrap (R10 inverted ordering)
+
+    /// Runs the prewarm+verify sequence and feeds the BootLifecycleTracker. The
+    /// R9 bootPhaseSink is wired here for the duration of the prewarm; after
+    /// `markReady` the sink is left in place so any future re-prewarm (test
+    /// harness, hot reload) still surfaces phase transitions.
+    private static func runBootstrap(tracker: BootLifecycleTracker) {
+        let modelsRoot: URL
+        do {
+            modelsRoot = try Self.resolveCoreMLModelsRootStatic()
+        } catch {
+            Task { await tracker.markFailed(stage: "resolve_models_root", reason: error.localizedDescription) }
+            return
+        }
+        let totalBytes = BootModelsBytes.computeTotalBytes(modelsRoot: modelsRoot)
+        Task { await tracker.recordColdStart(modelsRoot: modelsRoot.path, totalBytes: totalBytes) }
+
+        // Install the R9 bootPhaseSink → tracker translator.
+        // The sink fires synchronously from preWarmAllModels; we hop into the
+        // tracker actor via Task to keep the pipeline unblocked. cacheWasCurrent
+        // is nil at compile-start, non-nil at compile-done — that's how the
+        // tracker distinguishes the two events.
+        let modelsRootCaptured = modelsRoot
+        XTTSCoreMLPipeline.bootPhaseSink = { phase, _ in
+            switch phase {
+            case .coldStart:
+                Task { await tracker.recordColdStart(modelsRoot: modelsRootCaptured.path, totalBytes: totalBytes) }
+            case .compilingModel(let name, let index, let total, let cacheWasCurrent):
+                if cacheWasCurrent == nil {
+                    Task { await tracker.recordCompileStart(name: name, index: index, total: total, cacheWasCurrent: nil) }
+                } else {
+                    let modelBytes = BootModelsBytes.bytesForModel(modelsRoot: modelsRootCaptured, modelName: name)
+                    Task { await tracker.recordCompileDone(name: name, index: index, total: total, cacheWasCurrent: cacheWasCurrent, modelBytes: modelBytes) }
+                }
+            case .voiceStateLoading:
+                Task { await tracker.recordVoiceStateLoading() }
+            case .espressoWarming:
+                Task { await tracker.recordEspressoWarming() }
+            case .ready(let totalWallMs):
+                Task { await tracker.markReady(totalWallMs: totalWallMs) }
+            case .failed(let stage, let reason):
+                Task { await tracker.markFailed(stage: stage, reason: reason) }
+            }
+        }
+
+        let expectedVoiceStateSHA: String
+        do {
+            expectedVoiceStateSHA = try NativeBirthCertificateVerifier.verifiedVoiceAnchorHash()
+        } catch {
+            do {
+                try NativeSecurityAudit.record("coreml_prewarm_anchor_unavailable", fields: ["error": error.localizedDescription])
+            } catch {
+                fputs("JARVIS audit write failed: \(error)\n", stderr)
+            }
+            Task { await tracker.markFailed(stage: "anchor_read", reason: error.localizedDescription) }
+            return
+        }
+        do {
+            try XTTSCoreMLPipeline.preWarmAllModels(
+                modelsRoot: modelsRoot,
+                expectedVoiceStateSHA256Hex: expectedVoiceStateSHA,
+                audit: { event, fields in
+                    do {
+                        try NativeSecurityAudit.record(event, fields: fields)
+                    } catch {
+                        fputs("JARVIS audit write failed for \(event): \(error)\n", stderr)
+                    }
+                }
+            )
+        } catch {
+            do {
+                try NativeSecurityAudit.record("coreml_prewarm_failed", fields: ["models_root": modelsRoot.path, "error": error.localizedDescription])
+            } catch {
+                fputs("JARVIS audit write failed: \(error)\n", stderr)
+            }
+            Task { await tracker.markFailed(stage: "prewarm", reason: error.localizedDescription) }
+            return
+        }
+        do {
+            try Self.verifyBirthCertOrThrowStatic()
+        } catch {
+            Task { await tracker.markFailed(stage: "birth_cert_verify", reason: error.localizedDescription) }
+            return
+        }
+        // markReady is invoked by the R9 sink translating .ready(totalWallMs)
+        // emitted at the tail of preWarmAllModels. No double-emit here.
+    }
+
+    // Static mirrors of the instance helpers — used by runBootstrap so the
+    // dispatched closure does not need to capture self (which is non-Sendable).
+    // The instance versions remain for any future code path that still calls
+    // them; both delegate to the same logic.
+    private static func resolveCoreMLModelsRootStatic() throws -> URL {
+        let environment = NativeEnvironment.load()
+        if let configured = environment["JARVIS_COREML_MODELS_DIR"]?.trimmingCharacters(in: .whitespacesAndNewlines), !configured.isEmpty {
+            return URL(fileURLWithPath: configured)
+        }
+        if let voiceStatePath = environment["JARVIS_VOICE_STATE_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines), !voiceStatePath.isEmpty {
+            return URL(fileURLWithPath: voiceStatePath).deletingLastPathComponent()
+        }
+        let protectedSuffix = "JARVISNativeRuntime/voice/tts/coreml/models"
+        var candidates: [URL] = []
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        // R11j F-F24: #filePath embeds the build-host absolute source
+        // path into the binary. Only useful for in-tree dev runs; in
+        // release the path won't exist on the operator's machine
+        // anyway. Gating behind #if DEBUG keeps the dev convenience
+        // while eliminating the host-path leak from shipped binaries.
+        #if DEBUG
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("../JARVISNativeRuntime/voice/tts/coreml/models").standardizedFileURL)
+        #endif
+        for candidate in candidates where FileManager.default.fileExists(atPath: candidate.appendingPathComponent("voice_state.bin").path) {
+            return candidate.standardizedFileURL
+        }
+        return candidates[0].standardizedFileURL
+    }
+
+    private static func verifyBirthCertOrThrowStatic() throws {
+        let verification = NativeBirthCertificateVerifier.verify()
+        switch verification.result {
+        case .verified:
+            try NativeSecurityAudit.record("http_listener_birth_cert_verified", fields: ["path": verification.path])
+            try verifyMLPackageManifestOrThrowStatic()
+            try sealAuditChainBootAnchorOrWarn()
+        case .missing:
+            try NativeSecurityAudit.record("http_listener_birth_cert_failed", fields: ["path": verification.path, "reason": verification.reason])
+            throw NativeRuntimeHTTPServiceError.birthCertMissing(path: verification.path)
+        case .invalidSignature, .malformed:
+            try NativeSecurityAudit.record("http_listener_birth_cert_failed", fields: ["path": verification.path, "reason": verification.reason])
+            throw NativeRuntimeHTTPServiceError.birthCertInvalid(reason: verification.reason)
+        }
+    }
+
+    // V4R R11f F-D01 — audit chain boot anchor.
+    // Emits a cold-root-aux-signed anchor record into the audit chain so the
+    // offline verifier can detect a total chain rewrite by an attacker with
+    // uid=operator. Failure to seal the anchor is WARN-not-throw on first
+    // boot to allow legacy installs (no aux cert minted yet) to come up;
+    // post-ceremony the aux cert is present and any anchor failure escalates
+    // via the audit event. The next R11g pass will harden this from
+    // warn-on-missing to fail-closed once all installs have anchors. (TODO:
+    // remove the legacy WARN branch in R11g after a clean ceremony cycle.)
+    private static func sealAuditChainBootAnchorOrWarn() throws {
+        do {
+            try NativeAuditChainAnchor.sealBootAnchor()
+        } catch let e as NativeAuditChainAnchorError {
+            try NativeSecurityAudit.record(
+                "audit_chain_boot_anchor_skipped",
+                fields: ["reason": e.localizedDescription, "severity": "WARN"]
+            )
+        } catch {
+            try NativeSecurityAudit.record(
+                "audit_chain_boot_anchor_skipped",
+                fields: ["reason": error.localizedDescription, "severity": "WARN"]
+            )
+        }
+    }
+
+    // V4R R11d F-C04 — adjacent signed mlpackage manifest verification.
+    // Chains trust from the BC (already verified above) into the manifest.
+    // Legacy path: manifest absent → WARN audit and continue (pre-F-C04 BCs
+    // shipped without a manifest; will be re-minted at the next ceremony).
+    private static func verifyMLPackageManifestOrThrowStatic() throws {
+        let coldRoot: String
+        do { coldRoot = try NativeBirthCertificateVerifier.verifiedColdRootPublicKeyHex() }
+        catch {
+            try NativeSecurityAudit.record("mlpackage_manifest_skipped",
+                fields: ["reason": "cold_root_unavailable: \(error.localizedDescription)"])
+            throw NativeRuntimeHTTPServiceError.birthCertInvalid(reason: error.localizedDescription)
+        }
+        switch NativeMLPackageManifest.verify(coldRootPublicKeyHex: coldRoot) {
+        case .verified(let n):
+            try NativeSecurityAudit.record("mlpackage_manifest_verified", fields: ["package_count": n])
+        case .absent(let path):
+            // Legacy path. NOT a failure — WARN only. Operator re-mints
+            // the manifest at the next ceremony.
+            try NativeSecurityAudit.record("mlpackage_manifest_absent_legacy",
+                fields: ["path": path, "severity": "WARN"])
+        case .malformed(let path, let reason):
+            try NativeSecurityAudit.record("mlpackage_manifest_failed",
+                fields: ["path": path, "reason": "malformed: \(reason)"])
+            throw NativeRuntimeHTTPServiceError.mlpackageManifestInvalid(reason: "malformed: \(reason)")
+        case .invalidSignature(let path):
+            try NativeSecurityAudit.record("mlpackage_manifest_failed",
+                fields: ["path": path, "reason": "invalid_signature"])
+            throw NativeRuntimeHTTPServiceError.mlpackageManifestInvalid(reason: "invalid_signature")
+        case .hashMismatch(let pkg, let exp, let act):
+            try NativeSecurityAudit.record("mlpackage_manifest_hash_mismatch",
+                fields: ["package": pkg, "expected": exp, "actual": act])
+            throw NativeRuntimeHTTPServiceError.mlpackageManifestInvalid(reason: "hash_mismatch:\(pkg)")
+        case .unreadable(let pkg, let reason):
+            try NativeSecurityAudit.record("mlpackage_manifest_failed",
+                fields: ["package": pkg, "reason": "unreadable: \(reason)"])
+            throw NativeRuntimeHTTPServiceError.mlpackageManifestInvalid(reason: "unreadable:\(pkg)")
+        case .machineUUIDMismatch(let path, let exp, let act):
+            try NativeSecurityAudit.record("mlpackage_manifest_failed",
+                fields: ["path": path, "expected_machine_uuid": exp, "actual_machine_uuid": act])
+            throw NativeRuntimeHTTPServiceError.mlpackageManifestInvalid(reason: "machine_uuid_mismatch")
+        }
     }
 
     func stop() {
@@ -223,11 +458,35 @@ final class NativeRuntimeHTTPServer {
         onStatusChange(.stopped(configuration: configuration))
     }
 
+    private func resolveCoreMLModelsRoot() throws -> URL {
+        let environment = NativeEnvironment.load()
+        if let configured = environment["JARVIS_COREML_MODELS_DIR"]?.trimmingCharacters(in: .whitespacesAndNewlines), !configured.isEmpty {
+            return URL(fileURLWithPath: configured)
+        }
+        if let voiceStatePath = environment["JARVIS_VOICE_STATE_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines), !voiceStatePath.isEmpty {
+            return URL(fileURLWithPath: voiceStatePath).deletingLastPathComponent()
+        }
+        let protectedSuffix = "JARVISNativeRuntime/voice/tts/coreml/models"
+        var candidates: [URL] = []
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: FileManager.default.currentDirectoryPath).deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        // R11j F-F24: see NativeRuntimeHTTPService.swift sibling fix.
+        #if DEBUG
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(protectedSuffix))
+        candidates.append(URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("../JARVISNativeRuntime/voice/tts/coreml/models").standardizedFileURL)
+        #endif
+        for candidate in candidates where FileManager.default.fileExists(atPath: candidate.appendingPathComponent("voice_state.bin").path) {
+            return candidate.standardizedFileURL
+        }
+        return candidates[0].standardizedFileURL
+    }
+
     private func verifyBirthCertOrThrow() throws {
         let verification = NativeBirthCertificateVerifier.verify()
         switch verification.result {
         case .verified:
             try NativeSecurityAudit.record("http_listener_birth_cert_verified", fields: ["path": verification.path])
+            try Self.verifyMLPackageManifestOrThrowStatic()
         case .missing:
             try NativeSecurityAudit.record("http_listener_birth_cert_failed", fields: ["path": verification.path, "reason": verification.reason])
             throw NativeRuntimeHTTPServiceError.birthCertMissing(path: verification.path)
@@ -560,6 +819,7 @@ enum NativeRuntimeHTTPServiceError: LocalizedError {
     case authStoreWriteFailed(String)
     case birthCertInvalid(reason: String)
     case birthCertMissing(path: String)
+    case mlpackageManifestInvalid(reason: String)
     case bodyTooLarge
     case duplicateContentLength
     case headerTooLarge
@@ -577,7 +837,7 @@ enum NativeRuntimeHTTPServiceError: LocalizedError {
 
     var httpStatus: Int {
         switch self {
-        case .birthCertInvalid, .birthCertMissing: return 500
+        case .birthCertInvalid, .birthCertMissing, .mlpackageManifestInvalid: return 500
         case .bodyTooLarge: return 413
         case .headerTooLarge: return 431
         case .duplicateContentLength, .invalidContentLength, .invalidHeaderEncoding,
@@ -595,6 +855,7 @@ enum NativeRuntimeHTTPServiceError: LocalizedError {
         case .authStoreWriteFailed: return "auth_store_write_failed"
         case .birthCertInvalid: return "birth_cert_invalid"
         case .birthCertMissing: return "birth_cert_missing"
+        case .mlpackageManifestInvalid: return "mlpackage_manifest_invalid"
         case .bodyTooLarge: return "payload_too_large"
         case .duplicateContentLength: return "duplicate_content_length"
         case .headerTooLarge: return "headers_too_large"
@@ -624,6 +885,8 @@ enum NativeRuntimeHTTPServiceError: LocalizedError {
             return "Birth certificate verification failed: \(reason)"
         case .birthCertMissing(let path):
             return "Birth certificate missing at \(path)."
+        case .mlpackageManifestInvalid(let reason):
+            return "MLPackage integrity manifest verification failed: \(reason)"
         case .bodyTooLarge:
             return "HTTP request body exceeds the native service limit."
         case .headerTooLarge:

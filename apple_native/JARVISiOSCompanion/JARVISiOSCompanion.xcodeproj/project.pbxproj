@@ -12,8 +12,10 @@
 		2C81CA4F53C48715E4742773 /* CompanionRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 435111BE8AFBD4F59D142BD1 /* CompanionRootView.swift */; };
 		3CE2DF9A0710D0B20709F29A /* AudioSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCADA044D98053EC8A08A36F /* AudioSurface.swift */; };
 		5013B94326CC0C8B9B456030 /* CompanionAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */; };
+		5C6B8957EDD303CBD9D05024 /* BoundedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA59116A0645867386EB6294 /* BoundedJSON.swift */; };
 		74F9312D733D62637EDC08AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */; };
 		88D7B861E1F24E57BE953649 /* JARVISiOSCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE9F5611A6B70CA946AA051 /* JARVISiOSCompanionApp.swift */; };
+		9884AC9319F58FA35C2ADE2C /* BootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFDA31D1F8DDECBDECA5EA /* BootView.swift */; };
 		990F31545CE314D12A307E08 /* JARVISWire in Frameworks */ = {isa = PBXBuildFile; productRef = 42D3F7F8893966A3CA8E180C /* JARVISWire */; };
 		9BD45336D72CACD087B24AF1 /* SecurityAndNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED8BFC20094F8D36DA30BD3 /* SecurityAndNotifications.swift */; };
 		AC0D15839E9642093AD341B7 /* JARVISWire in Frameworks */ = {isa = PBXBuildFile; productRef = 9B3FBCB295067AD0DF6A9AB9 /* JARVISWire */; };
@@ -45,7 +47,9 @@
 		B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionAppModel.swift; sourceTree = "<group>"; };
 		CED8BFC20094F8D36DA30BD3 /* SecurityAndNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityAndNotifications.swift; sourceTree = "<group>"; };
+		EA59116A0645867386EB6294 /* BoundedJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedJSON.swift; sourceTree = "<group>"; };
 		FCADA044D98053EC8A08A36F /* AudioSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSurface.swift; sourceTree = "<group>"; };
+		FFBFDA31D1F8DDECBDECA5EA /* BootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +77,8 @@
 			children = (
 				B31F05B0B4F35B5E3CB08844 /* Assets.xcassets */,
 				FCADA044D98053EC8A08A36F /* AudioSurface.swift */,
+				FFBFDA31D1F8DDECBDECA5EA /* BootView.swift */,
+				EA59116A0645867386EB6294 /* BoundedJSON.swift */,
 				B9D3B1898AB2C6F01D0D5667 /* CompanionAppModel.swift */,
 				435111BE8AFBD4F59D142BD1 /* CompanionRootView.swift */,
 				6C3181E04D7834C3EFD537FE /* Info.plist */,
@@ -230,6 +236,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				3CE2DF9A0710D0B20709F29A /* AudioSurface.swift in Sources */,
+				9884AC9319F58FA35C2ADE2C /* BootView.swift in Sources */,
+				5C6B8957EDD303CBD9D05024 /* BoundedJSON.swift in Sources */,
 				5013B94326CC0C8B9B456030 /* CompanionAppModel.swift in Sources */,
 				2C81CA4F53C48715E4742773 /* CompanionRootView.swift in Sources */,
 				88D7B861E1F24E57BE953649 /* JARVISiOSCompanionApp.swift in Sources */,

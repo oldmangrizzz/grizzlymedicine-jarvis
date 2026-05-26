@@ -26,8 +26,15 @@ struct NativeUpstreamErrorAudit {
 
     private static func writeLine(_ object: [String: Any]) {
         do {
+            // R11d F-C02: env override gated behind compile flag. Same
+            // recursion-avoidance rationale as NativeSecurityAudit.writeLine
+            // — no helper call here, no override audit emission.
+            #if DEBUG && JARVIS_INSECURE_PATHS
             let configuredRoot = ProcessInfo.processInfo.environment["JARVIS_AUDIT_ROOT"]
             let root = configuredRoot ?? NSString(string: "~/.jarvis/audit").expandingTildeInPath
+            #else
+            let root = NSString(string: "~/.jarvis/audit").expandingTildeInPath
+            #endif
             try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
             let path = root + "/upstream_errors.jsonl"
             if !FileManager.default.fileExists(atPath: path) {

@@ -8,6 +8,7 @@
 // Run: swift test --filter LatencyTests
 
 import XCTest
+import CryptoKit
 import Foundation
 @testable import JARVISCoreMLTTS
 
@@ -28,7 +29,13 @@ final class LatencyTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         do {
-            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir)
+            let vsURL = modelDir.appendingPathComponent("voice_state.bin")
+            guard let data = try? Data(contentsOf: vsURL) else {
+                print("voice_state.bin missing — skipping pipeline init")
+                return
+            }
+            let sha = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir, expectedVoiceStateSHA256Hex: sha)
             // Pre-warm by calling once
         } catch {
             print("Pipeline init failed: \(error)")

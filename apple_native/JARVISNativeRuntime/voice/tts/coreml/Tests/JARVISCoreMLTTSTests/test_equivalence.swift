@@ -8,6 +8,7 @@
 // Run: swift test --filter EquivalenceTests
 
 import XCTest
+import CryptoKit
 import Foundation
 @testable import JARVISCoreMLTTS
 
@@ -30,7 +31,10 @@ final class EquivalenceTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         do {
-            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir)
+            let vsURL = modelDir.appendingPathComponent("voice_state.bin")
+            let data = try Data(contentsOf: vsURL)
+            let sha = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            pipeline = try XTTSCoreMLPipeline(modelDir: modelDir, expectedVoiceStateSHA256Hex: sha)
         } catch {
             XCTFail("Failed to create pipeline: \(error)")
         }

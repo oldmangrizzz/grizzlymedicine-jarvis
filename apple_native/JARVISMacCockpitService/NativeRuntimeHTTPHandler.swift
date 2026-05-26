@@ -37,7 +37,11 @@ private final class HTTPNonceStore {
     ) {
         self.nowUnix = nowUnix
         self.nowMono = nowMono
-        #if DEBUG
+        // R11d F-C02: tighten the existing #if DEBUG gate to also require
+        // JARVIS_INSECURE_PATHS. Release builds always use the canonical path;
+        // unflagged debug builds also use the canonical path (test target
+        // sets the flag in Package.swift).
+        #if DEBUG && JARVIS_INSECURE_PATHS
         if let override = ProcessInfo.processInfo.environment["JARVIS_HTTP_NONCE_STORE"], !override.isEmpty {
             path = NSString(string: override).expandingTildeInPath
         } else {
@@ -243,7 +247,9 @@ private final class IPRateLimitStore {
         nowUnix: @escaping @Sendable () -> Int = { Int(Date().timeIntervalSince1970) }
     ) {
         self.nowUnix = nowUnix
-        #if DEBUG
+        // R11d F-C02: tighten the existing #if DEBUG gate to also require
+        // JARVIS_INSECURE_PATHS. Same rationale as the nonce store above.
+        #if DEBUG && JARVIS_INSECURE_PATHS
         if let override = ProcessInfo.processInfo.environment["JARVIS_HTTP_AUTH_FAILURES_STORE"], !override.isEmpty {
             failuresPath = NSString(string: override).expandingTildeInPath
         } else {
@@ -505,7 +511,7 @@ private final class IPRateLimitStore {
 }
 
 actor NativeRuntimeHTTPHandler {
-    private let runtime: NativeRuntimeBridge
+    private var runtime: NativeRuntimeBridge?
     private let completeChat: NativeChatCompletion
     private let transcribeAudio: NativeAudioTranscription
     private let synthesizeSpeech: NativeSpeechSynthesis
@@ -530,7 +536,7 @@ actor NativeRuntimeHTTPHandler {
         nowUnix: @escaping @Sendable () -> Int = { Int(Date().timeIntervalSince1970) },
         nowMono: @escaping @Sendable () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }
     ) throws {
-        self.runtime = try runtime ?? NativeRuntimeBridge()
+        self.runtime = runtime
         self.nowUnix = nowUnix
         self.nowMono = nowMono
         self.nonceStore = HTTPNonceStore(nowUnix: nowUnix, nowMono: nowMono)
@@ -603,9 +609,55 @@ actor NativeRuntimeHTTPHandler {
         }
 
         let response: NativeHTTPResponse
+        // V4R R10 — Boot readiness gate.
+        //
+        // Routes that touch the prewarmed XTTSCoreMLPipeline (currently only
+        // POST /companion/speech, which invokes synthesizeSpeech → CoreML synth)
+        // return 503 + boot status payload + Retry-After until BootLifecycleTracker
+        // reports isReady=true. Probe routes (/boot/status, /health, /companion/manifest,
+        // /state, /companion/status) MUST NOT be gated — they are how operators and
+        // the iOS/watchOS clients learn that boot is in progress.
+        //
+        // companionTurn (LLM chat) and companionTranscribe (STT) do NOT depend on
+        // the TTS prewarm, so they are NOT gated here. If a future change wires
+        // them through the CoreML pipeline, add their (method, path) to gatedRoutes.
+        let gatedRoutes: Set<String> = [
+            "POST /companion/speech",
+        ]
+        let routeKey = "\(request.method) \(request.path)"
+        if gatedRoutes.contains(routeKey) {
+            let snapshot = await BootLifecycleTracker.shared.snapshot()
+            if !snapshot.isReady {
+                var payload = snapshot.jsonObject()
+                payload["reason"] = "boot_not_ready"
+                payload["receipt"] = "native-boot-not-ready"
+                payload["service"] = "native-runtime-http-service"
+                let retryAfter: Int
+                if let hint = snapshot.etaHintMs {
+                    let remaining = (hint - snapshot.elapsedMs) / 1000
+                    retryAfter = max(1, min(60, remaining))
+                } else {
+                    retryAfter = 5
+                }
+                do {
+                    try NativeSecurityAudit.record("http_route_gated_boot_not_ready", fields: [
+                        "route": routeKey,
+                        "phase": snapshot.phase.rawValue,
+                        "elapsed_ms": snapshot.elapsedMs,
+                    ])
+                } catch { fputs("JARVIS audit write failed: \(error)\n", stderr) }
+                return NativeHTTPResponse.json(
+                    status: 503,
+                    object: payload,
+                    headers: ["Retry-After": String(retryAfter)]
+                ).withCORS(origin: corsOrigin)
+            }
+        }
         switch (request.method, request.path) {
         case ("GET", "/health"), ("GET", "/companion/manifest"):
             response = manifest(configuration: configuration)
+        case ("GET", "/boot/status"):
+            response = await bootStatus()
         case ("GET", "/state"), ("GET", "/companion/status"):
             response = stateReceipt()
         case ("GET", "/skills"), ("GET", "/companion/skills"):
@@ -846,6 +898,21 @@ actor NativeRuntimeHTTPHandler {
         ])
     }
 
+    /// V4R R10 — Boot readiness oracle. Always 200; payload mirrors the
+    /// BootLifecycleTracker snapshot. iOS/watchOS clients poll this at 750ms
+    /// while !is_ready, then transition to the main view. Probe-style: no
+    /// auth, no rate limit, no CORS gate (allowed origins still apply via
+    /// the outer .withCORS in the dispatch). Never gated by readiness — it
+    /// IS the readiness oracle.
+    private func bootStatus() async -> NativeHTTPResponse {
+        let snap = await BootLifecycleTracker.shared.snapshot()
+        var object = snap.jsonObject()
+        object["ok"] = true
+        object["receipt"] = "native-boot-status"
+        object["service"] = "native-runtime-http-service"
+        return .json(status: 200, object: object)
+    }
+
     private func stateReceipt() -> NativeHTTPResponse {
         do {
             let state = try verifiedState()
@@ -866,8 +933,16 @@ actor NativeRuntimeHTTPHandler {
         }
     }
 
+    private func runtimeBridge() throws -> NativeRuntimeBridge {
+        if let runtime { return runtime }
+        let created = try NativeRuntimeBridge()
+        runtime = created
+        return created
+    }
+
     private func skillCatalogReceipt() -> NativeHTTPResponse {
         do {
+            let runtime = try runtimeBridge()
             var object = try runtime.skillCatalogObject()
             object["receipt"] = "native-runtime-skill-catalog"
             object["service"] = "native-runtime-http-service"
@@ -895,6 +970,7 @@ actor NativeRuntimeHTTPHandler {
                 ))
             }
 
+            let runtime = try runtimeBridge()
             let prepared = try runtime.prepareTurn(text)
             try validate(prepared.state)
             let modelReply = try await completeChat(prepared.messages, prepared.model)
@@ -1000,6 +1076,7 @@ actor NativeRuntimeHTTPHandler {
 
     private func speechStatus() -> NativeHTTPResponse {
         do {
+            let runtime = try runtimeBridge()
             let status = try runtime.voiceStatus()
             try validate(status)
             var object = status.httpObject
@@ -1032,6 +1109,7 @@ actor NativeRuntimeHTTPHandler {
                 ))
             }
 
+            let runtime = try runtimeBridge()
             let status = try runtime.voiceStatus()
             try validate(status)
             guard status.available, status.safeToSpeak else {
@@ -1092,7 +1170,7 @@ actor NativeRuntimeHTTPHandler {
 
     private func unavailable(message: String, receipt: String, blocker: String) -> [String: Any] {
         var extra: [String: Any] = ["blocker": blocker]
-        if let state = try? runtime.state() {
+        if let state = try? runtimeBridge().state() {
             extra["state"] = state.httpObject
         }
         return NativeRuntimeHTTPPayload.error(
@@ -1104,6 +1182,7 @@ actor NativeRuntimeHTTPHandler {
     }
 
     private func verifiedState() throws -> NativeRuntimeState {
+        let runtime = try runtimeBridge()
         let state = try runtime.state()
         try validate(state)
         return state
@@ -1177,6 +1256,7 @@ actor NativeRuntimeHTTPHandler {
     private func knownPath(_ path: String) -> Bool {
         [
             "/health",
+            "/boot/status",
             "/state",
             "/skills",
             "/companion/manifest",

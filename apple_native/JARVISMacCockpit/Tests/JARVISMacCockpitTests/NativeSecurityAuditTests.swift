@@ -35,8 +35,18 @@ final class NativeSecurityAuditTests: XCTestCase {
         XCTAssertEqual(canary, "canary", "Symlink target must not have been written")
     }
 
-    // ── Test 2: Record > 512 bytes → refused with recordTooLarge ─────────────
-    // The ≤512B PIPE_BUF cap must be enforced before any syscall is issued.
+    // ── Test 2: Record > 512 bytes → degraded record, chain intact ──────────
+    // R10-era design: the audit module is the LAST resort during incident
+    // response. Refusing to write would create a silent gap. Instead, when
+    // bounded fields still exceed the §6 PIPE_BUF=512 cap, the writer emits
+    // a degraded record preserving event + ts + truncated=true + the F-C03
+    // chain fields (prev_sha, seq, sha). The verifier still validates.
+    //
+    // R11d note: this test previously asserted XCTAssertThrowsError on the
+    // assumption that "refuse" meant "throw". That was wrong per the design
+    // — the writer never throws on attacker-supplied oversized inputs; it
+    // degrades. Updated to assert the actual behavior. The hash chain is
+    // also exercised here because F-C03 wraps every audit emission.
     func testRecordTooLargeRefused() throws {
         let dir = testDir()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -45,25 +55,44 @@ final class NativeSecurityAuditTests: XCTestCase {
         setenv("JARVIS_AUDIT_ROOT", dir.path, 1)
         defer { unsetenv("JARVIS_AUDIT_ROOT") }
 
-        // A 600-char value produces a JSON record well over 512B.
-        let bigValue = String(repeating: "x", count: 600)
-        XCTAssertThrowsError(
-            try NativeSecurityAudit.record("too_large_probe", fields: ["data": bigValue])
-        ) { error in
-            guard let auditErr = error as? NativeSecurityAuditError else {
-                XCTFail("Expected NativeSecurityAuditError, got \(error)"); return
-            }
-            if case let .recordTooLarge(n) = auditErr {
-                XCTAssertGreaterThan(n, 512, "Reported size must exceed 512")
-            } else {
-                XCTFail("Expected .recordTooLarge, got \(auditErr)")
-            }
+        // A 600-char value would produce a JSON record well over 512B if
+        // unbounded. boundField caps the value at 192 UTF-8 bytes, and even
+        // a single bounded field comfortably fits — so to force the degraded
+        // path, supply many distinct fields whose envelope exceeds 512B.
+        var manyFields: [String: Any] = [:]
+        for i in 0..<40 {
+            manyFields["k\(i)"] = String(repeating: "x", count: 50)
         }
+        // Must NOT throw — design contract is degrade, not refuse.
+        XCTAssertNoThrow(
+            try NativeSecurityAudit.record("too_large_probe", fields: manyFields),
+            "Audit writer must NOT throw on oversized input — degraded record is the design"
+        )
 
-        // No file should have been created (cap checked before opening fd).
+        // Exactly one line, the degraded record.
         let logURL = dir.appendingPathComponent("network_security.jsonl")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: logURL.path),
-                       "Log file must not be created when record exceeds PIPE_BUF cap")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: logURL.path),
+                      "Degraded record must have been written")
+        let raw = try String(contentsOf: logURL, encoding: .utf8)
+        let lines = raw.split(separator: "\n", omittingEmptySubsequences: true)
+        XCTAssertEqual(lines.count, 1, "Expected exactly one degraded record")
+
+        let parsed = try JSONSerialization.jsonObject(with: Data(lines[0].utf8)) as? [String: Any]
+        XCTAssertNotNil(parsed)
+        XCTAssertEqual(parsed?["event"] as? String, "too_large_probe")
+        XCTAssertEqual(parsed?["truncated"] as? Bool, true,
+                       "Degraded record must carry truncated=true diagnostic flag")
+        XCTAssertNil(parsed?["data"],
+                     "Degraded record must NOT carry the original (oversized) payload")
+        // F-C03 chain fields must be present and well-formed even on the
+        // degraded path — chain continuity is the whole point.
+        XCTAssertEqual(parsed?["seq"] as? Int, 1, "Genesis seq=1")
+        XCTAssertEqual(parsed?["prev_sha"] as? String, String(repeating: "0", count: 64),
+                       "Genesis prev_sha must be 64 zeros")
+        XCTAssertEqual((parsed?["sha"] as? String)?.count, 64,
+                       "sha must be 64 hex chars even on degraded record")
+        XCTAssertLessThanOrEqual(Data(lines[0].utf8).count, 511,
+                                 "Degraded record must fit under PIPE_BUF=512 (newline excluded)")
     }
 
     // ── Test 3: Concurrent writers → no interleaved lines ────────────────────

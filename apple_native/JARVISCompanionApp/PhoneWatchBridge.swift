@@ -194,14 +194,16 @@ extension PhoneWatchBridge: WCSessionDelegate {
         }
     }
 
-    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {
-        Task { @MainActor in watchStatus = "Watch session inactive" }
-    }
+    // WCSessionDelegate protocol still nominally requires these (pre-iOS 17)
+    // but iOS 17+ SDK marks them unavailable for override. The @available
+    // annotation satisfies the protocol witness without triggering the
+    // unavailable-override error. No-op bodies because the system handles
+    // inactive/reactivate transitions implicitly on iOS 17+.
+    @available(iOS, introduced: 9.0, deprecated: 17.0)
+    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
 
-    nonisolated func sessionDidDeactivate(_ session: WCSession) {
-        session.activate()
-        Task { @MainActor in watchStatus = "Watch session reactivated" }
-    }
+    @available(iOS, introduced: 9.0, deprecated: 17.0)
+    nonisolated func sessionDidDeactivate(_ session: WCSession) {}
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         let copiedMessage = PhoneWatchMessage(message)
