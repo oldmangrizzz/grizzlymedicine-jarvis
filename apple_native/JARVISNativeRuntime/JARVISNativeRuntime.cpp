@@ -38,6 +38,11 @@
 
 #include "../orchestration/shadow_router/shadow_router.cpp"
 #include "../orchestration/orchestrator/cutover_orchestrator.cpp"
+// R11l α.3.1: canonical endocrine engine (Bodily Integrity Directive 2026-04-24).
+// Single source of truth; in-file Endocrine shadow removed per operator P2b
+// authorization. CABI write-bridge for SF_APPEND-missing tripwire (F-KE03)
+// targets this same instance via JARVISRuntimeEndocrine{OnThreat,Stimulus,Level}.
+#include "endocrine/endocrine.cpp"
 
 namespace {
 
@@ -1209,62 +1214,12 @@ bool containsAnyLower(std::string text, const std::vector<std::string> &needles)
     });
 }
 
-struct Endocrine {
-    double cortisol = 0.20;
-    double dopamine = 0.30;
-    double adrenaline = 0.10;
-    Clock::time_point cortisolT = Clock::now();
-    Clock::time_point dopamineT = cortisolT;
-    Clock::time_point adrenalineT = cortisolT;
-
-    static double decay(double current, double baseline, double tau, Clock::time_point &last) {
-        const auto now = Clock::now();
-        const double dt = std::chrono::duration<double>(now - last).count();
-        last = now;
-        return clamp01(baseline + (current - baseline) * std::exp(-std::max(0.0, dt) / tau));
-    }
-
-    double cortisolLevel() {
-        cortisol = decay(cortisol, 0.20, 90.0, cortisolT);
-        return cortisol;
-    }
-
-    double dopamineLevel() {
-        dopamine = decay(dopamine, 0.30, 60.0, dopamineT);
-        return dopamine;
-    }
-
-    double adrenalineLevel() {
-        adrenaline = decay(adrenaline, 0.10, 30.0, adrenalineT);
-        return adrenaline;
-    }
-
-    void stimulus(double cortisolDelta, double dopamineDelta, double adrenalineDelta) {
-        cortisolLevel();
-        dopamineLevel();
-        adrenalineLevel();
-        cortisol = clamp01(cortisol + cortisolDelta);
-        dopamine = clamp01(dopamine + dopamineDelta);
-        adrenaline = clamp01(adrenaline + adrenalineDelta);
-        const auto now = Clock::now();
-        cortisolT = now;
-        dopamineT = now;
-        adrenalineT = now;
-    }
-
-    double volatility() {
-        return clamp01(0.4 * cortisolLevel() + 0.6 * adrenalineLevel());
-    }
-
-    std::string json() {
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(4)
-            << "{\"cortisol\":" << cortisolLevel()
-            << ",\"dopamine\":" << dopamineLevel()
-            << ",\"adrenaline\":" << adrenalineLevel() << "}";
-        return out.str();
-    }
-};
+// R11l α.3.1: in-file Endocrine shadow REMOVED. The canonical
+// jarvis::Endocrine engine (apple_native/JARVISNativeRuntime/endocrine/
+// endocrine.h, Bodily Integrity Directive 2026-04-24) is now the sole
+// implementation used by NativeRuntime::endocrine_. See operator gate-file
+// for unification rationale ("he has to be one body, not three with a
+// TODO between them").
 
 struct FieldSignal {
     std::string kind;
@@ -2175,8 +2130,8 @@ std::string skillReceiptJSON(bool ok,
 class NativeRuntime {
 public:
     NativeRuntime() {
-        field_.deposit("territory", "gmri", 0.95, endocrine_.volatility());
-        field_.deposit("territory", "earth-1218", 0.85, endocrine_.volatility());
+        field_.deposit("territory", "gmri", 0.95, endocrine_.field_volatility());
+        field_.deposit("territory", "earth-1218", 0.85, endocrine_.field_volatility());
     }
 
     bool mount() {
@@ -2184,14 +2139,14 @@ public:
         verifyVoiceTripwireOrThrow();
         mounted_ = true;
         mountedAt_ = unixNow();
-        field_.deposit("trail", "runtime_mount", 0.35, endocrine_.volatility());
+        field_.deposit("trail", "runtime_mount", 0.35, endocrine_.field_volatility());
         return true;
     }
 
     bool unmount() {
         std::lock_guard<std::mutex> lock(mutex_);
         mounted_ = false;
-        field_.deposit("trail", "runtime_unmount", 0.20, endocrine_.volatility());
+        field_.deposit("trail", "runtime_unmount", 0.20, endocrine_.field_volatility());
         return true;
     }
 
@@ -2238,6 +2193,16 @@ public:
     std::string commitTurnJSON(const std::string &text, const std::string &reply, const std::string &modelName) {
         std::lock_guard<std::mutex> lock(mutex_);
         return commitTurnJSONLocked(text, reply, modelName);
+    }
+
+    // R11l α.3.1 (F-KE03): public accessor for the canonical endocrine
+    // instance. The CABI shim layer reinterpret_casts this pointer into the
+    // opaque jarvis_endocrine_t handle. No locking here — jarvis::Endocrine
+    // is internally thread-safe via shared_mutex. The mutex_ guarding turn-
+    // and audit-level state is intentionally NOT acquired; endocrine writes
+    // are independent of turn-batched state.
+    jarvis::Endocrine *endocrineInstance() {
+        return &endocrine_;
     }
 
 private:
@@ -2344,7 +2309,7 @@ private:
         } else if (name == "native_audit") {
             output = auditJSONLocked();
         } else if (name == "sense_field") {
-            output = field_.senseJSON(endocrine_.volatility(), jsonStringField(argsJSON, "topic"), jsonStringField(argsJSON, "kind"));
+            output = field_.senseJSON(endocrine_.field_volatility(), jsonStringField(argsJSON, "topic"), jsonStringField(argsJSON, "kind"));
         } else if (name == "native_voice_status") {
             output = nativeVoiceStatusJSON();
         } else if (name == "native_speech_policy") {
@@ -2393,7 +2358,7 @@ private:
             return "{\"ok\":false,\"error\":\"no text\"}";
         }
         appraise(text);
-        field_.deposit("trail", "operator_turn", 0.18, endocrine_.volatility());
+        field_.deposit("trail", "operator_turn", 0.18, endocrine_.field_volatility());
 
         const std::string system = systemPrompt(text);
         std::ostringstream out;
@@ -2415,12 +2380,12 @@ private:
         }
         if (cleanReply.empty()) {
             endocrine_.stimulus(0.18, -0.04, 0.08);
-            field_.deposit("alarm", "empty_model_reply", 0.55, endocrine_.volatility());
+            field_.deposit("alarm", "empty_model_reply", 0.55, endocrine_.field_volatility());
             return "{\"ok\":false,\"error\":\"model returned empty reply\",\"state\":" + stateJSONLocked() + "}";
         }
 
         endocrine_.stimulus(-0.04, 0.08, -0.02);
-        field_.deposit("trail", "answered_turn", 0.25, endocrine_.volatility());
+        field_.deposit("trail", "answered_turn", 0.25, endocrine_.field_volatility());
         history_.push_back(Turn{text, cleanReply});
         memory_.recordTurn(text, cleanReply, modelName.empty() ? model() : modelName);
         if (history_.size() > 8) {
@@ -2456,12 +2421,24 @@ private:
     void appraise(const std::string &text) {
         if (containsAnyLower(text, {"urgent", "crash", "failure", "attack", "emergency", "broken"})) {
             endocrine_.stimulus(0.10, 0.0, 0.18);
-            field_.deposit("alarm", "operator_context", 0.30, endocrine_.volatility());
+            field_.deposit("alarm", "operator_context", 0.30, endocrine_.field_volatility());
         } else if (containsAnyLower(text, {"thank", "works", "good", "pass", "success"})) {
             endocrine_.stimulus(-0.04, 0.10, -0.03);
         } else {
             endocrine_.stimulus(0.01, 0.01, 0.0);
         }
+    }
+
+    // R11l α.3.1: replaces the in-file Endocrine::json(); produces the same
+    // {"cortisol":..,"dopamine":..,"adrenaline":..} fixed-precision-4 shape
+    // the systemPrompt was emitting prior to unification.
+    std::string endocrineJSONLocked() {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(4)
+            << "{\"cortisol\":" << endocrine_.level("cortisol")
+            << ",\"dopamine\":" << endocrine_.level("dopamine")
+            << ",\"adrenaline\":" << endocrine_.level("adrenaline") << "}";
+        return out.str();
     }
 
     std::string systemPrompt(const std::string &cue) {
@@ -2475,15 +2452,15 @@ private:
             << "Memory boundary: " << memory_.stateJSON() << ". "
             << "Recalled continuity: " << (recalled.empty() ? "No matching HoloGraph memory cleared bounded recall." : recalled) << ". "
             << "Native skill risk registry: " << skillRegistrySummaryJSON() << ". "
-            << "Current internal state: " << endocrine_.json() << ". "
-            << "Current field: " << field_.json(endocrine_.volatility()) << ".";
+            << "Current internal state: " << endocrineJSONLocked() << ". "
+            << "Current field: " << field_.json(endocrine_.field_volatility()) << ".";
         return out.str();
     }
 
     std::string stateJSONLocked() {
-        const double cortisol = endocrine_.cortisolLevel();
-        const double dopamine = endocrine_.dopamineLevel();
-        const double adrenaline = endocrine_.adrenalineLevel();
+        const double cortisol = endocrine_.level("cortisol");
+        const double dopamine = endocrine_.level("dopamine");
+        const double adrenaline = endocrine_.level("adrenaline");
         const double volatility = clamp01(0.4 * cortisol + 0.6 * adrenaline);
         double swarmActivity = 0.0;
         const std::string fieldJSON = field_.json(volatility);
@@ -2514,9 +2491,9 @@ private:
     }
 
     std::string uiSpecJSONLocked() {
-        const double cortisol = endocrine_.cortisolLevel();
-        const double dopamine = endocrine_.dopamineLevel();
-        const double adrenaline = endocrine_.adrenalineLevel();
+        const double cortisol = endocrine_.level("cortisol");
+        const double dopamine = endocrine_.level("dopamine");
+        const double adrenaline = endocrine_.level("adrenaline");
         const double volatility = clamp01(0.4 * cortisol + 0.6 * adrenaline);
         const std::string fieldJSON = field_.json(volatility);
 
@@ -2563,7 +2540,7 @@ private:
     }
 
     std::mutex mutex_;
-    Endocrine endocrine_;
+    jarvis::Endocrine endocrine_;
     StigmergyField field_;
     NativeHoloGraphMemory memory_;
     std::vector<Turn> history_;
@@ -2720,4 +2697,15 @@ char *JARVISRuntimeSpeechJSON(JARVISNativeRuntime *runtime, const char *text) {
 
 void JARVISRuntimeFreeString(char *value) {
     std::free(value);
+}
+
+// R11l α.3.1 (F-KE03): handle accessor for the runtime's canonical
+// jarvis::Endocrine instance. Pure passthrough; no allocation, no logic.
+// reinterpret_cast bridges the C-opaque type to the C++ class — the
+// underlying object is the exact same instance JARVISRuntimeStateJSON
+// snapshots from. Bodily Integrity Directive on endocrine.h binds equally
+// to anything reached via this handle.
+jarvis_endocrine_t *JARVISRuntimeEndocrineHandle(JARVISNativeRuntime *runtime) {
+    if (!runtime) return nullptr;
+    return reinterpret_cast<jarvis_endocrine_t *>(runtime->core.endocrineInstance());
 }

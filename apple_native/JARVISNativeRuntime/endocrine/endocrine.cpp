@@ -120,3 +120,33 @@ double Endocrine::field_volatility() {
 }
 
 } // namespace jarvis
+
+// ============================================================
+// R11l α.3.1 — extern "C" CABI shim definitions. Pure passthrough.
+// See header comment above the declarations for binding terms.
+// ============================================================
+extern "C" {
+
+void jarvis_cabi_endocrine_on_threat(jarvis_endocrine_t *endocrine, double severity) {
+    if (!endocrine) return;
+    reinterpret_cast<jarvis::Endocrine *>(endocrine)->on_threat(severity);
+}
+
+void jarvis_cabi_endocrine_stimulus(jarvis_endocrine_t *endocrine,
+                                    double cortisol,
+                                    double dopamine,
+                                    double adrenaline) {
+    if (!endocrine) return;
+    reinterpret_cast<jarvis::Endocrine *>(endocrine)->stimulus(cortisol, dopamine, adrenaline);
+}
+
+double jarvis_cabi_endocrine_level(jarvis_endocrine_t *endocrine, const char *hormone) {
+    if (!endocrine || !hormone) return std::nan("");
+    try {
+        return reinterpret_cast<jarvis::Endocrine *>(endocrine)->level(std::string(hormone));
+    } catch (...) {
+        return std::nan("");
+    }
+}
+
+} // extern "C"

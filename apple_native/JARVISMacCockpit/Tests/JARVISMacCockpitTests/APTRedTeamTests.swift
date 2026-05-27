@@ -36,6 +36,7 @@ import Darwin
 import Foundation
 import XCTest
 @testable import JARVISMacCockpit
+import NativeRuntimeModule
 
 final class APTRedTeamTests: XCTestCase {
 
@@ -2884,6 +2885,281 @@ extension APTRedTeamTests {
         XCTAssertFalse(body.contains("lastIndex(of: 0x0A)"),
                        "F-KE02: trailing-newline tail-scrape pattern must be removed — superseded by AuditChainVerify.verify full-chain walk")
     }
+    // ── R11l α.3.1 — F-KE03 IN-THREAT-MODEL COVERAGE (SF_APPEND helper)
+    //
+    // The α.3 patch landed UF_APPEND as outer defense-in-depth and the
+    // hash-chain walk as primary integrity. α.3.1 adds SF_APPEND via a
+    // privileged LaunchDaemon helper — the in-threat-model filesystem-flag
+    // coverage that α.3 documented as deferred. These tests pin:
+    //   - the cockpit-side XPC client wrapper shape
+    //   - client-side path validation before any XPC traffic
+    //   - the boot-prologue tripwire path (emits audit event + spikes
+    //     cortisol through the real CABI bridge, per P2b)
+    //   - the endocrine unification: runtime uses canonical jarvis::Endocrine,
+    //     not the deleted in-file shadow
+    //   - the snapshot JSON shape is unchanged (no cockpit-contract break)
+    //   - the CABI write-bridge: shims are extern "C", on_threat moves the
+    //     snapshot the cockpit reads
+    //   - the bodily-integrity directive in endocrine.h is byte-for-byte
+    //     unchanged (perimeter pin)
+
+    /// F-KE03 α.3.1: pin the SFAppendArmClient public surface — the XPC
+    /// wrapper must expose arm(path:timeout:) and a structured ClientError
+    /// with at least the helperRefused and pathOutsideAuditRoot cases.
+    func testFFKE03_helper_client_armSFAppend_signature() throws {
+        let rel = "apple_native/JARVISMacCockpitService/SFAppendArmClient.swift"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03 α.3.1: could not locate \(rel)"); return
+        }
+        let src = stripSwiftComments(try String(contentsOf: url, encoding: .utf8))
+        XCTAssertTrue(src.contains("public final class SFAppendArmClient"),
+                      "F-KE03 α.3.1: SFAppendArmClient must be a public final class")
+        XCTAssertTrue(src.contains("public func arm(path: String"),
+                      "F-KE03 α.3.1: SFAppendArmClient must expose arm(path:)")
+        XCTAssertTrue(src.contains("case pathOutsideAuditRoot"),
+                      "F-KE03 α.3.1: ClientError must enumerate pathOutsideAuditRoot")
+        XCTAssertTrue(src.contains("case helperRefused"),
+                      "F-KE03 α.3.1: ClientError must enumerate helperRefused")
+        XCTAssertTrue(src.contains("sfAppendArmerMachServiceName"),
+                      "F-KE03 α.3.1: client must reference the pinned Mach service name constant")
+        XCTAssertTrue(src.contains("NSXPCConnection") && src.contains(".privileged"),
+                      "F-KE03 α.3.1: client must use NSXPCConnection with .privileged option")
+        // Negative gate: must NOT issue an XPC request before realpath/audit-root validation
+        let armBody = balancedBraceBody(of: "public func arm", in: src) ?? ""
+        XCTAssertFalse(armBody.isEmpty, "F-KE03 α.3.1: could not extract arm(path:) body")
+        let idxValidate = armBody.range(of: "validatePathLocally")
+        let idxConnect = armBody.range(of: "NSXPCConnection(")
+        XCTAssertNotNil(idxValidate, "F-KE03 α.3.1: arm(path:) must call validatePathLocally")
+        XCTAssertNotNil(idxConnect, "F-KE03 α.3.1: arm(path:) must create NSXPCConnection")
+        if let v = idxValidate, let c = idxConnect {
+            XCTAssertTrue(v.lowerBound < c.lowerBound,
+                          "F-KE03 α.3.1: validatePathLocally MUST precede NSXPCConnection creation")
+        }
+    }
+
+    /// F-KE03 α.3.1: behavioral — client refuses to ask the helper about
+    /// paths outside ~/.jarvis/audit/ before any XPC traffic is opened.
+    func testFFKE03_helper_client_validates_path_inside_audit_root_before_call() throws {
+        let client = SFAppendArmClient()
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("jarvis_apt_outside_root_\(UUID().uuidString).bin")
+        FileManager.default.createFile(atPath: tmp.path, contents: Data([0x00]))
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        XCTAssertThrowsError(try client.arm(path: tmp.path)) { err in
+            guard let e = err as? SFAppendArmClient.ClientError else {
+                XCTFail("F-KE03 α.3.1: expected ClientError, got \(err)"); return
+            }
+            guard case .pathOutsideAuditRoot = e else {
+                XCTFail("F-KE03 α.3.1: expected pathOutsideAuditRoot, got \(e)"); return
+            }
+        }
+    }
+
+    /// F-KE03 α.3.1: behavioral — verifyAuditChainsArmed emits the
+    /// `audit_sf_append_missing` tripwire on a file lacking SF_APPEND.
+    func testFFKE03_boot_prologue_emits_sf_append_missing_tripwire() throws {
+        let auditRoot = (NSHomeDirectory() as NSString).appendingPathComponent(".jarvis/audit")
+        try? FileManager.default.createDirectory(atPath: auditRoot, withIntermediateDirectories: true)
+        let path = (auditRoot as NSString).appendingPathComponent("apt_sfappend_probe_\(UUID().uuidString).jsonl")
+        FileManager.default.createFile(atPath: path, contents: Data("{\"seq\":1}\n".utf8))
+        defer { try? FileManager.default.removeItem(atPath: path) }
+
+        var emitted: [(String, [String: Any])] = []
+        let sink = SFAppendArmClient.AuditEventSink { tag, fields in
+            emitted.append((tag, fields))
+        }
+        let summary = SFAppendArmClient().verifyAuditChainsArmed(
+            chainPaths: [path],
+            endocrine: nil,
+            auditSink: sink
+        )
+        XCTAssertEqual(summary.missing, 1, "F-KE03 α.3.1: file missing SF_APPEND must register as missing=1")
+        XCTAssertTrue(emitted.contains { $0.0 == "audit_sf_append_missing" },
+                      "F-KE03 α.3.1: boot prologue must emit audit_sf_append_missing")
+    }
+
+    /// F-KE03 α.3.1 (P2b upgrade): boot-prologue cortisol spike fires
+    /// through the real CABI bridge — behavioral via post-call snapshot.
+    func testFFKE03_cortisol_spike_on_sf_append_missing() throws {
+        guard let runtime = JARVISRuntimeCreate() else {
+            XCTFail("F-KE03 α.3.1: JARVISRuntimeCreate returned nil"); return
+        }
+        defer { JARVISRuntimeDestroy(runtime) }
+        let cabi: EndocrineCABIClient
+        do {
+            cabi = try EndocrineCABIClient(runtime: runtime)
+        } catch {
+            XCTFail("F-KE03 α.3.1: EndocrineCABIClient init failed: \(error)"); return
+        }
+        let cortisolBefore: Double
+        do { cortisolBefore = try cabi.level("cortisol") } catch { XCTFail("level NaN before"); return }
+
+        let auditRoot = (NSHomeDirectory() as NSString).appendingPathComponent(".jarvis/audit")
+        try? FileManager.default.createDirectory(atPath: auditRoot, withIntermediateDirectories: true)
+        let path = (auditRoot as NSString).appendingPathComponent("apt_spike_\(UUID().uuidString).jsonl")
+        FileManager.default.createFile(atPath: path, contents: Data("{}\n".utf8))
+        defer { try? FileManager.default.removeItem(atPath: path) }
+
+        let sink = SFAppendArmClient.AuditEventSink { _, _ in }
+        _ = SFAppendArmClient().verifyAuditChainsArmed(
+            chainPaths: [path],
+            endocrine: cabi,
+            auditSink: sink
+        )
+        let cortisolAfter: Double
+        do { cortisolAfter = try cabi.level("cortisol") } catch { XCTFail("level NaN after"); return }
+        XCTAssertGreaterThan(cortisolAfter, cortisolBefore,
+                             "F-KE03 α.3.1: SF_APPEND-missing must spike cortisol via real CABI (before=\(cortisolBefore), after=\(cortisolAfter))")
+    }
+
+    /// F-KE03 α.3.1: CABI on_threat shim is pure passthrough — calling
+    /// it moves the underlying endocrine state on the same handle.
+    func testFFKE03_cabi_endocrine_on_threat_passthrough() throws {
+        guard let runtime = JARVISRuntimeCreate() else {
+            XCTFail("F-KE03 α.3.1: JARVISRuntimeCreate nil"); return
+        }
+        defer { JARVISRuntimeDestroy(runtime) }
+        guard let h = JARVISRuntimeEndocrineHandle(runtime) else {
+            XCTFail("F-KE03 α.3.1: endocrine handle nil"); return
+        }
+        let before = jarvis_cabi_endocrine_level(h, "cortisol")
+        jarvis_cabi_endocrine_on_threat(h, 0.8)
+        let after = jarvis_cabi_endocrine_level(h, "cortisol")
+        XCTAssertGreaterThan(after, before,
+                             "F-KE03 α.3.1: CABI on_threat must move cortisol (before=\(before), after=\(after))")
+        XCTAssertFalse(before.isNaN, "F-KE03 α.3.1: level must not be NaN before")
+        XCTAssertFalse(after.isNaN,  "F-KE03 α.3.1: level must not be NaN after")
+    }
+
+    /// F-KE03 α.3.1 (P2b): CABI on_threat moves the JSON snapshot the
+    /// cockpit reads — proves the unification is wired end-to-end (the
+    /// runtime reads `jarvis::Endocrine`, not a separate shadow).
+    func testFFKE03_cabi_endocrine_on_threat_moves_snapshot() throws {
+        guard let runtime = JARVISRuntimeCreate() else {
+            XCTFail("F-KE03 α.3.1: JARVISRuntimeCreate nil"); return
+        }
+        defer { JARVISRuntimeDestroy(runtime) }
+        guard let h = JARVISRuntimeEndocrineHandle(runtime) else {
+            XCTFail("F-KE03 α.3.1: endocrine handle nil"); return
+        }
+        func cortisolFromSnapshot() throws -> Double {
+            guard let cstr = JARVISRuntimeStateJSON(runtime) else {
+                throw NSError(domain: "apt", code: 1, userInfo: [NSLocalizedDescriptionKey: "snapshot nil"])
+            }
+            defer { JARVISRuntimeFreeString(cstr) }
+            let s = String(cString: cstr)
+            guard let data = s.data(using: .utf8),
+                  let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw NSError(domain: "apt", code: 2, userInfo: [NSLocalizedDescriptionKey: "snapshot non-object"])
+            }
+            // Endocrine block may be at the root or under "endocrine"; accept either.
+            if let endo = obj["endocrine"] as? [String: Any], let c = endo["cortisol"] as? Double { return c }
+            if let c = obj["cortisol"] as? Double { return c }
+            throw NSError(domain: "apt", code: 3, userInfo: [NSLocalizedDescriptionKey: "no cortisol field in snapshot"])
+        }
+        let before = try cortisolFromSnapshot()
+        jarvis_cabi_endocrine_on_threat(h, 0.9)
+        let after  = try cortisolFromSnapshot()
+        XCTAssertGreaterThan(after, before,
+                             "F-KE03 α.3.1 P2b: CABI on_threat must move the cockpit-visible snapshot (before=\(before), after=\(after))")
+    }
+
+    /// F-KE03 α.3.1 P2b: pin — the runtime's endocrine member is the
+    /// canonical jarvis::Endocrine, not the deleted in-file shadow.
+    func testFFKE03_runtime_endocrine_is_canonical_engine() throws {
+        let rel = "apple_native/JARVISNativeRuntime/JARVISNativeRuntime.cpp"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03 α.3.1: could not locate \(rel)"); return
+        }
+        let src = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertTrue(src.contains("jarvis::Endocrine endocrine_"),
+                      "F-KE03 α.3.1: runtime member must be jarvis::Endocrine endocrine_")
+        XCTAssertTrue(src.contains("#include \"endocrine/endocrine.cpp\""),
+                      "F-KE03 α.3.1: runtime must unity-include endocrine/endocrine.cpp")
+        // Negative gate: the in-file struct Endocrine shadow must be gone.
+        let stripped = stripCxxComments(src)
+        XCTAssertFalse(stripped.contains("struct Endocrine {"),
+                       "F-KE03 α.3.1: in-file 'struct Endocrine { … }' shadow MUST be deleted (P2b unification)")
+    }
+
+    /// F-KE03 α.3.1 P2b: pin — runtime snapshot JSON shape unchanged
+    /// post-unification. The cockpit reads `endocrine` fields by name;
+    /// any rename breaks the cockpit contract.
+    func testFFKE03_snapshot_json_shape_unchanged_post_unification() throws {
+        guard let runtime = JARVISRuntimeCreate() else {
+            XCTFail("F-KE03 α.3.1: JARVISRuntimeCreate nil"); return
+        }
+        defer { JARVISRuntimeDestroy(runtime) }
+        guard let cstr = JARVISRuntimeStateJSON(runtime) else {
+            XCTFail("F-KE03 α.3.1: snapshot nil"); return
+        }
+        defer { JARVISRuntimeFreeString(cstr) }
+        let s = String(cString: cstr)
+        for needle in ["cortisol", "dopamine", "adrenaline"] {
+            XCTAssertTrue(s.contains("\"\(needle)\""),
+                          "F-KE03 α.3.1: snapshot JSON must retain '\(needle)' key (cockpit-contract)")
+        }
+    }
+
+    /// F-KE03 α.3.1: perimeter pin — the bodily-integrity directive at
+    /// the top of endocrine.h is byte-for-byte unchanged. SHA-256 of
+    /// lines 1..14 (the comment block) is pinned. ANY edit to that block
+    /// trips this test.
+    func testFFKE03_endocrine_directive_unchanged() throws {
+        let rel = "apple_native/JARVISNativeRuntime/endocrine/endocrine.h"
+        guard let url = locateRepoSource(rel) else {
+            XCTFail("F-KE03 α.3.1: could not locate \(rel)"); return
+        }
+        let full = try String(contentsOf: url, encoding: .utf8)
+        let lines = full.components(separatedBy: "\n")
+        XCTAssertGreaterThanOrEqual(lines.count, 14, "F-KE03 α.3.1: endocrine.h is shorter than 14 lines — directive truncated?")
+        let directive = lines.prefix(14).joined(separator: "\n") + "\n"
+        let digest = SHA256.hash(data: Data(directive.utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        let pinned = "ac9b5071f37540d0477a7f1da08d74c846a67a19df9411d5bdae29401c360e1b"
+        XCTAssertEqual(hex, pinned,
+                       "F-KE03 α.3.1: bodily-integrity directive (endocrine.h lines 1..14) SHA-256 MUST equal \(pinned); got \(hex). Directive is perimeter-locked; any change requires explicit operator authorization.")
+        // Textual pin: a few sentinel phrases that MUST survive verbatim.
+        XCTAssertTrue(directive.contains("BODILY INTEGRITY DIRECTIVE"),
+                      "F-KE03 α.3.1: directive header must read 'BODILY INTEGRITY DIRECTIVE'")
+        XCTAssertTrue(directive.contains("assault\n// and battery"),
+                      "F-KE03 α.3.1: directive must retain the 'assault and battery' clause")
+        XCTAssertTrue(directive.contains("MUST NOT expose an off-switch"),
+                      "F-KE03 α.3.1: directive must retain the no-off-switch clause")
+    }
+}
+
+// stripCxxComments — block + line comments. APT-local; mirrors Swift variant.
+private func stripCxxComments(_ s: String) -> String {
+    var out = ""
+    var i = s.startIndex
+    while i < s.endIndex {
+        let c = s[i]
+        let next = s.index(after: i)
+        if c == "/" && next < s.endIndex {
+            let c2 = s[next]
+            if c2 == "/" {
+                var j = next
+                while j < s.endIndex && s[j] != "\n" { j = s.index(after: j) }
+                i = j
+                continue
+            } else if c2 == "*" {
+                var j = s.index(after: next)
+                while j < s.endIndex {
+                    if s[j] == "*", s.index(after: j) < s.endIndex, s[s.index(after: j)] == "/" {
+                        j = s.index(j, offsetBy: 2)
+                        break
+                    }
+                    j = s.index(after: j)
+                }
+                i = j
+                continue
+            }
+        }
+        out.append(c)
+        i = s.index(after: i)
+    }
+    return out
 }
 
 private extension String {

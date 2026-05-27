@@ -107,7 +107,7 @@ let package = Package(
         ),
         .testTarget(
             name: "JARVISMacCockpitTests",
-            dependencies: ["JARVISMacCockpit"],
+            dependencies: ["JARVISMacCockpit", "NativeRuntimeModule"],
             path: "Tests/JARVISMacCockpitTests",
             swiftSettings: [
                 .define("JARVIS_INSECURE_PATHS")

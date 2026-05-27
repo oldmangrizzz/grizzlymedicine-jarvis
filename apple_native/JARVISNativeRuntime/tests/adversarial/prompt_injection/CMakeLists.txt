@@ -24,6 +24,10 @@ set(RUNTIME_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 add_library(jarvis_prompt_injection_native STATIC
     ${RUNTIME_ROOT}/JARVISNativeRuntime.cpp
 )
+# R11l α.3.1: JARVISNativeRuntime now embeds jarvis::Endocrine via an
+# include-the-cpp pattern in JARVISNativeRuntime.cpp itself; no extra source
+# needs to be listed here. The endocrine.cpp translation unit is satisfied
+# transitively at compile time (single TU, no separate object file).
 target_include_directories(jarvis_prompt_injection_native PUBLIC ${RUNTIME_ROOT})
 target_compile_features(jarvis_prompt_injection_native PUBLIC cxx_std_20)
 target_compile_options(jarvis_prompt_injection_native PRIVATE -fno-omit-frame-pointer -ffp-contract=off -fno-unsafe-math-optimizations -g -O1)

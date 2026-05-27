@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ai.realjarvis.audit.armer.plist
+  V4R R11l α.3.1 (F-KE03 in-threat-model coverage)
+
+  LaunchDaemon for the privileged SF_APPEND armer. Runs as root (the default
+  for LaunchDaemons under /Library/LaunchDaemons) — required because chflags
+  with SF_APPEND requires super-user per chflags(2).
+
+  Mach service: ai.realjarvis.audit.armer. Matches sfAppendArmerMachServiceName
+  in SFAppendArmerXPCProtocol.swift.
+
+  RunAtLoad: true so launchd boots the helper at system load; on-demand
+  XPC dispatch handles subsequent invocations.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ai.realjarvis.audit.armer</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/libexec/jarvis-audit-armer</string>
+    </array>
+
+    <key>MachServices</key>
+    <dict>
+        <key>ai.realjarvis.audit.armer</key>
+        <true/>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <false/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/var/log/jarvis-audit-armer.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/var/log/jarvis-audit-armer.log</string>
+</dict>
+</plist>

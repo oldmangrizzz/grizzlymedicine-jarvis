@@ -108,3 +108,45 @@ private:
 };
 
 } // namespace jarvis
+
+// ============================================================
+// R11l α.3.1 — extern "C" CABI shim layer for Swift-side write access.
+//
+// Authorized by operator (Robert "Grizzly" Hanson, 2026-05-26, P2/P2b grant).
+// Pure passthrough only — these symbols MUST NOT add logic, state, or
+// re-entry semantics on top of jarvis::Endocrine. Any deviation requires a
+// fresh operator authorization. The Bodily Integrity Directive at the top of
+// this file binds the shims as much as the C++ surface.
+//
+// Opaque-handle pattern: `jarvis_endocrine_t *` is reinterpret_cast'd from
+// `jarvis::Endocrine *`. Callers (Swift) obtain a handle via
+// `JARVISRuntimeEndocrineHandle(JARVISNativeRuntime*)` on the runtime CABI
+// surface — endocrine.h knows nothing about JARVISNativeRuntime.
+// ============================================================
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct jarvis_endocrine_t jarvis_endocrine_t;
+
+// Pure passthrough to jarvis::Endocrine::on_threat(severity).
+// Returns silently on null handle. No allocation, no exceptions.
+void jarvis_cabi_endocrine_on_threat(jarvis_endocrine_t *endocrine, double severity);
+
+// Pure passthrough to jarvis::Endocrine::stimulus(cortisol, dopamine, adrenaline).
+// Returns silently on null handle. No allocation, no exceptions.
+void jarvis_cabi_endocrine_stimulus(jarvis_endocrine_t *endocrine,
+                                    double cortisol,
+                                    double dopamine,
+                                    double adrenaline);
+
+// Pure passthrough to jarvis::Endocrine::level(hormone). hormone is a
+// NUL-terminated UTF-8 string; must be exactly one of "cortisol", "dopamine",
+// "adrenaline". Returns NaN on null handle, null/unknown hormone, or any
+// internal exception (callers MUST check std::isnan). The underlying call is
+// thread-safe.
+double jarvis_cabi_endocrine_level(jarvis_endocrine_t *endocrine, const char *hormone);
+
+#ifdef __cplusplus
+}
+#endif
